@@ -1,0 +1,6 @@
+/.gopath/bin
+/.gopath/pkg
+/.gopath/.glidehash
+
+/.gimme*/
+/vendor/

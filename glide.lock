@@ -1,0 +1,51 @@
+hash: 346cba511fbe14cdd93439b43dddb588bb126206ffc72385fe2e40d1555f586b
+updated: 2016-06-14T12:32:19.196950396-05:00
+imports:
+- name: flywheel.io/deja
+  version: 53c6aaa3c970e7d72125ff28e0bc3336b1f3c7b5
+  repo: git@github.com:flywheel-io/deja.git
+- name: github.com/go-stack/stack
+  version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82
+- name: github.com/inconshreveable/log15
+  version: 20bca5a7a57282e241fac83ec9ea42538027f1c1
+  subpackages:
+  - term
+- name: github.com/kr/fs
+  version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
+- name: github.com/kr/pretty
+  version: add1dbc86daf0f983cd4a48ceb39deb95c729b67
+- name: github.com/kr/text
+  version: 7cafcd837844e784b526369c9bce262804aebc60
+- name: github.com/mattn/go-colorable
+  version: 9056b7a9f2d1f2d96498d6d146acd1f9d5ed3d59
+- name: github.com/mattn/go-isatty
+  version: 56b76bdf51f7708750eac80fa38b952bb9f32639
+- name: github.com/pkg/errors
+  version: 01fa4104b9c248c8945d14d9f128454d5b28d595
+- name: github.com/pkg/sftp
+  version: 4c7551ad7e113c8cc02a45b8d159065fc9c2a734
+- name: github.com/polydawn/gosh
+  version: af5311114e0e8e9b9bef23179c0422b64943d7d3
+- name: github.com/spacemonkeygo/errors
+  version: 0b05cac8509e79700959e44f6cf22fbb1f9094d2
+  repo: https://github.com/polydawn/errors
+  subpackages:
+  - try
+- name: github.com/spf13/afero
+  version: 1a8ecf8b9da1fb5306e149e83128fc447957d2a8
+- name: golang.org/x/crypto
+  version: f3241ce8505855877cc8a9717bd61a0f7c4ea83c
+  subpackages:
+  - ssh
+- name: golang.org/x/sys
+  version: 5a8c7f28c1853e998847117cf1f3fe96ce88a59f
+  subpackages:
+  - unix
+- name: golang.org/x/text
+  version: e4775119bd79944a15a741ac4be61e43509a70d9
+  subpackages:
+  - transform
+  - unicode/norm
+- name: xi2.org/x/xz
+  version: 19aeb13c4e7cb6bd3188dfede73840f33455425a
+devImports: []

@@ -1,0 +1,37 @@
+package: flywheel.io/scientist
+import:
+- package: flywheel.io/deja
+  repo: git@github.com:flywheel-io/deja.git
+- package: github.com/spacemonkeygo/errors
+  repo: https://github.com/polydawn/errors
+  subpackages:
+  - try
+- package: github.com/kr/pretty
+- package: github.com/kr/text
+- package: github.com/polydawn/gosh
+- package: github.com/spf13/afero
+- package: xi2.org/x/xz
+- package: github.com/pkg/sftp
+- package: golang.org/x/text
+  subpackages:
+  - transform
+  - unicode/norm
+- package: github.com/kr/fs
+- package: github.com/pkg/errors
+- package: golang.org/x/crypto
+  subpackages:
+  - ssh
+ignore:
+- net/http/httptrace
+- flywheel.io/deja/discovery
+- flywheel.io/deja/filesystem
+- flywheel.io/deja/flak
+- flywheel.io/deja/flak/features
+- flywheel.io/deja/flak/fspatch
+- flywheel.io/deja/job
+- flywheel.io/deja/provider
+- flywheel.io/deja/provider/nsinit
+- flywheel.io/deja/transport/aufs
+- flywheel.io/deja/transport/bind
+- flywheel.io/deja/transport/file
+- flywheel.io/deja/transport/http

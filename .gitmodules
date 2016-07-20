@@ -1,0 +1,9 @@
+[submodule ".gopath/src/github.com/travis-ci/gimme"]
+	path = .gopath/src/github.com/travis-ci/gimme
+	url = https://github.com/travis-ci/gimme
+[submodule ".gopath/src/github.com/Masterminds/glide"]
+	path = .gopath/src/github.com/Masterminds/glide
+	url = https://github.com/Masterminds/glide
+[submodule ".gopath/src/github.com/maruel/panicparse"]
+	path = .gopath/src/github.com/maruel/panicparse
+	url = https://github.com/maruel/panicparse

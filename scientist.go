@@ -43,9 +43,8 @@ func main() {
 		project.Run(args)
 	case "frun":
 		project.Frun(args)
-
-	// case "export":
-	// 	RunProject(args, log)
+	case "export":
+		project.Export(args)
 
 	default:
 		Println("Unknown command")

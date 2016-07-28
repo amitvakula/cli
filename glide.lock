@@ -2,7 +2,7 @@ hash: 346cba511fbe14cdd93439b43dddb588bb126206ffc72385fe2e40d1555f586b
 updated: 2016-06-14T12:32:19.196950396-05:00
 imports:
 - name: flywheel.io/deja
-  version: 53c6aaa3c970e7d72125ff28e0bc3336b1f3c7b5
+  version: 95eb8107778b73c3b70ed637f20e508763b9d7d1
   repo: git@github.com:flywheel-io/deja.git
 - name: github.com/go-stack/stack
   version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82

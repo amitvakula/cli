@@ -20,14 +20,25 @@ type Project struct {
 	Env  map[string]string `json:"env,omitempty"`
 	Args []string          `json:"args,omitempty"`
 
-	Inputs []string `json:"inputs,omitempty"`
+	Inputs map[string]interface{} `json:"inputs,omitempty"`
+	Output map[string]interface{} `json:"output,omitempty"`
 
-	// "inputs": {
-	// 		"dicom": {
-	// 			"base": "file",
-	// 			"type": { "enum": [ "dicom" ] }
-	// 		}
-	// }
+	Command []string `json:"command,omitempty"`
+
+	/*
+		"inputs": {
+			"example": {
+				"flag": "-i"
+			}
+		},
+		"output": {
+			"flag": "-o"
+		},
+		"command": [
+			"python", "./rot13.py"
+		]
+
+	*/
 }
 
 func (p *Project) Encode() []byte {

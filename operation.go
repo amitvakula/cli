@@ -84,15 +84,71 @@ func (p *Project) Import(args []string) {
 func (p *Project) Run(args []string) {
 	dir := filepath.Dir(p.Path)
 
-	f := &job.Formula{
-		Inputs: []*job.Input{
-			p.Input,
-			&job.Input{
-				Type:     "bind",
-				URI:      dir,
-				Location: dir,
-			},
+	inputs := []*job.Input{
+		p.Input,
+		&job.Input{
+			Type:     "bind",
+			URI:      dir,
+			Location: dir,
 		},
+	}
+
+	// Throw input flags in a map for easy lookup.
+	flags := map[string]interface{}{}
+	for _, y := range p.Inputs {
+		y := y.(map[string]interface{})
+		flag := y["flag"].(string)
+		flags[flag] = nil
+	}
+
+	// Throw output flag in map.
+	flags[p.Output["flag"].(string)] = nil
+
+	for index, flag := range args {
+		_, isFlag := flags[flag]
+
+		// Check that it's an input flags that was not passed as the very last argument.
+		if isFlag && index != len(args)-1 {
+			param := args[index+1]
+			baseDir := filepath.Dir(p.Path)
+
+			abs, err := filepath.Abs(param)
+			if err != nil {
+				Println(err)
+				os.Exit(1)
+			}
+
+			// If the parameter inside the project dir, we don't need extra mounts
+			if strings.HasPrefix(abs, baseDir) {
+				continue
+			}
+
+			// Check the potential mount path
+			mountPath := abs
+			info, err := os.Stat(abs)
+			if err != nil && !os.IsNotExist(err) {
+				Println(err)
+				os.Exit(1)
+			}
+
+			// If the path does not exist or is a file, assume we should mount the folder instead.
+			if info == nil || !info.IsDir() {
+				mountPath = filepath.Dir(abs)
+			}
+
+			// Println("Flag", flag, "was passed", param, "which is outside project directory. Mounting", mountPath)
+
+			// Add bind mount to the formula.
+			inputs = append(inputs, &job.Input{
+				Type:     "bind",
+				URI:      mountPath,
+				Location: mountPath,
+			})
+		}
+	}
+
+	f := &job.Formula{
+		Inputs: inputs,
 		Target: job.Target{
 			Command: args,
 			Env:     p.Env,
@@ -217,10 +273,6 @@ func (p *Project) Export(args []string) {
 	log := log15.New()
 	log.SetHandler(log15.LvlFilterHandler(log15.LvlError, log15.StderrHandler))
 	result := provider.Run(f, provider.Logger(log))
-
-	resultBytes, _ := json.MarshalIndent(result, "", "\t")
-	Println(string(resultBytes))
-
 	os.Exit(result.Result.ExitCode)
 }
 

@@ -1,11 +1,17 @@
-hash: 346cba511fbe14cdd93439b43dddb588bb126206ffc72385fe2e40d1555f586b
+hash: c951f17db8b88f4dc3f4b96a7e08faa0374265cd55928ca7b4f3fb3f2a7e3e72
 updated: 2016-06-14T12:32:19.196950396-05:00
 imports:
 - name: flywheel.io/deja
   version: 95eb8107778b73c3b70ed637f20e508763b9d7d1
   repo: git@github.com:flywheel-io/deja.git
+- name: github.com/dghubble/sling
+  version: 52e88a7b75a5db3b49f8911f16d49d9b7b67adc5
 - name: github.com/go-stack/stack
   version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82
+- name: github.com/google/go-querystring
+  version: 9235644dd9e52eeae6fa48efd539fdc351a0af53
+  subpackages:
+  - query
 - name: github.com/inconshreveable/log15
   version: 20bca5a7a57282e241fac83ec9ea42538027f1c1
   subpackages:
@@ -48,4 +54,4 @@ imports:
   - unicode/norm
 - name: xi2.org/x/xz
   version: 19aeb13c4e7cb6bd3188dfede73840f33455425a
-devImports: []
+testImports: []

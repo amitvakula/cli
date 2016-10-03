@@ -21,6 +21,7 @@ import:
 - package: golang.org/x/crypto
   subpackages:
   - ssh
+- package: github.com/dghubble/sling
 ignore:
 - net/http/httptrace
 - flywheel.io/deja/discovery

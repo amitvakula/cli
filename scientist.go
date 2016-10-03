@@ -24,27 +24,37 @@ func main() {
 	args := os.Args[1:]
 
 	if len(args) <= 0 {
-		Println("Usage: scientist {init|use|import|run|frun|export}")
+		Println("Usage: scientist {init|use|import|run|frun|export|login|ls|download}")
 		os.Exit(0)
 	}
 
 	command := args[0]
 	args = args[1:]
-	project := Setup()
 
 	switch command {
 	case "init":
 		break
 	case "use":
+		project := Setup()
 		project.Use(args)
 	case "import":
+		project := Setup()
 		project.Import(args)
 	case "run":
+		project := Setup()
 		project.Run(args)
 	case "frun":
+		project := Setup()
 		project.Frun(args)
 	case "export":
+		project := Setup()
 		project.Export(args)
+	case "login":
+		Login(args)
+	case "ls":
+		Ls(args)
+	case "download":
+		Download(args)
 
 	default:
 		Println("Unknown command")

@@ -1,19 +1,385 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	. "fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
-	// "text/template"
 
+	"github.com/dghubble/sling"
 	"github.com/inconshreveable/log15"
 
 	"flywheel.io/deja/job"
 	"flywheel.io/deja/provider"
 )
+
+func client(host, key string) (*http.Client, *sling.Sling) {
+
+	// Create a custom transport that accepts the passed insecure setting
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
+	// Load transport into a client
+	client := &http.Client{Transport: tr}
+
+	// Load http client into library
+	return client, sling.New().
+		Base("https://"+host+"/").Path("api/").
+		Set("Authorization", "scitran-user "+key).
+		Client(client)
+}
+
+type self struct {
+	Id        string                 `json:"_id"`
+	Key       map[string]interface{} `json:"api_key"`
+	Email     string                 `json:"email"`
+	Firstname string                 `json:"firstname"`
+	Lastname  string                 `json:"lastname"`
+}
+
+type apierr struct {
+	Message    string `json:"message"`
+	StatusCode int    `json:"status_code"`
+}
+
+type group struct {
+	Id   string `json:"_id"`
+	Name string `json:"name"`
+}
+type project struct {
+	Id    string `json:"_id"`
+	Group string `json:"group"`
+	Label string `json:"label"`
+}
+type session struct {
+	Id        string `json:"_id"`
+	Group     string `json:"group"`
+	ProjectId string `json:"project"`
+	Label     string `json:"label"`
+}
+type file struct {
+	Name string `json:"name"`
+}
+type acquisition struct {
+	Id        string `json:"_id"`
+	SessionId string `json:"session"`
+	Label     string `json:"label"`
+	Files     []file `json:"files"`
+}
+
+func check(resp *http.Response, err error, aerr apierr) {
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+	if resp.StatusCode != 200 {
+		Println(resp)
+		Println()
+		Println(aerr.Message)
+		os.Exit(1)
+	}
+}
+
+func Login(args []string) {
+	if len(args) != 2 {
+		Println("login takes 2 arguments: a URL pointing at the FLywheel web app, and your API key.")
+		os.Exit(1)
+	}
+
+	flyS := args[0]
+	key := args[1]
+
+	url, err := url.Parse(flyS)
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+	_, client := client(url.Host, key)
+
+	var user self
+	var aerr apierr
+	resp, err := client.New().Get("users/self").Receive(&user, &aerr)
+	check(resp, err, aerr)
+
+	Println("Logged in as", user.Firstname, user.Lastname, "<"+user.Email+">")
+
+	creds := map[string]string{
+		"host": url.Host,
+		"key":  key,
+	}
+
+	whelp, _ := json.MarshalIndent(creds, "", "\t")
+
+	err = ioutil.WriteFile("user.json", whelp, 0644)
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+}
+
+func LsGroups(client *sling.Sling) []group {
+	var aerr apierr
+	var groups []group
+
+	resp, err := client.New().Get("groups").Receive(&groups, &aerr)
+	check(resp, err, aerr)
+	return groups
+}
+
+func LsProjects(client *sling.Sling, group string) []project {
+	var aerr apierr
+	var projects []project
+
+	resp, err := client.New().Get("projects").Receive(&projects, &aerr)
+	check(resp, err, aerr)
+
+	var filteredProjects []project
+	for _, x := range projects {
+		if x.Group == group {
+			filteredProjects = append(filteredProjects, x)
+		}
+	}
+	return filteredProjects
+}
+
+func GetProjectId(client *sling.Sling, group, project string) string {
+	projects := LsProjects(client, group)
+
+	for _, x := range projects {
+		if x.Label == project {
+			return x.Id
+		}
+	}
+
+	Println(group, project)
+
+	Println("Project", project, "not found")
+	os.Exit(1)
+	return ""
+}
+
+func LsSessions(client *sling.Sling, group, project string) []session {
+	var aerr apierr
+	var sessions []session
+
+	resp, err := client.New().Get("sessions").Receive(&sessions, &aerr)
+	check(resp, err, aerr)
+
+	projectId := GetProjectId(client, group, project)
+
+	var filteredSessions []session
+	for _, x := range sessions {
+		if x.Group == group && x.ProjectId == projectId {
+			filteredSessions = append(filteredSessions, x)
+		}
+	}
+	return filteredSessions
+}
+
+func GetSessionId(client *sling.Sling, group, project, session string) string {
+	sessions := LsSessions(client, group, project)
+	projectId := GetProjectId(client, group, project)
+
+	for _, x := range sessions {
+		if x.ProjectId == projectId && x.Label == session {
+			return x.Id
+		}
+	}
+
+	Println("Session", session, "not found")
+	os.Exit(1)
+	return ""
+}
+
+func LsAcquisitions(client *sling.Sling, group, project, session string) []acquisition {
+	var aerr apierr
+	var acquisitions []acquisition
+
+	resp, err := client.New().Get("acquisitions").Receive(&acquisitions, &aerr)
+	check(resp, err, aerr)
+
+	sessionId := GetSessionId(client, group, project, session)
+
+	var filteredAcquisitions []acquisition
+	for _, x := range acquisitions {
+		if x.SessionId == sessionId {
+			filteredAcquisitions = append(filteredAcquisitions, x)
+		}
+	}
+	return filteredAcquisitions
+}
+
+func DownloadFile(client *sling.Sling, hclient *http.Client, group, project, session, acquisition, filename string) {
+
+	acquisitions := LsAcquisitions(client, group, project, session)
+	for _, y := range acquisitions {
+		if y.Label == acquisition {
+			for _, x := range y.Files {
+				if x.Name == filename {
+
+					file, err := os.Create(filename)
+					if err != nil {
+						Println(err)
+						os.Exit(1)
+					}
+					defer file.Close()
+
+					req, err := client.New().Get("acquisitions/" + y.Id + "/files/" + filename).Request()
+					if err != nil {
+						Println(err)
+						os.Exit(1)
+					}
+
+					resp, err := hclient.Do(req)
+					if err != nil {
+						Println(err)
+						os.Exit(1)
+					}
+
+					_, err = io.Copy(file, resp.Body)
+					if err != nil {
+						Println(err)
+						os.Exit(1)
+					}
+
+				}
+			}
+		}
+	}
+
+}
+
+func Download(args []string) {
+	b, err := ioutil.ReadFile("user.json")
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+
+	var creds map[string]string
+	err = json.Unmarshal(b, &creds)
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+
+	hclient, client := client(creds["host"], creds["key"])
+
+	if len(args) != 1 {
+		Println("Download requires one argument: the path of the file to download.")
+		os.Exit(1)
+	}
+
+	path := args[0]
+	frags := strings.Split(path, "/")
+
+	if len(frags) != 5 {
+		Println("Download path must be of form 'group/project/session/acquisition/filename'")
+		os.Exit(1)
+	}
+
+	DownloadFile(client, hclient, frags[0], frags[1], frags[2], frags[3], frags[4])
+}
+
+func Ls(args []string) {
+	b, err := ioutil.ReadFile("user.json")
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+
+	var creds map[string]string
+	err = json.Unmarshal(b, &creds)
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+
+	_, client := client(creds["host"], creds["key"])
+
+	level := "groups"
+	group := ""
+	project := ""
+	session := ""
+	acquisition := ""
+	if len(args) == 1 {
+		path := args[0]
+
+		frags := strings.Split(path, "/")
+
+		switch len(frags) {
+		case 1:
+			level = "projects"
+			group = frags[0]
+		case 2:
+			level = "sessions"
+			group = frags[0]
+			project = frags[1]
+		case 3:
+			level = "acquisitions"
+			group = frags[0]
+			project = frags[1]
+			session = frags[2]
+		case 4:
+			level = "files"
+			group = frags[0]
+			project = frags[1]
+			session = frags[2]
+			acquisition = frags[3]
+		default:
+			Println("I'm not sure what you mean by " + path)
+			os.Exit(1)
+		}
+	}
+
+	switch level {
+	case "groups":
+		groups := LsGroups(client)
+
+		for _, y := range groups {
+			Println(y.Id, y.Name)
+		}
+	case "projects":
+		projects := LsProjects(client, group)
+
+		for _, y := range projects {
+			Println(y.Label)
+		}
+	case "sessions":
+		sessions := LsSessions(client, group, project)
+
+		for _, y := range sessions {
+			Println(y.Label)
+		}
+	case "acquisitions":
+		acquisitions := LsAcquisitions(client, group, project, session)
+
+		for _, y := range acquisitions {
+			Println(y.Label)
+		}
+	case "files":
+		acquisitions := LsAcquisitions(client, group, project, session)
+
+		for _, y := range acquisitions {
+			if y.Label == acquisition {
+				for _, x := range y.Files {
+					Println(x.Name)
+				}
+			}
+		}
+	default:
+		Println("Error, unknown hierarchy level")
+		os.Exit(1)
+	}
+
+}
 
 func (p *Project) Use(args []string) {
 	if len(args) != 1 {

@@ -1,5 +1,4 @@
-hash: c951f17db8b88f4dc3f4b96a7e08faa0374265cd55928ca7b4f3fb3f2a7e3e72
-updated: 2016-06-14T12:32:19.196950396-05:00
+hash: 63698a5f92a60951e18bd59d5d8231f9403b277d945019c83d978a944f69af21
 imports:
 - name: flywheel.io/deja
   version: 95eb8107778b73c3b70ed637f20e508763b9d7d1
@@ -26,6 +25,8 @@ imports:
   version: 9056b7a9f2d1f2d96498d6d146acd1f9d5ed3d59
 - name: github.com/mattn/go-isatty
   version: 56b76bdf51f7708750eac80fa38b952bb9f32639
+- name: github.com/mitchellh/go-homedir
+  version: 756f7b183b7ab78acdbbee5c7f392838ed459dda
 - name: github.com/pkg/errors
   version: 01fa4104b9c248c8945d14d9f128454d5b28d595
 - name: github.com/pkg/sftp

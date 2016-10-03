@@ -3,7 +3,7 @@ set -e
 set -o pipefail
 unset CDPATH; cd "$( dirname "${BASH_SOURCE[0]}" )"
 
-pkg="flywheel.io/scientist"       # Project's full package name
+pkg="flywheel.io/fw"              # Project's full package name
 goVersion=${GO_VERSION:-"1.6.1"}  # Which go version to use by default
 goIsolate=false                   # Allow gimme to install a user-wide go install?
 

@@ -14,6 +14,7 @@ import (
 
 	"github.com/dghubble/sling"
 	"github.com/inconshreveable/log15"
+	homedir "github.com/mitchellh/go-homedir"
 
 	"flywheel.io/deja/job"
 	"flywheel.io/deja/provider"
@@ -117,7 +118,18 @@ func Login(args []string) {
 
 	whelp, _ := json.MarshalIndent(creds, "", "\t")
 
-	err = ioutil.WriteFile("user.json", whelp, 0644)
+	dir, err := homedir.Expand("~/.config/flywheel")
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+	err = os.MkdirAll(dir, 0755)
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+
+	err = ioutil.WriteFile(filepath.Join(dir, "user.json"), whelp, 0644)
 	if err != nil {
 		Println(err)
 		os.Exit(1)
@@ -257,7 +269,13 @@ func DownloadFile(client *sling.Sling, hclient *http.Client, group, project, ses
 }
 
 func Download(args []string) {
-	b, err := ioutil.ReadFile("user.json")
+	dir, err := homedir.Expand("~/.config/flywheel")
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+
+	b, err := ioutil.ReadFile(filepath.Join(dir, "user.json"))
 	if err != nil {
 		Println(err)
 		os.Exit(1)
@@ -289,7 +307,13 @@ func Download(args []string) {
 }
 
 func Ls(args []string) {
-	b, err := ioutil.ReadFile("user.json")
+	dir, err := homedir.Expand("~/.config/flywheel")
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+
+	b, err := ioutil.ReadFile(filepath.Join(dir, "user.json"))
 	if err != nil {
 		Println(err)
 		os.Exit(1)

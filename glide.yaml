@@ -22,6 +22,7 @@ import:
   subpackages:
   - ssh
 - package: github.com/dghubble/sling
+- package: github.com/mitchellh/go-homedir
 ignore:
 - net/http/httptrace
 - flywheel.io/deja/discovery

@@ -1,128 +1,149 @@
 #!/usr/bin/env bash
 set -e
 set -o pipefail
-unset CDPATH; cd "$( dirname "${BASH_SOURCE[0]}" )"
+unset CDPATH; cd "$( dirname "${BASH_SOURCE[0]}" )"; cd "`pwd -P`"
 
-pkg="flywheel.io/fw"              # Project's full package name
-goVersion=${GO_VERSION:-"1.6.1"}  # Which go version to use by default
-goIsolate=false                   # Allow gimme to install a user-wide go install?
+pkg="flywheel.io/fw"       # Project's full package name
+goV=${GO_VERSION:-"1.7.1"} # Project's default Go version
+minGlideV="0.12.3"         # Project's minimum Glide version
 
-# Isolate this project's gopath
-export GOPATH="$PWD"/.gopath/
+# Load GNU coreutils on OSX
+if [[ "$(uname -s)" == "Darwin" ]]; then
+	which brew gsort gsed > /dev/null || (
+		echo "On OSX, homebrew is required. Install from http://brew.sh"
+		echo "Then, run 'brew install coreutils gnu-sed' to install gnu tools."
+	)
+	export PATH="$(brew --prefix coreutils)/libexec/gnubin:$PATH"
+	export PATH="$(brew --prefix gnu-sed)/libexec/gnubin:$PATH"
+fi
 
-getSub() {
-	git submodule update --init $1 | (grep -v ': checked out ' || true)
+prepareGo() {
+	export GOPATH=$(cd ../../../; pwd) # Isolate this project's gopath
+	export GIMME_GO_VERSION=$goV       # Specify which Go version to install
+	export GIMME_SILENT_ENV=1          # Suppress logging on launch
+	export GIMME_TYPE="binary"         # Only use binary distributions
+	export GIMME_TMP="./.gimme-tmp"    # Would otherwise use /tmp/gimme, which is fragile
+	export GIMME_DEBUG=1               # Print installation commands (shows progress to user)
+	src=~/.gimme/envs/go${goV}.env     # Locate the source env file
+
+	# Clean up gimme's logging
+	filterActions='/^+/ {/^+ tar/p; /^+ curl/p; d};' # Only show curl & tar
+	filterEnv='/^unset/d; /^export/d;'               # Filter env setting
+	filterEmpty='/^\s*$/d;'                          # Filter empty lines
+	filterBinary='/(using type .*)/d;'               # Filter distribution type message
+	filterError='s/'"I don't have any idea what to do with"'/Download or install failed for go/g;' # Helpful error message
+
+	# Install go, clearing tempdir before & after, with nice messaging.
+	test -f $src || (
+		echo "Downloading go $goV..."
+		rm -rf $GIMME_TMP
+		curl -sL https://raw.githubusercontent.com/travis-ci/gimme/master/gimme | bash 2>&1 | sed "$filterActions $filterEnv $filterEmpty $filterBinary $filterError"
+		rm -rf $GIMME_TMP
+	)
+
+	# Load installed go and prepare for compiled tools
+	source $src
+	export PATH=$GOPATH/bin:$PATH
 }
 
-runGimme() { # Provision a Go environment.
-	test -z $SKIP_GIMME || return 0
-	folder=".gopath/src/github.com/travis-ci/gimme"
-	export gimme="$folder/gimme"
+installGlide() {
+	echo "Downloading glide $minGlideV or higher..."
+	mkdir -p $GOPATH/bin
+	rm -f $GOPATH/bin/glide
+	curl -sL https://glide.sh/get | bash
+}
 
-	test -f $gimme || getSub $folder # Acquire gimme
-	export GIMME_GO_VERSION=$goVersion # Use project's go version
-	export GIMME_SILENT_ENV=1 # Don't make noise on launch
-	export GIMME_TYPE="binary" # Don't run off into the trees and invoke make.bash :|
-	gFolder="./.gimme" # Would otherwise use /tmp/gimme; so much wrong with that
-	export GIMME_TMP="$gFolder-tmp" # Use a local folder instead!
+cleanGlide() {
+	# Timestamps confuse the diff, and glide works fine without this field
+	sed -i '/^updated: /d' glide.lock
+}
 
-	if $goIsolate; then
-		# Isolate the go install inside this project, rather than using homedir
-		export GIMME_VERSION_PREFIX="$gFolder/versions"
-		export GIMME_ENV_PREFIX="$gFolder/envs"
-		export GIMME_TMP="$gFolder/tmp"
+prepareGlide() {
+	test -x $GOPATH/bin/glide || installGlide
+
+	# Check the current glide version against the minimum project version
+	currentVersion=$(glide --version | cut -f 3 -d ' ' | tr -d 'v')
+	floorVersion=$(echo -e "$minGlideV\n$currentVersion" | sort -V | head -n 1)
+
+	if [[ $minGlideV != $floorVersion ]]; then
+		echo "Glide $currentVersion is older than required minimum $minGlideV; upgrading..."
+		installGlide
 	fi
 
-	filterActions='/^+/ {/^+ tar/p; /^+ curl/p; d};' # Only show curl & tar
-	filterEnv='/^unset/d; /^export/d;' # Filter out env setting (easier than eval)
-	filterEmpty='/^\s*$/d;' # Filter out empty lines
-	filterBinary='/(using type .*)/d;' # Filter out superfluous binary type msg
-	filterError='s/'"I don't have any idea what to do with"'/Download or install failed for go/g;' # On error, print a message that actually makes sense
-
-	# Install go, clearing tempdir before & after, then load env variables
-	rm -rf $GIMME_TMP
-	GIMME_DEBUG=1 $gimme 2>&1 | sed "$filterActions $filterEnv $filterEmpty $filterBinary $filterError"
-	rm -rf $GIMME_TMP
-	eval "$($gimme)" # Was easier to invoke than eval. Improvements accepted
-}
-
-prepGlide() {
-	glideHashFile=".gopath/.glidehash"
-	folder=".gopath/src/github.com/Masterminds/glide"
-	glide="$folder/glide"
-
-	test -f $glide || ( # Build glide from source if neccesary
-		getSub $folder; cd $folder
-		version=`git describe --tags` # Remove need for makefile by running manually
-		go build -v -o glide -ldflags "-X main.version=$version" glide.go # Build
-	)
-}
-
-runGlide() {
-	test -z $SKIP_GLIDE || return 0
-	prepGlide
-
-	genHash() { # Cache glide install runs by hashing state
-		cat glide.lock glide.yaml | sha1sum | cut -f 1 -d ' '
+	# Cache glide install runs by hashing state
+	glideHashFile=".glidehash"
+	genHash() {
+		cleanGlide
+		# Using `shasum` because `sha1sum` does not exist on OSX by default.
+		cat glide.lock glide.yaml | shasum -a 1 | cut -f 1 -d ' '
 	}
 
-	install() { # Whenever glide runs, update the hash marker
-		$glide install
+	install() {
+		# Whenever glide runs, update the hash marker
+		glide install
 		genHash > $glideHashFile
 	}
 
 	# If glide components are missing, or cache is out of date, run
 	test -f glide.lock -a -d vendor -a -f $glideHashFile || install
 	test `cat $glideHashFile` = `genHash` || install
-
 }
 
-novendor() {
-	# Glide novendor is good at finding folders with go code, but finds the local folder (.) too!
-	a=(`./make.sh glide novendor -x | grep -v '^.$'`)
-	b=(`find -maxdepth 1 -type f -name '*.go'`)
-	echo ${a[@]} ${b[@]}
+build() {
+	# Go prints lot of absolute paths; unclutter them.
+	hideGoroot="s#$GOROOT/src/##g;"
+	hideGopath="s#$GOPATH/src/##g;"
+	hideVendor="s#$pkg/vendor/##g;"
+	hidePWD="s#$PWD/##g;"
+	matchGo='[a-zA-Z0-9_]*\.go|'     # Match go source files
+
+	# Go install uses $GOPATH/pkg to cache built files
+	# Sed to clean up logging, then egrep to highlight parts of the output
+	go install -v $pkg 2>&1 | sed -u "$hideGoroot $hideGopath $hideVendor $hidePWD" | (egrep --color "$matchGo" || true)
+}
+
+crossBuild() {
+	oses=( "darwin" "linux" "windows" )
+	arches=( "386" "amd64" )
+	mkdir -p release
+
+	for os in "${oses[@]}"; do
+		for arch in "${arches[@]}"; do
+			echo "-- Building $os $arch --"
+			env GOOS=$os GOARCH=$arch go build -v -o release/`basename $pkg`-$os-$arch $pkg
+		done
+	done
+
+	echo
+	echo "Cross-compilation success!"
+}
+
+# List packages with source code: packageA, packageB... First argument is a prefix (optional)
+listPackages() {
+	find . -name '*.go' -printf "%h\n" | sed -E '/vendor/d; s#^\./##g; /\./d; s#^#'$1'#g' | sort | uniq
+}
+
+# List files in the main package. First argument is a prefix (optional)
+listBaseFiles() {
+	find -maxdepth 1 -type f -name '*.go' | sed 's#^\./##g; s#^#'$1'#g'
 }
 
 format() {
-	gofmt -w $(novendor)
+	gofmt -w -s $(listPackages; listBaseFiles)
 }
+
 formatCheck() {
-	badFiles=(`gofmt -l $(novendor)`)
+	badFiles=(`gofmt -l -s $(listPackages; listBaseFiles)`)
 	if [[ ${#badFiles[@]} -gt 0 ]]; then
 		echo "The following files need formatting: " ${badFiles[@]}
 		exit 1
 	fi
 }
 
-build() {
-	# Go's output is incredibly messy; force some sanity by removing filepaths
-	cleanVendor='s#'$PWD'/.gopath/src/'$pkg'/vendor/#vendor/#g;' # Import lookups
-	cleanVendor2='s#'$pkg'/vendor/##g;' # Error lines
-	cleanPwd='s#'$PWD'/.gopath/src/#$GOPATH/#g;' # Import lookups
-	cleanRoot='s#'$GOROOT'/src/#$GOROOT/#g;' # Import lookups
-	cleanErrors='s$^.gopath/src/$$g;' # General shenanigans
-	matchGo='[a-zA-Z0-9_]*\.go|' # Match go source files
-
-	# Sed & grep clean up paths and highlights the name of offending files, respectively
-	go install -v $pkg 2>&1 | sed -u "$cleanVendor $cleanVendor2 $cleanPwd $cleanRoot $cleanErrors" | (egrep --color "$matchGo" || true)
-
-}
-
-run() {
-	test -f .gopath/bin/panicparse || go install -v github.com/maruel/panicparse
-	.gopath/bin/`basename $pkg` ${args[@]} 2> >( .gopath/bin/panicparse )
-	sleep 0.1; echo
-}
-
 _test() {
-	./make.sh glide novendor -x | sed 's#^\.#'$pkg'#g' | xargs ./make.sh go test
+	hideEmptyTests="/\[no test files\]$/d;"
+	go test -v "$@" $pkg $(listPackages $pkg/) | sed "$hideEmptyTests"
 }
-
-prep() {
-	runGimme; runGlide
-}
-
 
 args=("$@")
 args[0]=${args[0]:-"build"}
@@ -130,47 +151,57 @@ cmd=${args[0]}
 args=("${args[@]:1}")
 
 case "$cmd" in
-	"build") # Standard full build (the default)
-		prep
-		build
-		format
-		;;
-	"make") # Just compile
-		prep
-		build
-		;;
-	"format") # Format in-place
-		runGimme
-		format
-		;;
-	"test") # Unit tests
-		prep
-		_test
-		;;
-	"run") # Execute binary with parse util
-		prep
-		build
-		run
-		;;
-	"novendor") # Output source folders & files
-		novendor
-		;;
 	"go" | "godoc" | "gofmt") # Go commands in project context
-		runGimme
+		prepareGo
 		$cmd ${args[@]}
 		;;
 	"glide") # Glide commands in project context
-		runGimme
-		prepGlide
-		$glide ${args[@]}
+		prepareGo
+		prepareGlide
+		glide ${args[@]}
+		cleanGlide
+		;;
+	"build") # Full build (the default)
+		prepareGo
+		prepareGlide
+		build
+		format
+		;;
+	"format") # Format code
+		prepareGo
+		format
+		;;
+	"clean") # Remove build state
+		prepareGo
+		rm -rvf $GOPATH/pkg $GOPATH/bin/${pkg##*/}
+		;;
+	"test") # Run tests
+		prepareGo
+		prepareGlide
+		_test ${args[@]}
+		;;
+	"env") # Load environment!   eval $(./make.sh env)
+		prepareGo 1>&2
+		prepareGlide 1>&2
+		(go env; echo "PATH=$PATH") | sed 's/^/export /g'
 		;;
 	"ci") # Monolithic CI target
-		prep
+		prepareGo
+		prepareGlide
 		build
 		formatCheck
+		_test -race
+		;;
+	"cross") # Cross-compile to every platform
+		export GOOS=darwin
+		export GOARCH=amd64
+		prepareGo
+		build
+		crossBuild
 		;;
 	*)
-		echo "Usage: ./make.sh {build|make|format|test|run|novendor|go|godoc|gofmt|glide|ci}"
+		echo "Usage: ./make.sh {}"
 		exit 1
 		;;
 esac
+

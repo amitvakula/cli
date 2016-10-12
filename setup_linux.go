@@ -10,7 +10,7 @@ import (
 	"flywheel.io/deja/job"
 )
 
-type Project struct {
+type GearProject struct {
 	Path    string `json:"-"`
 	Version int    `json:"version"`
 
@@ -24,31 +24,16 @@ type Project struct {
 	Output map[string]interface{} `json:"output,omitempty"`
 
 	Command []string `json:"command,omitempty"`
-
-	/*
-		"inputs": {
-			"example": {
-				"flag": "-i"
-			}
-		},
-		"output": {
-			"flag": "-o"
-		},
-		"command": [
-			"python", "./rot13.py"
-		]
-
-	*/
 }
 
-func (p *Project) Encode() []byte {
+func (p *GearProject) Encode() []byte {
 	// TODO: could just implement io.Writer instead
 	result, _ := json.MarshalIndent(p, "", "\t")
 	end := "\n" // json encode has no trailing newline? fix?
 	return append(result, end...)
 }
 
-func (p *Project) Save() {
+func (p *GearProject) Save() {
 	err := ioutil.WriteFile(p.Path, p.Encode(), 0644)
 	if err != nil {
 		Println(err)
@@ -56,14 +41,14 @@ func (p *Project) Save() {
 	}
 }
 
-func NewProject() *Project {
-	return &Project{
+func NewProject() *GearProject {
+	return &GearProject{
 		Version: 0,
 	}
 }
 
-func LoadProject(path string) *Project {
-	var p Project
+func LoadProject(path string) *GearProject {
+	var p GearProject
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		Println(err)
@@ -81,7 +66,7 @@ func LoadProject(path string) *Project {
 
 const FlywheelFile = "flywheel.json"
 
-func Setup() *Project {
+func Setup() *GearProject {
 	path, created := FindOrCreateFlywheelFile()
 
 	if created {

@@ -1,4 +1,4 @@
-hash: 63698a5f92a60951e18bd59d5d8231f9403b277d945019c83d978a944f69af21
+hash: 11ced9defa1568406547236cea7b737edbbbeee80f74507d66840058b32d4cde
 imports:
 - name: flywheel.io/deja
   version: 95eb8107778b73c3b70ed637f20e508763b9d7d1
@@ -7,6 +7,10 @@ imports:
   version: 52e88a7b75a5db3b49f8911f16d49d9b7b67adc5
 - name: github.com/go-stack/stack
   version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82
+- name: github.com/dustin/go-humanize
+  version: bd88f87ad3a420f7bcf05e90566fd1ceb351fa7f
+- name: github.com/fatih/color
+  version: dea9d3a26a087187530244679c1cfb3a42937794
 - name: github.com/google/go-querystring
   version: 9235644dd9e52eeae6fa48efd539fdc351a0af53
   subpackages:
@@ -15,6 +19,8 @@ imports:
   version: 20bca5a7a57282e241fac83ec9ea42538027f1c1
   subpackages:
   - term
+- name: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/kr/fs
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - name: github.com/kr/pretty
@@ -40,6 +46,10 @@ imports:
   - try
 - name: github.com/spf13/afero
   version: 1a8ecf8b9da1fb5306e149e83128fc447957d2a8
+- name: github.com/spf13/cobra
+  version: ec2fe7859914a5106dcab4e7901633d959bfc2f4
+- name: github.com/spf13/pflag
+  version: bf8481a6aebc13a8aab52e699ffe2e79771f5a3f
 - name: golang.org/x/crypto
   version: f3241ce8505855877cc8a9717bd61a0f7c4ea83c
   subpackages:

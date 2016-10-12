@@ -23,6 +23,9 @@ import:
   - ssh
 - package: github.com/dghubble/sling
 - package: github.com/mitchellh/go-homedir
+- package: github.com/fatih/color
+- package: github.com/spf13/cobra
+- package: github.com/dustin/go-humanize
 ignore:
 - net/http/httptrace
 - flywheel.io/deja/discovery

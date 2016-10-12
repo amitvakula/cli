@@ -1,6 +1,5 @@
-/.gopath/bin
-/.gopath/pkg
-/.gopath/.glidehash
-
-/.gimme*/
+/.glide/
+/.glidehash
+/.gimme-tmp/
+/release/
 /vendor/

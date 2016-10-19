@@ -54,7 +54,8 @@ func (p *GearProject) Provision(itype, uri, vu string) {
 
 	log := log15.New()
 	log.SetHandler(log15.LvlFilterHandler(log15.LvlError, log15.StderrHandler))
-	result := provider.Run(f, provider.Logger(log))
+	result, err := provider.Run(f, provider.Logger(log))
+	check(err)
 
 	p.Input = i
 	p.Input.VuID = result.Formula.Inputs[0].VuID // Workaround until deja doesn't modify result from caching
@@ -158,7 +159,8 @@ func (p *GearProject) Run(args []string) {
 
 	log := log15.New()
 	log.SetHandler(log15.LvlFilterHandler(log15.LvlError, log15.StderrHandler))
-	result := provider.Run(f, provider.Logger(log))
+	result, err := provider.Run(f, provider.Logger(log))
+	check(err)
 	os.Exit(result.Result.ExitCode)
 }
 
@@ -260,7 +262,8 @@ func (p *GearProject) Export(args []string) {
 
 	log := log15.New()
 	log.SetHandler(log15.LvlFilterHandler(log15.LvlError, log15.StderrHandler))
-	result := provider.Run(f, provider.Logger(log))
+	result, err := provider.Run(f, provider.Logger(log))
+	check(err)
 	os.Exit(result.Result.ExitCode)
 }
 

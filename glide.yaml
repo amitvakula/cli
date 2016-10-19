@@ -1,14 +1,9 @@
 package: flywheel.io/scientist
 import:
 - package: flywheel.io/deja
-  repo: git@github.com:flywheel-io/deja.git
-- package: github.com/spacemonkeygo/errors
-  repo: https://github.com/polydawn/errors
-  subpackages:
-  - try
+  repo: https://github.com/flywheel-io/deja-release
 - package: github.com/kr/pretty
 - package: github.com/kr/text
-- package: github.com/polydawn/gosh
 - package: github.com/spf13/afero
 - package: xi2.org/x/xz
 - package: github.com/pkg/sftp

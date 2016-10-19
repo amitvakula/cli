@@ -1,16 +1,16 @@
-hash: 11ced9defa1568406547236cea7b737edbbbeee80f74507d66840058b32d4cde
+hash: 4ca78938a6463ce9116ad14099a339a8e9054bd3f0b4c5d68237bf89d1474d2c
 imports:
 - name: flywheel.io/deja
-  version: 95eb8107778b73c3b70ed637f20e508763b9d7d1
-  repo: git@github.com:flywheel-io/deja.git
+  version: e6a8a622e48a4c7c1362972bc0177f53328091e7
+  repo: https://github.com/flywheel-io/deja-release
 - name: github.com/dghubble/sling
   version: 52e88a7b75a5db3b49f8911f16d49d9b7b67adc5
-- name: github.com/go-stack/stack
-  version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82
 - name: github.com/dustin/go-humanize
   version: bd88f87ad3a420f7bcf05e90566fd1ceb351fa7f
 - name: github.com/fatih/color
   version: dea9d3a26a087187530244679c1cfb3a42937794
+- name: github.com/go-stack/stack
+  version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82
 - name: github.com/google/go-querystring
   version: 9235644dd9e52eeae6fa48efd539fdc351a0af53
   subpackages:
@@ -37,13 +37,6 @@ imports:
   version: 01fa4104b9c248c8945d14d9f128454d5b28d595
 - name: github.com/pkg/sftp
   version: 4c7551ad7e113c8cc02a45b8d159065fc9c2a734
-- name: github.com/polydawn/gosh
-  version: af5311114e0e8e9b9bef23179c0422b64943d7d3
-- name: github.com/spacemonkeygo/errors
-  version: 0b05cac8509e79700959e44f6cf22fbb1f9094d2
-  repo: https://github.com/polydawn/errors
-  subpackages:
-  - try
 - name: github.com/spf13/afero
   version: 1a8ecf8b9da1fb5306e149e83128fc447957d2a8
 - name: github.com/spf13/cobra

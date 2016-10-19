@@ -8,13 +8,14 @@ import (
 	"github.com/fatih/color"
 )
 
+/*
 func increment(step string, parent interface{}) interface{} {
 
 	var a []interface{}
 
 	switch parent := parent.(type) {
 	case []*Group:
-		a =  filterGroupsById(step, parent)
+		a = filterGroupsById(step, parent)
 
 	}
 
@@ -23,13 +24,8 @@ func increment(step string, parent interface{}) interface{} {
 		os.Exit(1)
 	}
 
-
-
 	return
-
-
-
-}
+}*/
 
 // resolve takes a human-meaningful slash-delimited path and attempts to walk the hierarchy, returning an array of discovered objects.
 // Ambiguities

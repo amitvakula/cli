@@ -74,7 +74,7 @@ func login(host, key string, insecure bool) {
 	Println("Logged in as", user.Firstname, user.Lastname, "<"+user.Email+">")
 }
 
-func ls(upath string) {
+func ls(upath string, showDbIds bool) {
 	client := makeClient()
 	parts := strings.Split(upath, "/")
 
@@ -88,7 +88,7 @@ func ls(upath string) {
 		parent = path[len(path)-2]
 	}
 
-	print(base, parent, user.Id)
+	print(base, parent, user.Id, showDbIds)
 }
 
 func download(upath, savePath string) {
@@ -118,4 +118,16 @@ func download(upath, savePath string) {
 	check(err)
 
 	Println("Wrote", humanize.Bytes(uint64(resp.ContentLength)), "to", savePath)
+}
+
+func upload(upath, sendPath string) {
+	client := makeClient()
+	parts := strings.Split(upath, "/")
+
+	path := resolve(client, parts)
+
+	resp, err := client.UploadFromFile(sendPath, path[len(path)-1], nil, sendPath)
+	check(err)
+
+	Println("Wrote", humanize.Bytes(uint64(resp.ContentLength)), "to", sendPath)
 }

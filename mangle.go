@@ -17,6 +17,16 @@ func findPermission(id string, perms []*Permission) *Permission {
 	}
 }
 
+func filterGroupsById(groupId string, groups []*Group) []*Group {
+	results := []*Group{}
+	for _, x := range groups {
+		if x.Id == groupId {
+			results = append(results, x)
+		}
+	}
+	return results
+}
+
 func findGroupById(groupId string, groups []*Group) *Group {
 	for _, x := range groups {
 		if x.Id == groupId {

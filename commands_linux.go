@@ -10,7 +10,6 @@ import (
 )
 
 func init() {
-	project := Setup()
 
 	gearCmd := &cobra.Command{
 		Use:   "gear",
@@ -22,6 +21,7 @@ func init() {
 		Use:   "create",
 		Short: "Create a new flywheel gear",
 		Run: func(cmd *cobra.Command, args []string) {
+			Setup()
 			Println("Created a new gear in the current folder.")
 		},
 	}
@@ -31,6 +31,7 @@ func init() {
 		Use:   "use",
 		Short: "Use a new flywheel gear",
 		Run: func(cmd *cobra.Command, args []string) {
+			project := Setup()
 			project.Use(args)
 		},
 	}
@@ -40,6 +41,7 @@ func init() {
 		Use:   "run",
 		Short: "Run your gear locally",
 		Run: func(cmd *cobra.Command, args []string) {
+			project := Setup()
 			project.Run(args)
 		},
 	}
@@ -50,6 +52,7 @@ func init() {
 		Use:   "export",
 		Short: "Export your gear to disk",
 		Run: func(cmd *cobra.Command, args []string) {
+			project := Setup()
 			project.Export(args)
 		},
 	}
@@ -59,6 +62,7 @@ func init() {
 		Use:   "upload",
 		Short: "Upload your gear to the Flywheel system",
 		Run: func(cmd *cobra.Command, args []string) {
+			project := Setup()
 			project.Export(args)
 		},
 	}

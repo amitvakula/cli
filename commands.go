@@ -34,14 +34,15 @@ func init() {
 	loginCmd.Flags().BoolVar(&loginInsecure, "insecure", false, "Ignore SSL errors")
 	RootCmd.AddCommand(loginCmd)
 
+	var lsDbIds bool
 	lsCmd := &cobra.Command{
 		Use:   "ls",
 		Short: "Show remote files",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
-				ls("")
+				ls("", lsDbIds)
 			} else if len(args) == 1 {
-				ls(args[0])
+				ls(args[0], lsDbIds)
 			} else {
 				Println("ls takes one argument: the path of the files to list.")
 				os.Exit(1)
@@ -49,6 +50,7 @@ func init() {
 
 		},
 	}
+	lsCmd.Flags().BoolVar(&lsDbIds, "ids", false, "Display database identifiers")
 	RootCmd.AddCommand(lsCmd)
 
 	var downloadOutput string
@@ -65,4 +67,17 @@ func init() {
 	}
 	downloadCmd.Flags().StringVarP(&downloadOutput, "output", "o", "", "Destination filename (-- for stdout)")
 	RootCmd.AddCommand(downloadCmd)
+
+	uploadCmd := &cobra.Command{
+		Use:   "upload",
+		Short: "upload a remote file",
+		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) != 2 {
+				Println("ls takes two arguments: the remote upload path, and the file to upload.")
+				os.Exit(1)
+			}
+			upload(args[0], args[1])
+		},
+	}
+	RootCmd.AddCommand(uploadCmd)
 }

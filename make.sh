@@ -9,9 +9,9 @@ minGlideV="0.12.3"         # Project's minimum Glide version
 
 # Load GNU coreutils on OSX
 if [[ "$(uname -s)" == "Darwin" ]]; then
-	which brew gsort gsed > /dev/null || (
+	which brew gsort gsed flock > /dev/null || (
 		echo "On OSX, homebrew is required. Install from http://brew.sh"
-		echo "Then, run 'brew install coreutils gnu-sed' to install gnu tools."
+		echo "Then, run 'brew install coreutils gnu-sed flock' to install the necessary tools."
 	)
 	export PATH="$(brew --prefix coreutils)/libexec/gnubin:$PATH"
 	export PATH="$(brew --prefix gnu-sed)/libexec/gnubin:$PATH"
@@ -107,15 +107,33 @@ crossBuild() {
 	arches=( "386" "amd64" )
 	mkdir -p release
 
+	cross() {
+		echo
+		echo "-- Building $os $arch --"
+
+		binary="release/`basename $pkg`-$os-$arch"
+
+		env GOOS=$os GOARCH=$arch nice go build -v -o $binary $pkg
+		which upx > /dev/null && nice upx -q $binary 2>&1 | grep -C 1 -- "---" || true
+	}
+
+	# Run builds in parallel, displaying output sequentially
+	pids=()
 	for os in "${oses[@]}"; do
 		for arch in "${arches[@]}"; do
-			echo "-- Building $os $arch --"
-			env GOOS=$os GOARCH=$arch go build -v -o release/`basename $pkg`-$os-$arch $pkg
+			( cross 2>&1 | flock release/.lock cat ) &
+			pids+=($!)
 		done
 	done
 
+	fail=true
+	for pid in "${pids[@]}"; do wait $pid || fail=false; done
+	rm -f release/.lock cat
+	if [ $fail = false ]; then echo; echo "Compilation failed"; exit 1; fi
+
 	echo
 	echo "Cross-compilation success!"
+	which upx > /dev/null || ( echo "UPX is not installed; not packing binaries." )
 }
 
 # List packages with source code: packageA, packageB... First argument is a prefix (optional)
@@ -193,8 +211,6 @@ case "$cmd" in
 		_test -race
 		;;
 	"cross") # Cross-compile to every platform
-		export GOOS=darwin
-		export GOARCH=amd64
 		prepareGo
 		build
 		crossBuild

@@ -134,6 +134,15 @@ type Acquisition struct {
 	Permissions []*Permission `json:"permissions"`
 }
 
+type Gear struct {
+	Name string `json:"name"`
+
+	Category string                 `json:"category"`
+	Input    map[string]interface{} `json:"input"`
+
+	Manifest map[string]interface{} `json:"manifest"`
+}
+
 type Client struct {
 	C *http.Client
 	S *sling.Sling
@@ -269,6 +278,8 @@ func (c *Client) Upload(filename string, parent interface{}, metadata []byte, sr
 		url = "sessions/" + parent.Id + "/files/" + filename
 	case *Acquisition:
 		url = "acquisitions/" + parent.Id + "/files/" + filename
+	case *Gear:
+		url = "gears/" + parent.Name + "?upload=true"
 	default:
 		return nil, errors.New("Cannot upload to unknown container type")
 	}

@@ -177,6 +177,39 @@ echo
 
 `
 
+func (p *GearProject) Upload(args []string) {
+	client := makeClient()
+	p.Export(args)
+
+	manifestBytes, err := ioutil.ReadFile("manifest.json")
+	check(err)
+
+	var manifest map[string]interface{}
+
+	err = json.Unmarshal(manifestBytes, &manifest)
+	check(err)
+
+	gear := &Gear{
+		Name:     manifest["name"].(string),
+		Category: "converter",
+		Manifest: manifest,
+	}
+
+	raw, err := json.Marshal(gear)
+	check(err)
+
+	Println("Gear uploading...")
+	_, err = client.UploadFromFile("gear.tar", gear, raw, "gear.tar")
+	check(err)
+
+	/*
+		bok, err := ioutil.ReadAll(resp.Body)
+		check(err)
+	*/
+
+	Println("Gear uploaded!")
+}
+
 func (p *GearProject) Export(args []string) {
 	dir := filepath.Dir(p.Path)
 
@@ -191,6 +224,7 @@ func (p *GearProject) Export(args []string) {
 		"version":     "0",
 
 		"inputs": map[string]interface{}{},
+		"config": map[string]interface{}{},
 	}
 
 	command := p.Command
@@ -264,7 +298,11 @@ func (p *GearProject) Export(args []string) {
 	log.SetHandler(log15.LvlFilterHandler(log15.LvlError, log15.StderrHandler))
 	result, err := provider.Run(f, provider.Logger(log))
 	check(err)
-	os.Exit(result.Result.ExitCode)
+
+	if result.Result.ExitCode != 0 {
+		Println("Error: Export exit code was", result.Result.ExitCode)
+		os.Exit(result.Result.ExitCode)
+	}
 }
 
 func (p *GearProject) Frun(args []string) {

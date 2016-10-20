@@ -63,7 +63,7 @@ func init() {
 		Short: "Upload your gear to the Flywheel system",
 		Run: func(cmd *cobra.Command, args []string) {
 			project := Setup()
-			project.Export(args)
+			project.Upload(args)
 		},
 	}
 	gearCmd.AddCommand(uploadCmd)

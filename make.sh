@@ -212,6 +212,7 @@ case "$cmd" in
 		;;
 	"cross") # Cross-compile to every platform
 		prepareGo
+		prepareGlide
 		build
 		crossBuild
 		;;

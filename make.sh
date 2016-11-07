@@ -99,7 +99,7 @@ build() {
 
 	# Go install uses $GOPATH/pkg to cache built files
 	# Sed to clean up logging, then egrep to highlight parts of the output
-	go install -v $pkg 2>&1 | sed -u "$hideGoroot $hideGopath $hideVendor $hidePWD" | (egrep --color "$matchGo" || true)
+	go install -v -ldflags '-s' $pkg 2>&1 | sed -u "$hideGoroot $hideGopath $hideVendor $hidePWD" | (egrep --color "$matchGo" || true)
 }
 
 crossBuild() {
@@ -221,4 +221,3 @@ case "$cmd" in
 		exit 1
 		;;
 esac
-

@@ -113,7 +113,7 @@ crossBuild() {
 
 		binary="release/`basename $pkg`-$os-$arch"
 
-		env GOOS=$os GOARCH=$arch nice go build -v -o $binary $pkg
+		env GOOS=$os GOARCH=$arch nice go build -v -ldflags '-s' -o $binary $pkg
 		which upx > /dev/null && nice upx -q $binary 2>&1 | grep -C 1 -- "---" || true
 	}
 

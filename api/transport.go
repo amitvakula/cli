@@ -1,10 +1,40 @@
-package main
+package api
 
 import (
+	"crypto/tls"
 	"net/http"
+
+	"github.com/dghubble/sling"
 )
 
-// Http transports in this file are heavily inspired by https://github.com/golang/oauth2, among other places! :)
+type Client struct {
+	C *http.Client
+	S *sling.Sling
+}
+
+func NewApiKeyClient(host, key string, insecureSkipVerify bool) *Client {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureSkipVerify},
+	}
+
+	kt := &ApiKeyTransport{
+		Key:       key,
+		Transport: tr,
+	}
+
+	hc := kt.Client()
+
+	sc := sling.New().
+		Base("https://" + host + "/").Path("api/").
+		Client(hc)
+
+	return &Client{
+		C: hc,
+		S: sc,
+	}
+}
+
+// Http transports in this file are heavily inspired by https://github.com/golang/oauth2, among other places :)
 
 // ApiKeyTransport is an http.RoundTripper that authenticates all requests using an API key.
 type ApiKeyTransport struct {

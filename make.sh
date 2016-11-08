@@ -179,6 +179,11 @@ case "$cmd" in
 		glide ${args[@]}
 		cleanGlide
 		;;
+	"make") # Just build
+		prepareGo
+		prepareGlide
+		build
+		;;
 	"build") # Full build (the default)
 		prepareGo
 		prepareGlide

@@ -27,12 +27,19 @@ imports:
   version: add1dbc86daf0f983cd4a48ceb39deb95c729b67
 - name: github.com/kr/text
   version: 7cafcd837844e784b526369c9bce262804aebc60
+- name: github.com/kylelemons/godebug
+  version: eadb3ce320cbab8393bea5ca17bebac3f78a021b
+  subpackages:
+  - diff
+  - pretty
 - name: github.com/mattn/go-colorable
   version: 9056b7a9f2d1f2d96498d6d146acd1f9d5ed3d59
 - name: github.com/mattn/go-isatty
   version: 56b76bdf51f7708750eac80fa38b952bb9f32639
 - name: github.com/mitchellh/go-homedir
   version: 756f7b183b7ab78acdbbee5c7f392838ed459dda
+- name: github.com/mitchellh/mapstructure
+  version: f3009df150dadf309fdee4a54ed65c124afad715
 - name: github.com/pkg/errors
   version: 01fa4104b9c248c8945d14d9f128454d5b28d595
 - name: github.com/pkg/sftp

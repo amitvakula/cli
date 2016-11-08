@@ -6,6 +6,9 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"flywheel.io/fw/client"
+	. "flywheel.io/fw/util"
 )
 
 func init() {
@@ -25,8 +28,8 @@ func init() {
 			}
 
 			parsedUrl, err := url.Parse(loginUrl)
-			check(err)
-			login(parsedUrl.Host, loginKey, loginInsecure)
+			Check(err)
+			client.Login(parsedUrl.Host, loginKey, loginInsecure)
 		},
 	}
 	loginCmd.Flags().StringVarP(&loginUrl, "host", "H", "", "Host URL (https://example.flywheel.io)")
@@ -40,9 +43,9 @@ func init() {
 		Short: "Show remote files",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
-				ls("", lsDbIds)
+				client.Ls("", lsDbIds)
 			} else if len(args) == 1 {
-				ls(args[0], lsDbIds)
+				client.Ls(args[0], lsDbIds)
 			} else {
 				Println("ls takes one argument: the path of the files to list.")
 				os.Exit(1)
@@ -62,7 +65,7 @@ func init() {
 				Println("ls takes one argument: the path of the files to list.")
 				os.Exit(1)
 			}
-			download(args[0], downloadOutput)
+			client.Download(args[0], downloadOutput)
 		},
 	}
 	downloadCmd.Flags().StringVarP(&downloadOutput, "output", "o", "", "Destination filename (-- for stdout)")
@@ -76,7 +79,7 @@ func init() {
 				Println("ls takes two arguments: the remote upload path, and the file to upload.")
 				os.Exit(1)
 			}
-			upload(args[0], args[1])
+			client.Upload(args[0], args[1])
 		},
 	}
 	RootCmd.AddCommand(uploadCmd)

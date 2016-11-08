@@ -1,4 +1,4 @@
-package main
+package builder
 
 import (
 	"encoding/json"
@@ -12,7 +12,23 @@ import (
 
 	"flywheel.io/deja/job"
 	"flywheel.io/deja/provider"
+
+	"flywheel.io/fw/api"
+	"flywheel.io/fw/client"
 )
+
+func check(err error) {
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+}
+
+// dupe
+func makeClient() *api.Client {
+	c := client.LoadCreds()
+	return api.NewApiKeyClient(c.Host, c.Key, c.Insecure)
+}
 
 func (p *GearProject) Use(args []string) {
 	if len(args) != 1 {
@@ -189,7 +205,7 @@ func (p *GearProject) Upload(args []string) {
 	err = json.Unmarshal(manifestBytes, &manifest)
 	check(err)
 
-	gear := &Gear{
+	gear := &api.Gear{
 		Name:     manifest["name"].(string),
 		Category: "converter",
 		Manifest: manifest,

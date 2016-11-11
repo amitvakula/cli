@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"strconv"
 )
 
 func FindPermissionById(id string, perms []*Permission) *Permission {
@@ -21,6 +22,10 @@ func coalesce(err error, aerr *ApiError) error {
 	if err != nil {
 		return err
 	} else if aerr != nil {
+		if aerr.Message == "" {
+			aerr.Message = "Unknown server error"
+		}
+		aerr.Message = "(" + strconv.Itoa(aerr.StatusCode) + ") " + aerr.Message
 		return errors.New(aerr.Message)
 	} else {
 		return nil

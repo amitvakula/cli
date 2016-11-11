@@ -2,10 +2,11 @@ package client
 
 import (
 	. "fmt"
-	// "os"
+	"os"
 	"strings"
+	"sync"
 
-	// humanize "github.com/dustin/go-humanize"
+	humanize "github.com/dustin/go-humanize"
 
 	"flywheel.io/fw/api"
 	. "flywheel.io/fw/util"
@@ -29,61 +30,74 @@ func Login(host, key string, insecure bool) {
 
 func Ls(upath string, showDbIds bool) {
 	client := MakeClient()
+	upath = strings.TrimRight(upath, "/")
 	parts := strings.Split(upath, "/")
 
-	user, _, err := client.GetCurrentUser()
-	Check(err)
+	var wg sync.WaitGroup
+	var user *api.User
+	var result *api.ResolveResult
 
-	_, _ = parts, user
-	// path := resolve(client, parts)
-	// base := path[len(path)-1]
-	// var parent interface{}
-	// if len(path) > 1 {
-	// 	parent = path[len(path)-2]
-	// }
+	go func() {
+		var err error
+		user, _, err = client.GetCurrentUser()
+		Check(err)
+		wg.Done()
+	}()
 
-	// print(base, parent, user.Id, showDbIds)
+	go func() {
+		var err error
+		result, _, err = client.ResolvePath(parts)
+		Check(err)
+		wg.Done()
+	}()
+
+	wg.Add(2)
+	wg.Wait()
+	PrintResolve(result, user.Id, showDbIds)
 }
 
 func Download(upath, savePath string) {
 	client := MakeClient()
+	upath = strings.TrimRight(upath, "/")
 	parts := strings.Split(upath, "/")
 
-	_, _ = client, parts
-	// path := resolve(client, parts)
-	// var err error
+	result, _, err := client.ResolvePath(parts)
+	Check(err)
+	path := result.Path
 
-	// file, ok := path[len(path)-1].(*File)
-	// if !ok {
-	// 	Println("Path does not refer to a file")
-	// 	os.Exit(1)
-	// }
+	file, ok := path[len(path)-1].(*api.File)
+	if !ok {
+		Println("Path does not refer to a file")
+		os.Exit(1)
+	}
 
-	// if savePath == "--" {
-	// 	_, err := client.Download(file.Name, path[len(path)-2], os.Stdout)
-	// 	Check(err)
-	// 	return
-	// }
+	if savePath == "--" {
+		_, err := client.Download(file.Name, path[len(path)-2], os.Stdout)
+		Check(err)
+		return
+	}
 
-	// if savePath == "" {
-	// 	savePath = file.Name
-	// }
+	if savePath == "" {
+		savePath = file.Name
+	}
 
-	// resp, err := client.DownloadToFile(file.Name, path[len(path)-2], savePath)
-	// Check(err)
+	resp, err := client.DownloadToFile(file.Name, path[len(path)-2], savePath)
+	Check(err)
 
-	// Println("Wrote", humanize.Bytes(uint64(resp.ContentLength)), "to", savePath)
+	Println("Wrote", humanize.Bytes(uint64(resp.ContentLength)), "to", savePath)
 }
 
 func Upload(upath, sendPath string) {
 	client := MakeClient()
+	upath = strings.TrimRight(upath, "/")
 	parts := strings.Split(upath, "/")
 
-	_, _ = client, parts
-	// path := resolve(client, parts)
+	result, _, err := client.ResolvePath(parts)
+	Check(err)
+	path := result.Path
 
-	// resp, err := client.UploadFromFile(sendPath, path[len(path)-1], nil, sendPath)
-	// Check(err)
+	resp, err := client.UploadFromFile(sendPath, path[len(path)-1], nil, sendPath)
+	Check(err)
 
-	// Println("Wrote", humanize.Bytes(uint64(resp.ContentLength)), "to", sendPath)
+	Println("Wrote", humanize.Bytes(uint64(resp.ContentLength)), "to", sendPath)
 }

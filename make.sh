@@ -99,7 +99,7 @@ build() {
 
 	# Go install uses $GOPATH/pkg to cache built files
 	# Sed to clean up logging, then egrep to highlight parts of the output
-	go install -v $pkg 2>&1 | sed -u "$hideGoroot $hideGopath $hideVendor $hidePWD" | (egrep --color "$matchGo" || true)
+	go install -v -ldflags '-s' $pkg 2>&1 | sed -u "$hideGoroot $hideGopath $hideVendor $hidePWD" | (egrep --color "$matchGo" || true)
 }
 
 crossBuild() {
@@ -113,7 +113,7 @@ crossBuild() {
 
 		binary="release/`basename $pkg`-$os-$arch"
 
-		env GOOS=$os GOARCH=$arch nice go build -v -o $binary $pkg
+		env GOOS=$os GOARCH=$arch nice go build -v -ldflags '-s' -o $binary $pkg
 		which upx > /dev/null && nice upx -q $binary 2>&1 | grep -C 1 -- "---" || true
 	}
 
@@ -221,4 +221,3 @@ case "$cmd" in
 		exit 1
 		;;
 esac
-

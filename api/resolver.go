@@ -2,6 +2,7 @@ package api
 
 import (
 	. "fmt"
+	"net/http"
 	"os"
 	"reflect"
 	"time"
@@ -9,7 +10,9 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-type RawResolveResult struct {
+// rawResolveResult represents the json structure of the resolver's results.
+// This sturcture is consumed to produce a ResolveResult with proper typing.
+type rawResolveResult struct {
 	Path     []map[string]interface{} `json:"path"`
 	Children []map[string]interface{} `json:"children"`
 }
@@ -36,6 +39,7 @@ func newDecoderConfig() *mapstructure.DecoderConfig {
 	}
 }
 
+// this should be removed later
 func check(err error) {
 	if err != nil {
 		Println(err)
@@ -51,8 +55,8 @@ func decode(config *mapstructure.DecoderConfig, src interface{}) {
 	check(err)
 }
 
-// AddDynamicNode will take an untyped string map and add it to the ResolveResult.
-func (r *ResolveResult) AddDynamicNode(x map[string]interface{}) {
+// addDynamicNode will take an untyped string map and add it to a slice.
+func (r *ResolveResult) addDynamicNode(x map[string]interface{}, slice *[]interface{}) {
 
 	switch x["node_type"].(string) {
 	case "group":
@@ -60,37 +64,71 @@ func (r *ResolveResult) AddDynamicNode(x map[string]interface{}) {
 		config := newDecoderConfig()
 		config.Result = &obj
 		decode(config, x)
-		r.Path = append(r.Path, &obj)
+		*slice = append(*slice, &obj)
 
 	case "project":
 		var obj Project
 		config := newDecoderConfig()
 		config.Result = &obj
 		decode(config, x)
-		r.Path = append(r.Path, &obj)
+		*slice = append(*slice, &obj)
 
 	case "session":
 		var obj Session
 		config := newDecoderConfig()
 		config.Result = &obj
 		decode(config, x)
-		r.Path = append(r.Path, &obj)
+		*slice = append(*slice, &obj)
 
 	case "acquisition":
 		var obj Acquisition
 		config := newDecoderConfig()
 		config.Result = &obj
 		decode(config, x)
-		r.Path = append(r.Path, &obj)
+		*slice = append(*slice, &obj)
 
 	case "file":
 		var obj File
 		config := newDecoderConfig()
 		config.Result = &obj
 		decode(config, x)
-		r.Path = append(r.Path, &obj)
+		*slice = append(*slice, &obj)
 
 	default:
 		Println("Unknown dynamic node type " + x["node_type"].(string))
 	}
+}
+
+type resolvePath struct {
+	Path []string `json:"path"`
+}
+
+func (c *Client) ResolvePath(path []string) (*ResolveResult, *http.Response, error) {
+	var aerr *ApiError
+	var raw rawResolveResult
+	var result ResolveResult
+
+	if path[0] == "" {
+		path = []string{}
+	}
+
+	request := resolvePath{
+		Path: path,
+	}
+
+	resp, err := c.S.New().Post("resolve").BodyJSON(&request).Receive(&raw, &aerr)
+
+	err = coalesce(err, aerr)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	for _, x := range raw.Path {
+		result.addDynamicNode(x, &result.Path)
+	}
+	for _, x := range raw.Children {
+		result.addDynamicNode(x, &result.Children)
+	}
+
+	return &result, resp, coalesce(err, aerr)
 }

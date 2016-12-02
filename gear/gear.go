@@ -315,6 +315,18 @@ func RunGear(configs []*GearConfig) {
 		}
 	}
 
+	// Bind the output directory
+	err := os.Mkdir("output", 0755)
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+	f.Inputs = append(f.Inputs, &job.Input{
+		Type:     "bind",
+		URI:      "output",
+		Location: "/flywheel/v0/output",
+	})
+
 	// Config.json
 	dir, err := ioutil.TempDir("", "fw")
 	Check(err)

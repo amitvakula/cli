@@ -295,7 +295,7 @@ func RunGear(configs []*GearConfig) {
 			},
 		},
 		Target: job.Target{
-			Command: []string{"bash", "-c", "rm -rf output; mkdir -p output; ./run; echo \"Exit was $?\""},
+			Command: []string{"bash", "-c", "rm -rf output 2>/dev/null; mkdir -p output; ./run; echo \"Exit was $?\""},
 			Dir:     "/flywheel/v0",
 		},
 		Outputs: []*job.Output{},
@@ -314,6 +314,18 @@ func RunGear(configs []*GearConfig) {
 			})
 		}
 	}
+
+	// Bind the output directory
+	err := os.MkdirAll("output", 0755)
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+	f.Inputs = append(f.Inputs, &job.Input{
+		Type:     "bind",
+		URI:      "output",
+		Location: "/flywheel/v0/output",
+	})
 
 	// Config.json
 	dir, err := ioutil.TempDir("", "fw")

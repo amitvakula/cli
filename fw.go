@@ -6,6 +6,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const Version = "3.5.0-dev"
+
 var RootCmd = &cobra.Command{
 	Use:   "fw",
 	Short: "Flywheel command-line interface",

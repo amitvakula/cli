@@ -83,4 +83,13 @@ func init() {
 		},
 	}
 	RootCmd.AddCommand(uploadCmd)
+
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "print the version of the flywheel CLI",
+		Run: func(cmd *cobra.Command, args []string) {
+			Println(Version)
+		},
+	}
+	RootCmd.AddCommand(versionCmd)
 }

@@ -4,17 +4,31 @@ set -o pipefail
 unset CDPATH; cd "$( dirname "${BASH_SOURCE[0]}" )"; cd "`pwd -P`"
 
 pkg="flywheel.io/fw"       # Project's full package name
-goV=${GO_VERSION:-"1.7.1"} # Project's default Go version
+goV=${GO_VERSION:-"1.7.4"} # Project's default Go version
 minGlideV="0.12.3"         # Project's minimum Glide version
+
+# Check that this project is in a gopath
+(
+	cd ../../../
+	test -d src || (
+		echo "This project must be located in a gopath."
+		echo "Try cloning instead to src/$pkg"
+		exit 1
+	)
+)
 
 # Load GNU coreutils on OSX
 if [[ "$(uname -s)" == "Darwin" ]]; then
-	which brew gsort gsed flock > /dev/null || (
+	which brew gsort gsed > /dev/null || (
 		echo "On OSX, homebrew is required. Install from http://brew.sh"
-		echo "Then, run 'brew install coreutils gnu-sed flock' to install the necessary tools."
+		echo "Then, run 'brew install coreutils gnu-sed' to install the necessary tools."
+		exit 1
 	)
 	export PATH="$(brew --prefix coreutils)/libexec/gnubin:$PATH"
 	export PATH="$(brew --prefix gnu-sed)/libexec/gnubin:$PATH"
+
+	# OSX only has shasum. CentOS only has sha1sum. Ubuntu has both.
+	alias sha1sum="shasum -a 1"
 fi
 
 prepareGo() {
@@ -74,8 +88,7 @@ prepareGlide() {
 	glideHashFile=".glidehash"
 	genHash() {
 		cleanGlide
-		# Using `shasum` because `sha1sum` does not exist on OSX by default.
-		cat glide.lock glide.yaml | shasum -a 1 | cut -f 1 -d ' '
+		cat glide.lock glide.yaml | sha1sum | cut -f 1 -d ' '
 	}
 
 	install() {

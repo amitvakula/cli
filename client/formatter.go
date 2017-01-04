@@ -52,7 +52,7 @@ func PrintResolve(r *api.ResolveResult, userId string, showDbIds bool) {
 	target := r.Children
 
 	// Special case: leaf node. Back up the tree one level.
-	if len(target) == 0 {
+	if len(target) == 0 && len(r.Path) > 1 {
 		target = []interface{}{parent}
 		parent = r.Path[len(r.Path)-2]
 	}

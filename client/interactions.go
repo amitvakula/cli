@@ -148,8 +148,8 @@ func Upload(upath, sendPath string) {
 	Check(err)
 	path := result.Path
 
-	resp, err := client.UploadFromFile(sendPath, path[len(path)-1], nil, sendPath)
+	_, err = client.UploadFromFile(sendPath, path[len(path)-1], nil, sendPath)
 	Check(err)
 
-	Println("Wrote", humanize.Bytes(uint64(resp.ContentLength)), "to", sendPath)
+	Println("Uploaded file to", upath+".")
 }

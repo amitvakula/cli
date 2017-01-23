@@ -63,13 +63,15 @@ func (c *Client) Upload(filename string, parent interface{}, metadata []byte, sr
 	url := ""
 	switch parent := parent.(type) {
 	case *Project:
-		url = "projects/" + parent.Id + "/files/" + filename
+		url = "projects/" + parent.Id + "/files"
 	case *Session:
-		url = "sessions/" + parent.Id + "/files/" + filename
+		url = "sessions/" + parent.Id + "/files"
 	case *Acquisition:
-		url = "acquisitions/" + parent.Id + "/files/" + filename
+		url = "acquisitions/" + parent.Id + "/files"
 	case *Gear:
 		url = "gears/" + parent.Name + "?upload=true"
+	case *Group:
+		return nil, errors.New("Uploading files to a group is not supported")
 	default:
 		return nil, errors.New("Cannot upload to unknown container type")
 	}
@@ -134,6 +136,7 @@ func (c *Client) Upload(filename string, parent interface{}, metadata []byte, sr
 	if err != nil {
 		return resp, err
 	}
+
 	if resp.StatusCode != 200 {
 		// Needs robust handling for body & raw nils
 		raw, _ := ioutil.ReadAll(resp.Body)

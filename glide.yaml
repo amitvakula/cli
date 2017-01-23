@@ -1,4 +1,18 @@
-package: flywheel.io/scientist
+package: flywheel.io/fw
+ignore:
+- net/http/httptrace
+- flywheel.io/deja/discovery
+- flywheel.io/deja/filesystem
+- flywheel.io/deja/flak
+- flywheel.io/deja/flak/features
+- flywheel.io/deja/flak/fspatch
+- flywheel.io/deja/job
+- flywheel.io/deja/provider
+- flywheel.io/deja/provider/nsinit
+- flywheel.io/deja/transport/aufs
+- flywheel.io/deja/transport/bind
+- flywheel.io/deja/transport/file
+- flywheel.io/deja/transport/http
 import:
 - package: flywheel.io/deja
   repo: https://github.com/flywheel-io/deja-release
@@ -21,17 +35,4 @@ import:
 - package: github.com/fatih/color
 - package: github.com/spf13/cobra
 - package: github.com/dustin/go-humanize
-ignore:
-- net/http/httptrace
-- flywheel.io/deja/discovery
-- flywheel.io/deja/filesystem
-- flywheel.io/deja/flak
-- flywheel.io/deja/flak/features
-- flywheel.io/deja/flak/fspatch
-- flywheel.io/deja/job
-- flywheel.io/deja/provider
-- flywheel.io/deja/provider/nsinit
-- flywheel.io/deja/transport/aufs
-- flywheel.io/deja/transport/bind
-- flywheel.io/deja/transport/file
-- flywheel.io/deja/transport/http
+- package: github.com/segmentio/go-prompt

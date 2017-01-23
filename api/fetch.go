@@ -45,3 +45,12 @@ func (c *Client) GetAcquisitions() ([]*Acquisition, *http.Response, error) {
 	resp, err := c.S.New().Get("acquisitions").Receive(&acqs, &aerr)
 	return acqs, resp, coalesce(err, aerr)
 }
+
+func (c *Client) GetDownloadTicket(request *ContainerTicketRequest) (*ContainerTicketResponse, *http.Response, error) {
+
+	var aerr *ApiError
+	var ticket *ContainerTicketResponse
+
+	resp, err := c.S.New().Post("download").BodyJSON(request).Receive(&ticket, &aerr)
+	return ticket, resp, coalesce(err, aerr)
+}

@@ -57,6 +57,7 @@ func init() {
 	RootCmd.AddCommand(lsCmd)
 
 	var downloadOutput string
+	var downloadForce bool
 	downloadCmd := &cobra.Command{
 		Use:   "download",
 		Short: "Download a remote file",
@@ -65,10 +66,11 @@ func init() {
 				Println("ls takes one argument: the path of the files to list.")
 				os.Exit(1)
 			}
-			client.Download(args[0], downloadOutput)
+			client.Download(args[0], downloadOutput, downloadForce)
 		},
 	}
 	downloadCmd.Flags().StringVarP(&downloadOutput, "output", "o", "", "Destination filename (-- for stdout)")
+	downloadCmd.Flags().BoolVarP(&downloadForce, "force", "f", false, "Force download, without prompting")
 	RootCmd.AddCommand(downloadCmd)
 
 	uploadCmd := &cobra.Command{

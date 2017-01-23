@@ -20,6 +20,8 @@ func (c *Client) Download(filename string, parent interface{}, dest io.Writer) (
 		url = "sessions/" + parent.Id + "/files/" + filename
 	case *Acquisition:
 		url = "acquisitions/" + parent.Id + "/files/" + filename
+	case *ContainerTicketResponse:
+		url = "download?ticket=" + parent.Ticket
 	default:
 		return nil, errors.New("Cannot download from unknown container type")
 	}

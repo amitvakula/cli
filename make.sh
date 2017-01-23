@@ -69,7 +69,7 @@ installGlide() {
 
 cleanGlide() {
 	# Timestamps confuse the diff, and glide works fine without this field
-	sed -i '/^updated: /d' glide.lock
+	sed -i '/^updated: /d; /^hash: /d; ' glide.lock
 }
 
 prepareGlide() {

@@ -1,4 +1,3 @@
-hash: 4ca78938a6463ce9116ad14099a339a8e9054bd3f0b4c5d68237bf89d1474d2c
 imports:
 - name: flywheel.io/deja
   version: e6a8a622e48a4c7c1362972bc0177f53328091e7
@@ -15,6 +14,8 @@ imports:
   version: 9235644dd9e52eeae6fa48efd539fdc351a0af53
   subpackages:
   - query
+- name: github.com/howeyc/gopass
+  version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/inconshreveable/log15
   version: 20bca5a7a57282e241fac83ec9ea42538027f1c1
   subpackages:
@@ -27,11 +28,6 @@ imports:
   version: add1dbc86daf0f983cd4a48ceb39deb95c729b67
 - name: github.com/kr/text
   version: 7cafcd837844e784b526369c9bce262804aebc60
-- name: github.com/kylelemons/godebug
-  version: eadb3ce320cbab8393bea5ca17bebac3f78a021b
-  subpackages:
-  - diff
-  - pretty
 - name: github.com/mattn/go-colorable
   version: 9056b7a9f2d1f2d96498d6d146acd1f9d5ed3d59
 - name: github.com/mattn/go-isatty
@@ -44,6 +40,8 @@ imports:
   version: 01fa4104b9c248c8945d14d9f128454d5b28d595
 - name: github.com/pkg/sftp
   version: 4c7551ad7e113c8cc02a45b8d159065fc9c2a734
+- name: github.com/segmentio/go-prompt
+  version: f0d19b6901ade831d5a3204edc0d6a7d6457fbb2
 - name: github.com/spf13/afero
   version: 1a8ecf8b9da1fb5306e149e83128fc447957d2a8
 - name: github.com/spf13/cobra
@@ -54,6 +52,7 @@ imports:
   version: f3241ce8505855877cc8a9717bd61a0f7c4ea83c
   subpackages:
   - ssh
+  - ssh/terminal
 - name: golang.org/x/sys
   version: 5a8c7f28c1853e998847117cf1f3fe96ce88a59f
   subpackages:

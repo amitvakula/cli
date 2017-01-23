@@ -2,11 +2,13 @@ package client
 
 import (
 	. "fmt"
+	"math"
 	"os"
 	"strings"
 	"sync"
 
 	humanize "github.com/dustin/go-humanize"
+	prompt "github.com/segmentio/go-prompt"
 
 	"flywheel.io/fw/api"
 	. "flywheel.io/fw/util"
@@ -56,7 +58,7 @@ func Ls(upath string, showDbIds bool) {
 	PrintResolve(result, user.Id, showDbIds)
 }
 
-func Download(upath, savePath string) {
+func Download(upath, savePath string, force bool) {
 	client := MakeClient()
 	upath = strings.TrimRight(upath, "/")
 	parts := strings.Split(upath, "/")
@@ -65,26 +67,76 @@ func Download(upath, savePath string) {
 	Check(err)
 	path := result.Path
 
-	file, ok := path[len(path)-1].(*api.File)
-	if !ok {
-		Println("Path does not refer to a file")
-		os.Exit(1)
+	last := path[len(path)-1]
+
+	// This logic is dangled between download-file and download-container.
+	// It should get much nicer after some SDK fiddling.
+
+	var parent interface{}
+	var name string
+	size := float64(0)
+
+	file, ok := last.(*api.File)
+	if ok {
+		parent = path[len(path)-2]
+		name = file.Name
+
+	} else {
+		wat := last.(api.Container)
+
+		if wat.GetType() == "group" {
+			Println("Group downloads are currently not supported. Instead, you can download each project.")
+			os.Exit(1)
+		}
+
+		ticketRequest := &api.ContainerTicketRequest{
+			Nodes: []*api.ContainerTicketRequestElem{
+				{
+					Level: wat.GetType(),
+					Id:    wat.GetId(),
+				},
+			},
+			Optional: true,
+		}
+
+		ticket, _, err := client.GetDownloadTicket(ticketRequest)
+		Check(err)
+
+		// Should make this second condition cleaner...
+		if !force && savePath != "--" {
+			Println()
+			Println("This download will be about", humanize.Bytes(ticket.Size), "comprising", ticket.FileCount, "files.")
+
+			proceed := prompt.Confirm("Continue? (yes/no)")
+			Println()
+			if !proceed {
+				Println("Cancelled.")
+				return
+			}
+		}
+
+		parent = ticket
+		name = "download.tar"
+		size = float64(ticket.Size)
 	}
 
 	if savePath == "--" {
-		_, err := client.Download(file.Name, path[len(path)-2], os.Stdout)
+		_, err := client.Download(name, parent, os.Stdout)
 		Check(err)
 		return
 	}
 
 	if savePath == "" {
-		savePath = file.Name
+		savePath = name
 	}
 
-	resp, err := client.DownloadToFile(file.Name, path[len(path)-2], savePath)
+	resp, err := client.DownloadToFile(name, parent, savePath)
 	Check(err)
 
-	Println("Wrote", humanize.Bytes(uint64(resp.ContentLength)), "to", savePath)
+	// Container downloads have content length of -1
+	written := math.Max(float64(resp.ContentLength), size)
+
+	Println("Wrote", humanize.Bytes(uint64(written)), "to", savePath)
 }
 
 func Upload(upath, sendPath string) {

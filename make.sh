@@ -4,7 +4,7 @@ set -o pipefail
 unset CDPATH; cd "$( dirname "${BASH_SOURCE[0]}" )"; cd "`pwd -P`"
 
 pkg="flywheel.io/fw"       # Project's full package name
-goV=${GO_VERSION:-"1.7.4"} # Project's default Go version
+goV=${GO_VERSION:-"1.7.5"} # Project's default Go version
 minGlideV="0.12.3"         # Project's minimum Glide version
 
 # Check that this project is in a gopath

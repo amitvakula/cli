@@ -15,7 +15,7 @@ ignore:
 - flywheel.io/deja/transport/http
 import:
 - package: flywheel.io/deja
-  repo: https://github.com/flywheel-io/deja-release
+  repo: https://github.com/flywheel-io/deja.git
 - package: flywheel.io/sdk
   repo: git@github.com:flywheel-io/core-sdk.git
 - package: github.com/kr/pretty

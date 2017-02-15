@@ -62,7 +62,7 @@ func PrintResolve(r *api.ResolveResult, userId string, showDbIds bool) {
 		case *api.Group:
 			level := api.FindPermissionById(userId, x.Permissions).Level
 			printId(x.Id)
-			Fprintf(w, "%s\t%s\t%s\n", level, blueBold(x.Id), x.Name)
+			Fprintf(w, "%s\t%s\n", level, blueBold(x.Id))
 
 		case *api.Project:
 			level := api.FindPermissionById(userId, x.Permissions).Level

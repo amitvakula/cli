@@ -16,6 +16,8 @@ ignore:
 import:
 - package: flywheel.io/deja
   repo: https://github.com/flywheel-io/deja-release
+- package: flywheel.io/sdk
+  repo: git@github.com:flywheel-io/core-sdk.git
 - package: github.com/kr/pretty
 - package: github.com/kr/text
 - package: github.com/spf13/afero

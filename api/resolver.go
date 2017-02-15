@@ -103,7 +103,7 @@ type resolvePath struct {
 	Path []string `json:"path"`
 }
 
-func (c *Client) ResolvePath(path []string) (*ResolveResult, *http.Response, error) {
+func (c *Client) ResolvePath(path []string) (*ResolveResult, *http.Response, error, *ApiError) {
 	var aerr *ApiError
 	var raw rawResolveResult
 	var result ResolveResult
@@ -118,9 +118,8 @@ func (c *Client) ResolvePath(path []string) (*ResolveResult, *http.Response, err
 
 	resp, err := c.S.New().Post("resolve").BodyJSON(&request).Receive(&raw, &aerr)
 
-	err = coalesce(err, aerr)
-	if err != nil {
-		return nil, resp, err
+	if err != nil || aerr != nil {
+		return nil, resp, err, aerr
 	}
 
 	for _, x := range raw.Path {
@@ -130,5 +129,5 @@ func (c *Client) ResolvePath(path []string) (*ResolveResult, *http.Response, err
 		result.addDynamicNode(x, &result.Children)
 	}
 
-	return &result, resp, coalesce(err, aerr)
+	return &result, resp, err, aerr
 }

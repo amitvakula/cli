@@ -77,7 +77,7 @@ func PrintResolve(r *api.ResolveResult, userId string, showDbIds bool) {
 		case *api.Acquisition:
 			level := api.FindPermissionById(userId, x.Permissions).Level
 			printId(x.Id)
-			Fprintf(w, "%s\t%s\t%s\t%s\t\n", level, x.Timestamp.Format(timeFormat), x.Measurement, blueBold(x.Name))
+			Fprintf(w, "%s\t%s\t%s\t\n", level, x.Timestamp.Format(timeFormat), blueBold(x.Name))
 
 		case *api.File:
 			level := api.FindPermissionById(userId, resolvePermissions(parent)).Level

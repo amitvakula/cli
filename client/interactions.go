@@ -1,9 +1,11 @@
 package client
 
 import (
+	"errors"
 	. "fmt"
 	"math"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -30,6 +32,21 @@ func Login(host, key string, insecure bool) {
 	Println("Logged in as", user.Firstname, user.Lastname, "<"+user.Email+">")
 }
 
+// coalesce will extract an API error message into a golang error, if applicable.
+func coalesce(err error, aerr *api.ApiError) error {
+	if err != nil {
+		return err
+	} else if aerr != nil {
+		if aerr.Message == "" {
+			aerr.Message = "Unknown server error"
+		}
+		aerr.Message = "(" + strconv.Itoa(aerr.StatusCode) + ") " + aerr.Message
+		return errors.New(aerr.Message)
+	} else {
+		return nil
+	}
+}
+
 func Ls(upath string, showDbIds bool) {
 	client := MakeClient()
 	upath = strings.TrimRight(upath, "/")
@@ -48,8 +65,9 @@ func Ls(upath string, showDbIds bool) {
 
 	go func() {
 		var err error
-		result, _, err = client.ResolvePath(parts)
-		Check(err)
+		var aerr *api.ApiError
+		result, _, err, aerr = client.ResolvePath(parts)
+		Check(coalesce(err, aerr))
 		wg.Done()
 	}()
 
@@ -63,8 +81,8 @@ func Download(upath, savePath string, force bool) {
 	upath = strings.TrimRight(upath, "/")
 	parts := strings.Split(upath, "/")
 
-	result, _, err := client.ResolvePath(parts)
-	Check(err)
+	result, _, err, aerr := client.ResolvePath(parts)
+	Check(coalesce(err, aerr))
 	path := result.Path
 
 	last := path[len(path)-1]
@@ -110,7 +128,7 @@ func Download(upath, savePath string, force bool) {
 			proceed := prompt.Confirm("Continue? (yes/no)")
 			Println()
 			if !proceed {
-				Println("Cancelled.")
+				Println("Canceled.")
 				return
 			}
 		}
@@ -144,8 +162,8 @@ func Upload(upath, sendPath string) {
 	upath = strings.TrimRight(upath, "/")
 	parts := strings.Split(upath, "/")
 
-	result, _, err := client.ResolvePath(parts)
-	Check(err)
+	result, _, err, aerr := client.ResolvePath(parts)
+	Check(coalesce(err, aerr))
 	path := result.Path
 
 	_, err = client.UploadFromFile(sendPath, path[len(path)-1], nil, sendPath)

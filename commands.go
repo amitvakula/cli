@@ -78,13 +78,26 @@ func init() {
 		Short: "upload a remote file",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 2 {
-				Println("ls takes two arguments: the remote upload path, and the file to upload.")
+				Println("upload takes two arguments: the remote upload path, and the file to upload.")
 				os.Exit(1)
 			}
 			client.Upload(args[0], args[1])
 		},
 	}
 	RootCmd.AddCommand(uploadCmd)
+
+	scanCmd := &cobra.Command{
+		Use:   "scan",
+		Short: "scan a folder ",
+		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) != 1 {
+				Println("scan takes one arguments: the folder to upload")
+				os.Exit(1)
+			}
+			client.ScanUpload(args[0])
+		},
+	}
+	RootCmd.AddCommand(scanCmd)
 
 	versionCmd := &cobra.Command{
 		Use:   "version",

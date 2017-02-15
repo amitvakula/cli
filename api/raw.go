@@ -71,7 +71,7 @@ func (c *Client) Upload(filename string, parent interface{}, metadata []byte, sr
 	case *Gear:
 		url = "gears/" + parent.Name + "?upload=true"
 	case *Group:
-		return nil, errors.New("Uploading files to a group is not supported")
+		return nil, errors.New("Uploading files to a group is not supported" + filename)
 	default:
 		return nil, errors.New("Cannot upload to unknown container type")
 	}
@@ -147,7 +147,7 @@ func (c *Client) Upload(filename string, parent interface{}, metadata []byte, sr
 }
 
 func (c *Client) UploadFromFile(filename string, parent interface{}, metadata []byte, filepath string) (*http.Response, error) {
-	fd, err := os.Open(filename)
+	fd, err := os.Open(filepath)
 	if err != nil {
 		return nil, err
 	}

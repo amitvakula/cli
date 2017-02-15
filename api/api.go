@@ -174,9 +174,7 @@ type Acquisition struct {
 	Name      string `json:"label"`
 	SessionId string `json:"session"`
 
-	Instrument  string    `json:"instrument"`
-	Measurement string    `json:"measurement"`
-	Timestamp   time.Time `json:"timestamp"`
+	Timestamp time.Time `json:"timestamp"`
 
 	Created  time.Time `json:"created"`
 	Modified time.Time `json:"modified"`

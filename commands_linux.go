@@ -190,13 +190,13 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 	}
 	builderCmd.AddCommand(exportCmd)
 
-	uploadCmd := &cobra.Command{
-		Use:   "upload",
-		Short: "Upload your gear to the Flywheel system",
-		Run: func(cmd *cobra.Command, args []string) {
-			project := builder.Setup()
-			project.Upload(args)
-		},
-	}
-	builderCmd.AddCommand(uploadCmd)
+	// uploadCmd := &cobra.Command{
+	// 	Use:   "upload",
+	// 	Short: "Upload your gear to the Flywheel system",
+	// 	Run: func(cmd *cobra.Command, args []string) {
+	// 		project := builder.Setup()
+	// 		project.Upload(args)
+	// 	},
+	// }
+	// builderCmd.AddCommand(uploadCmd)
 }

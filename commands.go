@@ -89,7 +89,7 @@ func init() {
 
 	uploadCmd := &cobra.Command{
 		Use:   "upload [path] [file]",
-		Short: "upload a remote file",
+		Short: "Upload a remote file",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 2 {
 				Println("upload takes two arguments: the remote upload path, and the file to upload.")
@@ -103,7 +103,7 @@ func init() {
 
 	scanCmd := &cobra.Command{
 		Use:   "scan [folder]",
-		Short: "scan a folder",
+		Short: "Scan a folder",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 1 {
 				Println("scan takes one arguments: the folder to upload")
@@ -117,7 +117,7 @@ func init() {
 
 	versionCmd := &cobra.Command{
 		Use:   "version",
-		Short: "print the version of the flywheel CLI",
+		Short: "Print the version of the flywheel CLI",
 		Run: func(cmd *cobra.Command, args []string) {
 			Println("flywheel-cli version", Version)
 		},

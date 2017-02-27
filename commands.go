@@ -4,6 +4,7 @@ import (
 	. "fmt"
 	"net/url"
 	"os"
+	"regexp"
 
 	"github.com/spf13/cobra"
 
@@ -12,6 +13,19 @@ import (
 )
 
 func init() {
+
+	// Generate a template without the "[flags]" string.
+	// Copies the template from a default command and modifies it, making it potentially more fragile
+	// but less forked from upstream. This approach could be adopted in commands_linux.go
+	//
+	// https://github.com/flywheel-io/cli/issues/21
+	// https://github.com/spf13/cobra/issues/395
+	// https://godoc.org/github.com/spf13/cobra#Command.UsageTemplate
+	dummyCmd := &cobra.Command{}
+	defaultTemplate := dummyCmd.UsageTemplate()
+	templateWithoutFlags := regexp.MustCompile("\\[flags\\]").ReplaceAllString(defaultTemplate, "")
+	_ = templateWithoutFlags
+
 	var loginUrl string
 	var loginKey string
 	var loginInsecure bool
@@ -39,7 +53,7 @@ func init() {
 
 	var lsDbIds bool
 	lsCmd := &cobra.Command{
-		Use:   "ls",
+		Use:   "ls [path]",
 		Short: "Show remote files",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
@@ -59,7 +73,7 @@ func init() {
 	var downloadOutput string
 	var downloadForce bool
 	downloadCmd := &cobra.Command{
-		Use:   "download",
+		Use:   "download [path]",
 		Short: "Download a remote file",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 1 {
@@ -74,7 +88,7 @@ func init() {
 	RootCmd.AddCommand(downloadCmd)
 
 	uploadCmd := &cobra.Command{
-		Use:   "upload",
+		Use:   "upload [path] [file]",
 		Short: "upload a remote file",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 2 {
@@ -84,11 +98,12 @@ func init() {
 			client.Upload(args[0], args[1])
 		},
 	}
+	uploadCmd.SetUsageTemplate(templateWithoutFlags)
 	RootCmd.AddCommand(uploadCmd)
 
 	scanCmd := &cobra.Command{
-		Use:   "scan",
-		Short: "scan a folder ",
+		Use:   "scan [folder]",
+		Short: "scan a folder",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 1 {
 				Println("scan takes one arguments: the folder to upload")
@@ -97,6 +112,7 @@ func init() {
 			client.ScanUpload(args[0])
 		},
 	}
+	scanCmd.SetUsageTemplate(templateWithoutFlags)
 	RootCmd.AddCommand(scanCmd)
 
 	versionCmd := &cobra.Command{
@@ -106,5 +122,6 @@ func init() {
 			Println("flywheel-cli version", Version)
 		},
 	}
+	versionCmd.SetUsageTemplate(templateWithoutFlags)
 	RootCmd.AddCommand(versionCmd)
 }

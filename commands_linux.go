@@ -11,11 +11,22 @@ import (
 	// Register all implementations
 	_ "flywheel.io/deja/flak/features"
 
-	"flywheel.io/fw/builder"
 	"flywheel.io/fw/gear"
 )
 
 func init() {
+
+	// Generate a template without the "[flags]" string.
+	// Copies the template from a default command and modifies it, making it potentially more fragile
+	// but less forked from upstream. This approach could be adopted in commands_linux.go
+	//
+	// https://github.com/flywheel-io/cli/issues/21
+	// https://github.com/spf13/cobra/issues/395
+	// https://godoc.org/github.com/spf13/cobra#Command.UsageTemplate
+	dummyCmd := &cobra.Command{}
+	defaultTemplate := dummyCmd.UsageTemplate()
+	templateWithoutFlags := regexp.MustCompile("\\[flags\\]").ReplaceAllString(defaultTemplate, "")
+	_ = templateWithoutFlags
 
 	gearCmd := &cobra.Command{
 		Use:   "gear",
@@ -140,63 +151,4 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 	cobra.AddTemplateFunc("trimStringLiterals", trimStringLiterals)
 
 	gearCmd.AddCommand(gearRunCmd)
-
-	//
-
-	builderCmd := &cobra.Command{
-		Use:   "builder",
-		Short: "Builder commands",
-	}
-	RootCmd.AddCommand(builderCmd)
-
-	createCmd := &cobra.Command{
-		Use:   "create",
-		Short: "Create a new flywheel gear",
-		Run: func(cmd *cobra.Command, args []string) {
-			builder.Setup()
-			Println("Created a new gear in the current folder.")
-		},
-	}
-	builderCmd.AddCommand(createCmd)
-
-	useCmd := &cobra.Command{
-		Use:   "use",
-		Short: "Use a new flywheel gear",
-		Run: func(cmd *cobra.Command, args []string) {
-			project := builder.Setup()
-			project.Use(args)
-		},
-	}
-	builderCmd.AddCommand(useCmd)
-
-	runCmd := &cobra.Command{
-		Use:   "run",
-		Short: "Run your gear locally",
-		Run: func(cmd *cobra.Command, args []string) {
-			project := builder.Setup()
-			project.Run(args)
-		},
-	}
-	runCmd.Flags().SetInterspersed(false)
-	builderCmd.AddCommand(runCmd)
-
-	exportCmd := &cobra.Command{
-		Use:   "export",
-		Short: "Export your gear to disk",
-		Run: func(cmd *cobra.Command, args []string) {
-			project := builder.Setup()
-			project.Export(args)
-		},
-	}
-	builderCmd.AddCommand(exportCmd)
-
-	// uploadCmd := &cobra.Command{
-	// 	Use:   "upload",
-	// 	Short: "Upload your gear to the Flywheel system",
-	// 	Run: func(cmd *cobra.Command, args []string) {
-	// 		project := builder.Setup()
-	// 		project.Upload(args)
-	// 	},
-	// }
-	// builderCmd.AddCommand(uploadCmd)
 }

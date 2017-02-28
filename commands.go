@@ -73,8 +73,8 @@ func init() {
 	var downloadOutput string
 	var downloadForce bool
 	downloadCmd := &cobra.Command{
-		Use:   "download [path]",
-		Short: "Download a remote file",
+		Use:   "download [source_path]",
+		Short: "Download a remote file or container",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 1 {
 				Println("ls takes one argument: the path of the files to list.")
@@ -88,7 +88,7 @@ func init() {
 	RootCmd.AddCommand(downloadCmd)
 
 	uploadCmd := &cobra.Command{
-		Use:   "upload [path] [file]",
+		Use:   "upload [destination_path] [local_file]",
 		Short: "Upload a remote file",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 2 {
@@ -103,7 +103,7 @@ func init() {
 
 	scanCmd := &cobra.Command{
 		Use:   "scan [folder]",
-		Short: "Scan a folder",
+		Short: "Scan and upload a folder",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 1 {
 				Println("scan takes one arguments: the folder to upload")

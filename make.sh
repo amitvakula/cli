@@ -19,7 +19,6 @@ export GOPATH=$(cd ../../../; pwd)
 
 # Get system info
 localOs=$( uname -s | tr '[:upper:]' '[:lower:]' )
-localArch=$( uname -m | sed 's/x86_//; s/i[3-6]86/32/' )
 
 # Load GNU coreutils on OSX
 if [[ "$localOs" == "darwin" ]]; then
@@ -127,6 +126,9 @@ build() {
 }
 
 crossBuild() {
+	# Placed here, instead of at the top, since it's the only place we need it
+	localArch=$( uname -m | sed 's/x86_//; s/i[3-6]86/32/' )
+
 	for target in "${targets[@]}"; do
 
 		# Split target on slash to get operating system & architecture
@@ -151,6 +153,17 @@ crossBuild() {
 			binary=$( find "$path" -maxdepth 1 | grep -E "${pkg##*/}(\.exe)*" | head -n 1 )
 
 			which upx > /dev/null && nice upx -q $binary 2>&1 | grep -- "->" || true
+		fi
+
+		# If this system is the current build target, copy the binary to a build folder.
+		# Makes it easier to export a cross-build.
+
+		if [[ "$localOs" == "$os" && "$arch" =~ .*$localArch ]] ; then
+			path="$GOPATH/bin/"
+			binary=$( find "$path" -maxdepth 1 | grep -E "${pkg##*/}(\.exe)*" | head -n 1 )
+
+			mkdir -p "$GOPATH/bin/${os}_${arch}/"
+			cp $binary "$GOPATH/bin/${os}_${arch}/"
 		fi
 	done
 

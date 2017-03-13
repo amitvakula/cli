@@ -3,7 +3,7 @@ imports:
   version: e6a8a622e48a4c7c1362972bc0177f53328091e7
   repo: https://github.com/flywheel-io/deja.git
 - name: flywheel.io/sdk
-  version: a42d37874d956b5f20c2a5ddb58a3c6d1dbb1736
+  version: d807ae64b1d1896fef9f25b6002f1f41ef3dbf3d
   repo: git@github.com:flywheel-io/core-sdk.git
   subpackages:
   - api

@@ -228,7 +228,7 @@ func (r *scanProject) discover(folder string, path []string) {
 
 			r.Children = append(r.Children, subject)
 		} else {
-			attachment := api.UploadSourceFromPath(filepath.Join(folder, name))
+			attachment := api.CreateUploadSourceFromFilenames(filepath.Join(folder, name))[0]
 			r.Attachments = append(r.Attachments, attachment)
 		}
 	})
@@ -369,7 +369,7 @@ func (r *scanSession) discover(folder string, path []string) {
 
 			r.Children = append(r.Children, acquisition)
 		} else {
-			attachment := api.UploadSourceFromPath(filepath.Join(folder, name))
+			attachment := api.CreateUploadSourceFromFilenames(filepath.Join(folder, name))[0]
 			r.Attachments = append(r.Attachments, attachment)
 		}
 	})
@@ -459,7 +459,7 @@ func (r *scanAcquisition) inflate(sessionId, projectId string, metadata map[stri
 			var paths []*api.UploadSource
 			scan(x.Path, func(name string, mode os.FileMode) {
 				if mode.IsRegular() {
-					src := api.UploadSourceFromPath(filepath.Join(x.Path, name))
+					src := api.CreateUploadSourceFromFilenames(filepath.Join(x.Path, name))[0]
 					paths = append(paths, src)
 				}
 			})
@@ -501,11 +501,11 @@ func (r *scanAcquisition) inflate(sessionId, projectId string, metadata map[stri
 func (r *scanAcquisition) discover(folder string, path []string) {
 	scan(folder, func(name string, mode os.FileMode) {
 		if mode.IsDir() {
-			packfile := api.UploadSourceFromPath(filepath.Join(folder, name))
+			packfile := api.CreateUploadSourceFromFilenames(filepath.Join(folder, name))[0]
 			r.Packfiles = append(r.Packfiles, packfile)
 
 		} else {
-			attachment := api.UploadSourceFromPath(filepath.Join(folder, name))
+			attachment := api.CreateUploadSourceFromFilenames(filepath.Join(folder, name))[0]
 			r.Attachments = append(r.Attachments, attachment)
 		}
 	})

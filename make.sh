@@ -2,8 +2,10 @@
 set -euo pipefail
 unset CDPATH; cd "$( dirname "${BASH_SOURCE[0]}" )"; cd "`pwd -P`"
 
-# Project settings: package name, Go & Glide versions, and cross-compilation targets
+# Project settings: package name, test packages (if different), Go & Glide versions, and cross-compilation targets
 pkg="flywheel.io/fw"
+testPkg=""
+coverPkg=""
 goV=${GO_VERSION:-"1.8"}
 minGlideV="0.12.3"
 targets=( "darwin/amd64" "linux/amd64" "windows/amd64" )
@@ -202,8 +204,18 @@ formatCheck() {
 }
 
 _test() {
-	hideEmptyTests="/\[no test files\]$/d;"
-	go test -v "$@" $pkg $(listPackages $pkg/) | sed "$hideEmptyTests"
+	hideEmptyTests="/\[no test files\]$/d; /^warning\: no packages being tested depend on /d; /^=== RUN   /d;"
+
+	# If testing a single package, coverprofile is availible.
+	# Set which package to test and which package to count coverage against.
+
+	if [[ $testPkg == "" ]]; then
+		go test -v -cover "$@" $pkg $(listPackages $pkg/) 2>&1 | sed -r "$hideEmptyTests"
+	else
+		go test -v -cover -coverprofile=.coverage.out -coverpkg $coverPkg "$@" $testPkg 2>&1 | sed -r "$hideEmptyTests"
+
+		go tool cover -html=.coverage.out -o coverage.html
+	fi
 }
 
 

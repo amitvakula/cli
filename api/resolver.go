@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -101,6 +102,11 @@ func (r *ResolveResult) addDynamicNode(x map[string]interface{}, slice *[]interf
 
 type resolvePath struct {
 	Path []string `json:"path"`
+}
+
+func (c *Client) ResolvePathString(path string) (*ResolveResult, *http.Response, error, *ApiError) {
+
+	return c.ResolvePath(strings.Split(path, "/"))
 }
 
 func (c *Client) ResolvePath(path []string) (*ResolveResult, *http.Response, error, *ApiError) {

@@ -3,7 +3,6 @@ package client
 import (
 	. "fmt"
 	"os"
-
 	"text/tabwriter"
 
 	"github.com/fatih/color"

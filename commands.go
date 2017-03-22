@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
@@ -119,7 +120,13 @@ func init() {
 		Use:   "version",
 		Short: "Print CLI version",
 		Run: func(cmd *cobra.Command, args []string) {
-			Println("flywheel-cli version", Version)
+			Println("flywheel-cli")
+
+			w := tabwriter.NewWriter(os.Stdout, 0, 2, 1, ' ', 0)
+			Fprintf(w, "%s\t%s\n", " Version:", Version)
+			Fprintf(w, "%s\t%s\n", " Git commit:", BuildHash)
+			Fprintf(w, "%s\t%s\n", " Built:", BuildDate)
+			w.Flush()
 		},
 	}
 	versionCmd.SetUsageTemplate(templateWithoutFlags)

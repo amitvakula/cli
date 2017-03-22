@@ -11,13 +11,11 @@ minGlideV="0.12.3"
 targets=( "darwin/amd64" "linux/amd64" "windows/amd64" )
 #
 
-fatal() {
-	echo -e $1; exit 1
-}
+fatal() { echo -e $1; exit 1; }
 
 # Check that this project is in a gopath
 test -d ../../../src || fatal "This project must be located in a gopath.\nTry cloning instead to \"src/$pkg\"."
-export GOPATH=$(cd ../../../; pwd)
+export GOPATH=$(cd ../../../; pwd); unset GOBIN
 
 # Get system info
 localOs=$( uname -s | tr '[:upper:]' '[:lower:]' )

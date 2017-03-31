@@ -11,7 +11,7 @@ ln -s workspace/src/flywheel.io/fw cli
 
 The binary will be compiled to `workspace/bin/fw`.
 
-# Interacting with a Flywheel instance
+## Interacting with a Flywheel instance
 
 First, you need to generate an API key via your profile page.
 Login using the CLI with the URL of the site and your API key:

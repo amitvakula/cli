@@ -3,16 +3,16 @@ imports:
   version: e6a8a622e48a4c7c1362972bc0177f53328091e7
   repo: https://github.com/flywheel-io/deja.git
 - name: flywheel.io/sdk
-  version: 71c2fd8b5ad80617ae166e89285a7ec4b38c193f
+  version: 4cd416e19054588f779d9545ab7ce93b556c4833
   repo: git@github.com:flywheel-io/core-sdk.git
   subpackages:
   - api
 - name: github.com/dghubble/sling
-  version: 52e88a7b75a5db3b49f8911f16d49d9b7b67adc5
+  version: 4af638d6d3265b9f740bf6d2665ef20d7abd0103
 - name: github.com/dustin/go-humanize
-  version: bd88f87ad3a420f7bcf05e90566fd1ceb351fa7f
+  version: 259d2a102b871d17f30e3cd9881a642961a1e486
 - name: github.com/fatih/color
-  version: dea9d3a26a087187530244679c1cfb3a42937794
+  version: 9131ab34cf20d2f6d83fdc67168a5430d1c7dc23
 - name: github.com/go-stack/stack
   version: 100eb0c0a9c5b306ca2fb4f165df21d80ada4b82
 - name: github.com/google/go-querystring
@@ -22,7 +22,7 @@ imports:
 - name: github.com/howeyc/gopass
   version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/inconshreveable/log15
-  version: 20bca5a7a57282e241fac83ec9ea42538027f1c1
+  version: c94d940c446e745bb79de48cde6846cb2247998f
   subpackages:
   - term
 - name: github.com/inconshreveable/mousetrap
@@ -34,36 +34,39 @@ imports:
 - name: github.com/kr/text
   version: 7cafcd837844e784b526369c9bce262804aebc60
 - name: github.com/mattn/go-colorable
-  version: 9056b7a9f2d1f2d96498d6d146acd1f9d5ed3d59
+  version: 5411d3eea5978e6cdc258b30de592b60df6aba96
+  repo: https://github.com/mattn/go-colorable
 - name: github.com/mattn/go-isatty
-  version: 56b76bdf51f7708750eac80fa38b952bb9f32639
+  version: 57fdcb988a5c543893cc61bce354a6e24ab70022
+  repo: https://github.com/mattn/go-isatty
 - name: github.com/mitchellh/go-homedir
-  version: 756f7b183b7ab78acdbbee5c7f392838ed459dda
+  version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
-  version: f3009df150dadf309fdee4a54ed65c124afad715
+  version: d2dd0262208475919e1a362f675cfc0e7c10e905
 - name: github.com/pkg/errors
-  version: 01fa4104b9c248c8945d14d9f128454d5b28d595
+  version: 0bc61eb85b3cab5d83c9432263916d5df58d9855
 - name: github.com/pkg/sftp
-  version: 4c7551ad7e113c8cc02a45b8d159065fc9c2a734
+  version: d4c18e7ffdc496a38de67dde6e29b2f364afc472
 - name: github.com/segmentio/go-prompt
   version: f0d19b6901ade831d5a3204edc0d6a7d6457fbb2
 - name: github.com/spf13/afero
   version: 1a8ecf8b9da1fb5306e149e83128fc447957d2a8
 - name: github.com/spf13/cobra
-  version: ec2fe7859914a5106dcab4e7901633d959bfc2f4
+  version: f62e98d28ab7ad31d707ba837a966378465c7b57
 - name: github.com/spf13/pflag
-  version: bf8481a6aebc13a8aab52e699ffe2e79771f5a3f
+  version: 367864438f1b1a3c7db4da06a2f55b144e6784e0
 - name: golang.org/x/crypto
   version: f3241ce8505855877cc8a9717bd61a0f7c4ea83c
   subpackages:
   - ssh
   - ssh/terminal
 - name: golang.org/x/sys
-  version: 5a8c7f28c1853e998847117cf1f3fe96ce88a59f
+  version: e24f485414aeafb646f6fca458b0bf869c0880a1
+  repo: https://go.googlesource.com/sys
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: e4775119bd79944a15a741ac4be61e43509a70d9
+  version: e3c902a8b2c4c420ce61514795e05b8e28a6364e
   subpackages:
   - transform
   - unicode/norm

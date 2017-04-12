@@ -421,12 +421,13 @@ func (r *scanAcquisition) inflate(sessionId, projectId string, metadata map[stri
 	}
 
 	for _, x := range r.Packfiles {
-		Println("Upload packfile", x.Name)
+		name := filepath.Base(x.Path)
+		Println("Upload packfile", name)
 
 		retry(func() error {
 
 			metadata["packfile"] = map[string]interface{}{
-				"type": x.Name,
+				"type": name,
 			}
 
 			mdRaw, err := json.Marshal(&metadata)

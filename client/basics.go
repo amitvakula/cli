@@ -37,6 +37,26 @@ func MakeClient() *api.Client {
 	return api.NewApiKeyClient(c.Host, c.Key, c.Insecure)
 }
 
+func MakeClientSafe() (*api.Client, error) {
+	dir, err := homedir.Expand("~/.config/flywheel")
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := ioutil.ReadFile(filepath.Join(dir, "user.json"))
+	if err != nil {
+		return nil, err
+	}
+
+	var c Creds
+	err = json.Unmarshal(b, &c)
+	if err != nil {
+		return nil, err
+	}
+
+	return api.NewApiKeyClient(c.Host, c.Key, c.Insecure), nil
+}
+
 func (c *Creds) Save() {
 	raw, err := json.MarshalIndent(c, "", "\t")
 	Check(err)

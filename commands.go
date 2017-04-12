@@ -52,6 +52,15 @@ func init() {
 	loginCmd.Flags().BoolVar(&loginInsecure, "insecure", false, "Ignore SSL errors")
 	RootCmd.AddCommand(loginCmd)
 
+	statusCmd := &cobra.Command{
+		Use:   "status",
+		Short: "See your current login status",
+		Run: func(cmd *cobra.Command, args []string) {
+			client.Status()
+		},
+	}
+	RootCmd.AddCommand(statusCmd)
+
 	var lsDbIds bool
 	lsCmd := &cobra.Command{
 		Use:   "ls [path]",

@@ -32,6 +32,29 @@ func Login(host, key string, insecure bool) {
 	Println("Logged in as", user.Firstname, user.Lastname, "<"+user.Email+">")
 }
 
+func Status() {
+	client, err := MakeClientSafe()
+	if err != nil {
+		Println("You are not currently logged in.")
+		Println("Try `fw login` to login to Flywheel.")
+		os.Exit(1)
+	}
+	user, _, err := client.GetCurrentUser()
+	if err != nil {
+		Println(err)
+		Println()
+		Println("Could not authenticate - are you sure your API key is up to date?")
+		Println("Try `fw login` to login to Flywheel.")
+		os.Exit(1)
+	}
+
+	r, err := client.S.Request()
+	Check(err)
+	host := r.URL.Host
+
+	Println("You are currently logged in as", user.Firstname, user.Lastname, "to", "https://"+host, "!")
+}
+
 // coalesce will extract an API error message into a golang error, if applicable.
 func coalesce(err error, aerr *api.ApiError) error {
 	if err != nil {

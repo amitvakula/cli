@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var Version = "3.7.1"
+var Version = "3.7.2"
 var BuildHash = "dev"
 var BuildDate = "dev"
 

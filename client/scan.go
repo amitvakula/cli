@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	. "fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -486,15 +487,22 @@ func (r *scanAcquisition) inflate(sessionId, projectId string, metadata map[stri
 				return err
 			}
 
-			// Wait for SSE
+			// Start SSE
 			resp, err := c.Client.Do(req)
 
-			if resp.StatusCode != 200 {
+			if err != nil {
+				return err
+			}
+
+			// Wait for SSE
+			if resp.StatusCode == 200 {
+				_, err = io.Copy(ioutil.Discard, resp.Body)
+				return err
+			} else {
 				// Needs robust handling for body & raw nils
 				raw, _ := ioutil.ReadAll(resp.Body)
 				return errors.New(string(raw))
 			}
-			return err
 		})
 	}
 }

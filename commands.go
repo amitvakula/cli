@@ -2,7 +2,6 @@ package main
 
 import (
 	. "fmt"
-	"net/url"
 	"os"
 	"regexp"
 	"text/tabwriter"
@@ -10,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"flywheel.io/fw/client"
-	. "flywheel.io/fw/util"
 )
 
 func init() {
@@ -27,28 +25,18 @@ func init() {
 	templateWithoutFlags := regexp.MustCompile("\\[flags\\]").ReplaceAllString(defaultTemplate, "")
 	_ = templateWithoutFlags
 
-	var loginUrl string
-	var loginKey string
 	var loginInsecure bool
 	loginCmd := &cobra.Command{
-		Use:   "login",
+		Use:   "login [api-key]",
 		Short: "Login to a Flywheel instance",
 		Run: func(cmd *cobra.Command, args []string) {
-			if loginUrl == "" {
-				Println("--host flag is required.")
-				os.Exit(1)
-			} else if loginKey == "" {
-				Println("--key flag is required.")
+			if len(args) != 1 {
+				Println("The login command takes one argument: your API key.")
 				os.Exit(1)
 			}
-
-			parsedUrl, err := url.Parse(loginUrl)
-			Check(err)
-			client.Login(parsedUrl.Host, loginKey, loginInsecure)
+			client.Login(args[0], loginInsecure)
 		},
 	}
-	loginCmd.Flags().StringVarP(&loginUrl, "host", "H", "", "Host URL (https://example.flywheel.io)")
-	loginCmd.Flags().StringVarP(&loginKey, "key", "k", "", "Your API key")
 	loginCmd.Flags().BoolVar(&loginInsecure, "insecure", false, "Ignore SSL errors")
 	RootCmd.AddCommand(loginCmd)
 

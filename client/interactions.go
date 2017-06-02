@@ -16,8 +16,30 @@ import (
 	. "flywheel.io/fw/util"
 )
 
-func Login(host, key string, insecure bool) {
-	client := api.NewApiKeyClient(host, key, insecure)
+func Login(key string, insecure bool) {
+
+	chunks := strings.Split(key, ":")
+
+	if len(chunks) == 1 {
+		Println("Your API key should have a domain attached to it. For example: 'flywheel.io:my-key'.")
+		Println("Try copy-pasting the login command from your user profile page.")
+		os.Exit(1)
+	}
+
+	domain := chunks[0]
+	port := 443
+	apiKey := chunks[len(chunks)-1]
+
+	if len(chunks) >= 3 {
+		i, err := strconv.Atoi(chunks[1])
+		if err == nil {
+			// Second API key chunk is a port
+			port = i
+		}
+	}
+
+	host := domain + ":" + strconv.Itoa(port)
+	client := api.NewApiKeyClient(host, apiKey, insecure)
 
 	user, _, err := client.GetCurrentUser()
 	Check(err)
@@ -29,7 +51,10 @@ func Login(host, key string, insecure bool) {
 	}
 	c.Save()
 
-	Println("Logged in as", user.Firstname, user.Lastname, "<"+user.Email+">")
+	Println("You are now logged in as", user.Firstname, user.Lastname, "<"+user.Email+">!")
+	Println("")
+	Println("You can now use the Flywheel command line to view data, run jobs, and more.")
+	Println("Try 'fw --help' to see the available features.")
 }
 
 func Status() {

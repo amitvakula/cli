@@ -167,8 +167,8 @@ func GearCreate(client *api.Client, docker *client.Client) {
 
 	Println()
 
-	choices := []string{"Just linux (bash)", "Custom - use a docker image"}
-	results := []string{"flywheel/example-gear", ""}
+	choices := []string{"Python", "Just linux (bash)", "Custom - use a docker image"}
+	results := []string{"flywheel/gear-base-anaconda", "flywheel/example-gear", ""}
 
 	Println("What sort of gear would you like to create?")
 	for x, y := range choices {

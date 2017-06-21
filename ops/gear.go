@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -338,7 +339,25 @@ func GearRunActual(client *api.Client, docker *client.Client, image string, conf
 	cwd, err := os.Getwd()
 	Check(err)
 
-	tmpfile, err := ioutil.TempFile("", "fw-gear-builder")
+	baseTempDir := ""
+	baseTempPrefix := "fw-gear-builder-"
+
+	switch runtime.GOOS {
+	case "darwin":
+		// Of course mounting on OSX is a clusterfuck
+		//
+		// Default tempdir goes to, like, /var/folders/fp/znt3073d3313h1r_sbj9292h0000gn/T/fw-gear-builder594038416
+		// At which point docker throws up its hands and cries for no discernable reason
+
+		baseTempDir = "/tmp/"
+	case "linux":
+		break
+	default:
+		Println("Warning: Gear builter is not yet tested on platform", runtime.GOOS)
+		Println()
+	}
+
+	tmpfile, err := ioutil.TempFile(baseTempDir, baseTempPrefix)
 	Check(err)
 	defer os.Remove(tmpfile.Name())
 
@@ -368,7 +387,7 @@ func GearRunActual(client *api.Client, docker *client.Client, image string, conf
 	})
 
 	// Prevent input folder from getting stuff in it
-	tempdir, err := ioutil.TempDir("", "fw-gear-builder")
+	tempdir, err := ioutil.TempDir(baseTempDir, baseTempPrefix)
 	Check(err)
 	defer func(dir string) { os.RemoveAll(dir) }(tempdir)
 
@@ -387,7 +406,7 @@ func GearRunActual(client *api.Client, docker *client.Client, image string, conf
 		path, err := filepath.Abs(input)
 		Check(err)
 
-		tempdir, err := ioutil.TempDir("", "fw-gear-builder")
+		tempdir, err := ioutil.TempDir(baseTempDir, baseTempPrefix)
 		Check(err)
 		defer func(dir string) { os.RemoveAll(dir) }(tempdir)
 

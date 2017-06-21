@@ -29,6 +29,21 @@ func (o *opts) login() *cobra.Command {
 	cmd.Flags().BoolVar(&insecure, "insecure", false, "Ignore SSL errors")
 	return cmd
 }
+func (o *opts) logout() *cobra.Command {
+	var insecure bool
+	cmd := &cobra.Command{
+		Use:   "logout",
+		Short: "Delete your saved API key",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			Check(DeleteCreds())
+			Println("You are now logged out.")
+		},
+	}
+
+	cmd.Flags().BoolVar(&insecure, "insecure", false, "Ignore SSL errors")
+	return cmd
+}
 
 func (o *opts) status() *cobra.Command {
 	cmd := &cobra.Command{

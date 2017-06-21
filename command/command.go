@@ -19,6 +19,7 @@ func BuildCommand(version, buildHash, buildDate string) *cobra.Command {
 
 	cmd := o.fw()
 	cmd.AddCommand(o.login())
+	cmd.AddCommand(o.logout())
 	cmd.AddCommand(o.status())
 	cmd.AddCommand(o.ls())
 	cmd.AddCommand(o.download())

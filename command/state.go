@@ -83,3 +83,18 @@ func (c *Creds) Save() {
 	err = ioutil.WriteFile(path, raw, 0644)
 	Check(err)
 }
+
+func DeleteCreds() error {
+	path, err := homedir.Expand(ConfigPath)
+	if err != nil {
+		return err
+	}
+
+	err = os.Remove(path)
+
+	if os.IsNotExist(err) {
+		return nil
+	} else {
+		return err
+	}
+}

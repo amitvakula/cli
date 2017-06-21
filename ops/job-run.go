@@ -1,119 +1,27 @@
-package client
+package ops
 
 import (
 	"encoding/json"
 	. "fmt"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
-	"text/tabwriter"
-	"time"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
-	oapi "flywheel.io/fw/api"
-	. "flywheel.io/fw/util"
 	"flywheel.io/sdk/api"
+
+	"flywheel.io/fw/legacy"
+	. "flywheel.io/fw/util"
 )
 
-var greenBold = color.New(color.FgGreen, color.Bold).SprintFunc()
-
-// Gears satisfies sort.Interface for sorting by gear name.
-type Gears []*api.GearDoc
-
-func (g Gears) Len() int {
-	return len(g)
-}
-func (g Gears) Less(i, j int) bool {
-	return g[i].Gear.Name < g[j].Gear.Name
-}
-func (g Gears) Swap(i, j int) {
-	g[i], g[j] = g[j], g[i]
-}
-
-func ListGears() {
-	x := LoadCreds()
-	c = api.NewApiKeyClient(x.Host, x.Key, x.Insecure)
-
-	gears, _, err := c.GetAllGears()
-	Check(err)
-
-	// Change the type so we can sort
-	gearsCast := Gears(gears)
-	sort.Sort(gearsCast)
-
-	// Format the table, printing to a platform- & pipe-friendly color writer
-	w := tabwriter.NewWriter(color.Output, 0, 2, 1, ' ', 0)
-
-	for _, x := range gearsCast {
-		Fprintf(w, "%s\t%s\n", greenBold(x.Gear.Name), x.Gear.Label)
-	}
-
-	w.Flush()
-}
-
-func JobStatus(id string) {
-	x := LoadCreds()
-	c = api.NewApiKeyClient(x.Host, x.Key, x.Insecure)
-
-	job, _, err := c.GetJob(id)
-	Check(err)
-
-	Println("Job", id, "is", job.State+".")
-}
-
-func JobWait(id string) {
-	x := LoadCreds()
-	c = api.NewApiKeyClient(x.Host, x.Key, x.Insecure)
-
-	first := true
-	interval := 3 * time.Second
-	state := api.JobState("")
-
-	for state != api.Cancelled && state != api.Failed && state != api.Complete {
-
-		if first {
-			first = false
-		} else {
-			time.Sleep(interval)
-		}
-
-		job, _, err := c.GetJob(id)
-		if err != nil {
-			Println(err)
-			Println("Will continue to retry. Press Control-C to exit.")
-		}
-		if job.State != state {
-			state = job.State
-			Println("Job is", state)
-		}
-		state = job.State
-	}
-
-	if state == api.Complete {
-		os.Exit(0)
-	} else {
-		os.Exit(1)
-	}
-}
-
-func JobRun(args []string) {
-	// Client
-	var c *api.Client
-	var oc *oapi.Client
-	x := LoadCreds()
-	c = api.NewApiKeyClient(x.Host, x.Key, x.Insecure)
-	oc = MakeClient()
-	_ = oc
-
+func JobRun(client *api.Client, args []string) {
 	// Slice
 	gearName := args[0]
 	args = args[1:]
 
 	// Find gear name from remote
-	gears, _, err := c.GetAllGears()
+	gears, _, err := client.GetAllGears()
 	Check(err)
 	var gearDoc *api.GearDoc
 	for _, x := range gears {
@@ -156,32 +64,32 @@ func JobRun(args []string) {
 			// targets := []*api.ContainerReference{}
 
 			// Merge value slice with config slice for convenience
-			configsCast := configs.([]*GearConfig)
+			configsCast := configs.([]*legacy.GearConfig)
 			for x := range configsCast {
 				configsCast[x].Value = values.([]string)[x]
 			}
 
 			// construct map from flags
-			config := genConfigStruct(configsCast)
+			config := legacy.GenConfigStruct(configsCast)
 			configOut, _ := json.MarshalIndent(config, "", "\t")
 			Println("Job configuration:")
 			Println(string(configOut))
 
 			// resolve inouts
-			inputs := genInputs(configsCast)
+			inputs := legacy.GenInputs(configsCast)
 			sendInputs := map[string]interface{}{}
 
 			for inputName, path := range inputs {
-				result, _, err, aerr := oc.ResolvePathString(path)
-				Check(coalesce(err, aerr))
+				result, _, err, aerr := legacy.ResolvePathString(client, path)
+				Check(api.Coalesce(err, aerr))
 				last := result.Path[len(result.Path)-1]
 
-				file, ok := last.(*oapi.File)
+				file, ok := last.(*legacy.File)
 				if !ok {
 					Println("Input", inputName, "must resolve to a file.")
 					os.Exit(1)
 				}
-				parent := result.Path[len(result.Path)-2].(oapi.Container)
+				parent := result.Path[len(result.Path)-2].(legacy.Container)
 
 				sendInputs[inputName] = &api.FileReference{
 					Id:   parent.GetId(),
@@ -197,7 +105,7 @@ func JobRun(args []string) {
 				Tags:   []string{"cli"},
 			}
 
-			jobId, _, err := c.AddJob(job)
+			jobId, _, err := client.AddJob(job)
 			Check(err)
 
 			Println("Job", jobId, "has been queued.")
@@ -205,7 +113,7 @@ func JobRun(args []string) {
 	}
 
 	// cmd flag add
-	cs := genGearConfigs(gear)
+	cs := legacy.GenGearConfigs(gear)
 	configs = cs
 	values = make([]string, len(cs))
 

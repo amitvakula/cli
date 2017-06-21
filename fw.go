@@ -1,33 +1,21 @@
 package main
 
 import (
-	. "fmt"
 	"os"
-	"runtime/debug"
 
-	"github.com/spf13/cobra"
+	"flywheel.io/fw/command"
+	. "flywheel.io/fw/util"
 )
 
-var Version = "4.0.0"
+var Version = "4.1.0"
 var BuildHash = "dev"
 var BuildDate = "dev"
 
-var RootCmd = &cobra.Command{
-	Use:   "fw",
-	Short: "Flywheel command-line interface",
-}
-
 func main() {
-	defer func() {
-		if r := recover(); r != nil {
-			Println(string(debug.Stack()))
-			Println("Crash report:", r)
-			Println("flywheel-cli version", Version)
-		}
-	}()
+	defer GracefulRecover()
 
-	// Run
-	if err := RootCmd.Execute(); err != nil {
+	err := command.BuildCommand(Version, BuildHash, BuildDate).Execute()
+	if err != nil {
 		os.Exit(-1)
 	}
 }

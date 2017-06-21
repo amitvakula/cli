@@ -1,27 +1,40 @@
-package client
+package legacy
 
 import (
 	. "fmt"
 	"os"
 	"text/tabwriter"
+	"time"
 
 	"github.com/fatih/color"
 
-	"flywheel.io/fw/api"
+	"flywheel.io/sdk/api"
 )
+
+func FindPermissionById(id string, perms []*api.Permission) *api.Permission {
+	for _, x := range perms {
+		if x.Id == id {
+			return x
+		}
+	}
+	return &api.Permission{
+		Id:    id,
+		Level: "none",
+	}
+}
 
 var blueBold = color.New(color.FgBlue, color.Bold).SprintFunc()
 var timeFormat = "Jan _2 15:04"
 
 func resolvePermissions(x interface{}) []*api.Permission {
 	switch x := x.(type) {
-	case *api.Group:
+	case *Group:
 		return x.Permissions
-	case *api.Project:
+	case *Project:
 		return x.Permissions
-	case *api.Session:
+	case *Session:
 		return x.Permissions
-	case *api.Acquisition:
+	case *Acquisition:
 		return x.Permissions
 	default:
 		Printf("Error: resolvePermissions: unexpected type %T\n", x)
@@ -31,7 +44,16 @@ func resolvePermissions(x interface{}) []*api.Permission {
 	return nil
 }
 
-func PrintResolve(r *api.ResolveResult, userId string, showDbIds bool) {
+// Timestamps might be null (eye-roll), let's not NPE on silly data
+func tryTimestampFormat(t *time.Time, layout string) string {
+	if t != nil {
+		return t.Format(layout)
+	} else {
+		return ""
+	}
+}
+
+func PrintResolve(r *ResolveResult, userId string, showDbIds bool) {
 
 	// Format the table, printing to a platform- & pipe-friendly color writer
 	w := tabwriter.NewWriter(color.Output, 0, 2, 1, ' ', 0)
@@ -58,28 +80,28 @@ func PrintResolve(r *api.ResolveResult, userId string, showDbIds bool) {
 
 	for _, node := range target {
 		switch x := node.(type) {
-		case *api.Group:
-			level := api.FindPermissionById(userId, x.Permissions).Level
+		case *Group:
+			level := FindPermissionById(userId, x.Permissions).Level
 			printId(x.Id)
 			Fprintf(w, "%s\t%s\n", level, blueBold(x.Id))
 
-		case *api.Project:
-			level := api.FindPermissionById(userId, x.Permissions).Level
+		case *Project:
+			level := FindPermissionById(userId, x.Permissions).Level
 			printId(x.Id)
 			Fprintf(w, "%s\t%s\n", level, blueBold(x.Name))
 
-		case *api.Session:
-			level := api.FindPermissionById(userId, x.Permissions).Level
+		case *Session:
+			level := FindPermissionById(userId, x.Permissions).Level
 			printId(x.Id)
-			Fprintf(w, "%s\t%s\t%s\t%s\n", level, x.Timestamp.Format(timeFormat), x.Subject.Name, blueBold(x.Name))
+			Fprintf(w, "%s\t%s\t%s\t%s\n", level, tryTimestampFormat(x.Timestamp, timeFormat), x.Subject.Firstname+" "+x.Subject.Lastname, blueBold(x.Name))
 
-		case *api.Acquisition:
-			level := api.FindPermissionById(userId, x.Permissions).Level
+		case *Acquisition:
+			level := FindPermissionById(userId, x.Permissions).Level
 			printId(x.Id)
-			Fprintf(w, "%s\t%s\t%s\t\n", level, x.Timestamp.Format(timeFormat), blueBold(x.Name))
+			Fprintf(w, "%s\t%s\t%s\t\n", level, tryTimestampFormat(x.Timestamp, timeFormat), blueBold(x.Name))
 
-		case *api.File:
-			level := api.FindPermissionById(userId, resolvePermissions(parent)).Level
+		case *File:
+			level := FindPermissionById(userId, resolvePermissions(parent)).Level
 			printId(x.Name)
 			Fprintf(w, "%s\t%s\t\t%s\t\n", level, x.Modified.Format(timeFormat), x.Name)
 

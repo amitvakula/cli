@@ -1,4 +1,4 @@
-package api
+package legacy
 
 import (
 	"errors"
@@ -9,9 +9,20 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"flywheel.io/sdk/api"
 )
 
-func (c *Client) Download(filename string, parent interface{}, dest io.Writer) (*http.Response, error) {
+func GetDownloadTicket(client *api.Client, request *ContainerTicketRequest) (*ContainerTicketResponse, *http.Response, error) {
+
+	var aerr *api.Error
+	var ticket *ContainerTicketResponse
+
+	resp, err := client.Sling.New().Post("download").BodyJSON(request).Receive(&ticket, &aerr)
+	return ticket, resp, api.Coalesce(err, aerr)
+}
+
+func Download(client *api.Client, filename string, parent interface{}, dest io.Writer) (*http.Response, error) {
 	url := ""
 	switch parent := parent.(type) {
 	case *Project:
@@ -26,12 +37,12 @@ func (c *Client) Download(filename string, parent interface{}, dest io.Writer) (
 		return nil, errors.New("Cannot download from unknown container type")
 	}
 
-	req, err := c.S.New().Get(url).Request()
+	req, err := client.Sling.New().Get(url).Request()
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.C.Do(req)
+	resp, err := client.Client.Do(req)
 	if err != nil {
 		return resp, err
 	}
@@ -45,21 +56,21 @@ func (c *Client) Download(filename string, parent interface{}, dest io.Writer) (
 	return resp, err
 }
 
-func (c *Client) DownloadToFile(filename string, parent interface{}, destPath string) (*http.Response, error) {
+func DownloadToFile(client *api.Client, filename string, parent interface{}, destPath string) (*http.Response, error) {
 	file, err := os.Create(destPath)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	resp, err := c.Download(filename, parent, file)
+	resp, err := Download(client, filename, parent, file)
 	if err != nil {
 		os.Remove(destPath) // silently attempt to remove broken file
 	}
 	return resp, err
 }
 
-func (c *Client) Upload(filename string, parent interface{}, metadata []byte, src io.Reader) (*http.Response, error) {
+func Upload(client *api.Client, filename string, parent interface{}, metadata []byte, src io.Reader) (*http.Response, error) {
 	url := ""
 	switch parent := parent.(type) {
 	case *Project:
@@ -68,7 +79,7 @@ func (c *Client) Upload(filename string, parent interface{}, metadata []byte, sr
 		url = "sessions/" + parent.Id + "/files"
 	case *Acquisition:
 		url = "acquisitions/" + parent.Id + "/files"
-	case *Gear:
+	case *api.Gear:
 		url = "gears/" + parent.Name + "?upload=true"
 	case *Group:
 		return nil, errors.New("Uploading files to a group is not supported" + filename)
@@ -124,7 +135,7 @@ func (c *Client) Upload(filename string, parent interface{}, metadata []byte, sr
 	}()
 	// END RAW
 
-	req, err := c.S.New().Post(url).
+	req, err := client.Sling.New().Post(url).
 		Body(reader).
 		Set("Content-Type", contentType).
 		Request()
@@ -132,7 +143,7 @@ func (c *Client) Upload(filename string, parent interface{}, metadata []byte, sr
 		return nil, err
 	}
 
-	resp, err := c.C.Do(req)
+	resp, err := client.Client.Do(req)
 	if err != nil {
 		return resp, err
 	}
@@ -146,12 +157,12 @@ func (c *Client) Upload(filename string, parent interface{}, metadata []byte, sr
 	return resp, nil
 }
 
-func (c *Client) UploadFromFile(filename string, parent interface{}, metadata []byte, filepath string) (*http.Response, error) {
+func UploadFromFile(client *api.Client, filename string, parent interface{}, metadata []byte, filepath string) (*http.Response, error) {
 	fd, err := os.Open(filepath)
 	if err != nil {
 		return nil, err
 	}
 	defer fd.Close()
 
-	return c.Upload(filename, parent, metadata, fd)
+	return Upload(client, filename, parent, metadata, fd)
 }

@@ -1,196 +1,29 @@
-package client
+package ops
 
 import (
 	"encoding/json"
 	. "fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 
 	prompt "github.com/segmentio/go-prompt"
 	"github.com/spf13/cobra"
 
-	oapi "flywheel.io/fw/api"
-	. "flywheel.io/fw/util"
 	"flywheel.io/sdk/api"
+
+	"flywheel.io/fw/legacy"
+	. "flywheel.io/fw/util"
 )
 
-type GearConfig struct {
-	Name        string
-	CType       string
-	Description string
-	Default     interface{}
-	Value       interface{}
-}
-
-func genGearConfigs(gear *api.Gear) []*GearConfig {
-	configs := []*GearConfig{}
-
-	if gear == nil {
-		return configs
-	}
-
-	for key, x := range gear.Config {
-		config := &GearConfig{
-			Name:  key,
-			CType: "string",
-		}
-
-		cType, ok := x["type"]
-		if ok {
-			config.CType = cType.(string)
-		}
-
-		cDefault, ok := x["default"]
-		if ok {
-			config.Default = cDefault
-		}
-
-		cDescription, ok := x["description"]
-		if ok {
-			config.Description = cDescription.(string)
-		}
-
-		configs = append(configs, config)
-	}
-
-	for key, x := range gear.Inputs {
-		config := &GearConfig{
-			Name:  key,
-			CType: "file",
-		}
-
-		cDescription, ok := x["description"]
-		if ok {
-			config.Description = cDescription.(string)
-		}
-
-		configs = append(configs, config)
-	}
-
-	return configs
-}
-
-func genBatchGearConfigs(gear *api.Gear) []*GearConfig {
-	configs := []*GearConfig{}
-
-	if gear == nil {
-		return configs
-	}
-
-	for key, x := range gear.Config {
-		config := &GearConfig{
-			Name:  key,
-			CType: "string",
-		}
-
-		cType, ok := x["type"]
-		if ok {
-			config.CType = cType.(string)
-		}
-
-		cDefault, ok := x["default"]
-		if ok {
-			config.Default = cDefault
-		}
-
-		cDescription, ok := x["description"]
-		if ok {
-			config.Description = cDescription.(string)
-		}
-
-		configs = append(configs, config)
-	}
-
-	return configs
-}
-
-func genConfigStruct(configs []*GearConfig) map[string]interface{} {
-	for _, c := range configs {
-
-		strVal := c.Value.(string)
-
-		if c.Default == nil && strVal == "" {
-			Println(c.Name, "is a required field.")
-			os.Exit(1)
-		} else if strVal == "" {
-			c.Value = c.Default
-			continue
-		}
-
-		switch c.CType {
-		case "file":
-		case "string":
-			// Nothing to do here
-		case "number":
-			f, err := strconv.ParseFloat(strVal, 64)
-			Check(err)
-			c.Value = f
-		case "integer":
-			f, err := strconv.Atoi(strVal)
-			Check(err)
-			c.Value = f
-		case "boolean":
-			f, err := strconv.ParseBool(strVal)
-			Check(err)
-			c.Value = f
-		default:
-			Println("Unknown config type", c.CType)
-			os.Exit(1)
-		}
-	}
-
-	// Construct an engine-formated config.json file
-	config := map[string]interface{}{}
-	for _, c := range configs {
-		if c.CType != "file" {
-			config[c.Name] = c.Value
-		}
-	}
-
-	return config
-}
-
-func genInputs(configs []*GearConfig) map[string]string {
-
-	result := map[string]string{}
-
-	for _, c := range configs {
-		switch c.CType {
-		case "file":
-			result[c.Name] = c.Value.(string)
-		default:
-		}
-	}
-
-	return result
-}
-
-func BatchCancel(id string) {
-	x := LoadCreds()
-	c = api.NewApiKeyClient(x.Host, x.Key, x.Insecure)
-
-	count, _, err := c.CancelBatch(id)
-	Check(err)
-
-	Println("Cancelled", count, "jobs.")
-}
-
-func BatchRun(args []string) {
-	// Client
-	var c *api.Client
-	var oc *oapi.Client
-	x := LoadCreds()
-	c = api.NewApiKeyClient(x.Host, x.Key, x.Insecure)
-	oc = MakeClient()
+func BatchRun(client *api.Client, args []string) {
 
 	// Slice
 	gearName := args[0]
 	args = args[1:]
 
 	// Find gear name from remote
-	gears, _, err := c.GetAllGears()
+	gears, _, err := client.GetAllGears()
 	Check(err)
 	var gearDoc *api.GearDoc
 	for _, x := range gears {
@@ -238,12 +71,12 @@ func BatchRun(args []string) {
 			targets := []*api.ContainerReference{}
 
 			for _, arg := range args {
-				result, _, err, aerr := oc.ResolvePathString(arg)
-				Check(coalesce(err, aerr))
+				result, _, err, aerr := legacy.ResolvePathString(client, arg)
+				Check(api.Coalesce(err, aerr))
 				path := result.Path
 				last := path[len(path)-1]
 
-				wat, ok := last.(oapi.Container)
+				wat, ok := last.(legacy.Container)
 				if !ok {
 					Println("Each path must resolve to a container, not a file.")
 					os.Exit(1)
@@ -263,13 +96,13 @@ func BatchRun(args []string) {
 			}
 
 			// Merge value slice with config slice for convenience
-			configsCast := configs.([]*GearConfig)
+			configsCast := configs.([]*legacy.GearConfig)
 			for x := range configsCast {
 				configsCast[x].Value = values.([]string)[x]
 			}
 
 			// construct map from flags
-			config := genConfigStruct(configsCast)
+			config := legacy.GenConfigStruct(configsCast)
 			configOut, _ := json.MarshalIndent(config, "", "\t")
 			Println("Batch gear configuration:")
 			Println(string(configOut))
@@ -279,7 +112,7 @@ func BatchRun(args []string) {
 			// 	Println(x.Id)
 			// }
 
-			proposal, _, err := c.ProposeBatch(gearDoc.Id, config, []string{"batch", "cli"}, targets)
+			proposal, _, err := client.ProposeBatch(gearDoc.Id, config, []string{"batch", "cli"}, targets)
 			Check(err)
 
 			if proposal.Id == "" {
@@ -305,14 +138,14 @@ func BatchRun(args []string) {
 				return
 			}
 
-			jobs, _, err := c.StartBatch(proposal.Id)
+			jobs, _, err := client.StartBatch(proposal.Id)
 			Check(err)
 			Println("Batch", proposal.Id, "has been queued with", len(jobs), "jobs.")
 		},
 	}
 
 	// cmd flag add
-	cs := genBatchGearConfigs(gear)
+	cs := legacy.GenBatchGearConfigs(gear)
 	configs = cs
 	values = make([]string, len(cs))
 

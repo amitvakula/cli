@@ -1,40 +1,19 @@
 package: flywheel.io/fw
-ignore:
-- net/http/httptrace
-- flywheel.io/deja/discovery
-- flywheel.io/deja/filesystem
-- flywheel.io/deja/flak
-- flywheel.io/deja/flak/features
-- flywheel.io/deja/flak/fspatch
-- flywheel.io/deja/job
-- flywheel.io/deja/provider
-- flywheel.io/deja/provider/nsinit
-- flywheel.io/deja/transport/aufs
-- flywheel.io/deja/transport/bind
-- flywheel.io/deja/transport/file
-- flywheel.io/deja/transport/http
 import:
-- package: flywheel.io/deja
-  repo: https://github.com/flywheel-io/deja.git
 - package: flywheel.io/sdk
-  repo: git@github.com:flywheel-io/core-sdk.git
-- package: github.com/kr/pretty
-- package: github.com/kr/text
-- package: github.com/spf13/afero
-- package: xi2.org/x/xz
-- package: github.com/pkg/sftp
-- package: golang.org/x/text
-  subpackages:
-  - transform
-  - unicode/norm
-- package: github.com/kr/fs
-- package: github.com/pkg/errors
-- package: golang.org/x/crypto
-  subpackages:
-  - ssh
-- package: github.com/dghubble/sling
-- package: github.com/mitchellh/go-homedir
-- package: github.com/fatih/color
+  repo: https://github.com/flywheel-io/sdk
+# Support validation of positional arguments
+# https://github.com/spf13/cobra/pull/284
 - package: github.com/spf13/cobra
+  version: define_args
+  repo: https://github.com/dnephin/cobra
+- package: github.com/mitchellh/mapstructure
+- package: github.com/fatih/color
 - package: github.com/dustin/go-humanize
+- package: gopkg.in/mgo.v2
+  repo:    https://github.com/go-mgo/mgo
+  version: v2
 - package: github.com/segmentio/go-prompt
+  repo: https://github.com/kofalt/go-prompt
+- package: github.com/cheggaaa/pb
+- package: github.com/mattn/go-runewidth

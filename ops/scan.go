@@ -1,6 +1,7 @@
-package client
+package ops
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	. "fmt"
@@ -8,24 +9,26 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	humanize "github.com/dustin/go-humanize"
 	prompt "github.com/segmentio/go-prompt"
 
-	oapi "flywheel.io/fw/api"
-	. "flywheel.io/fw/util"
 	"flywheel.io/sdk/api"
+
+	"flywheel.io/fw/legacy"
+	. "flywheel.io/fw/util"
 )
 
-func resolveLast(path []string) oapi.Container {
-	result, _, err, _ := oc.ResolvePath(path)
+func resolveLast(path []string) legacy.Container {
+	result, _, err, _ := legacy.ResolvePath(c, path)
 	Check(err)
 
 	if result == nil || result.Path == nil || len(result.Path) < 1 {
 		return nil
 	}
 
-	return result.Path[len(result.Path)-1].(oapi.Container)
+	return result.Path[len(result.Path)-1].(legacy.Container)
 }
 
 func scan(folder string, fn func(name string, mode os.FileMode)) {
@@ -35,6 +38,12 @@ func scan(folder string, fn func(name string, mode os.FileMode)) {
 	for _, file := range files {
 		name := file.Name()
 		mode := file.Mode()
+
+		// Ignore files that begin with a dot
+		if strings.HasPrefix(name, ".") {
+			continue
+		}
+
 		fn(name, mode)
 	}
 }
@@ -103,7 +112,7 @@ func (r *scanRoot) discover(folder string) {
 
 			r.Children = append(r.Children, group)
 		} else {
-			Println("File", name, "ignored as attachments to root are not allowed")
+			Fprintln(&reportBottom, "File", name, "ignored as attachments to root are not allowed")
 		}
 	})
 }
@@ -138,6 +147,7 @@ func (r *scanGroup) inflate() {
 }
 
 func (r *scanGroup) discover(folder string, path []string) {
+	groups++
 	scan(folder, func(name string, mode os.FileMode) {
 		if mode.IsDir() {
 			newPath := append(path, name)
@@ -158,7 +168,7 @@ func (r *scanGroup) discover(folder string, path []string) {
 
 			r.Children = append(r.Children, project)
 		} else {
-			Println("File", name, "ignored as attachments to groups are not allowed")
+			Fprintln(&reportBottom, "File", name, "ignored as attachments to groups are not allowed")
 		}
 	})
 }
@@ -214,13 +224,14 @@ func (r *scanProject) inflate(groupId string) {
 }
 
 func (r *scanProject) discover(folder string, path []string) {
+	projects++
 	scan(folder, func(name string, mode os.FileMode) {
 		if mode.IsDir() {
 
 			subject := &scanSubject{
 				Subject: &api.Subject{
 					// Id:   randStringOfLength(24),
-					Name: name,
+					Firstname: name,
 				},
 			}
 
@@ -241,7 +252,7 @@ type scanSubject struct {
 }
 
 func (r *scanSubject) report(i string) {
-	Println(i + supplicant + spacer + r.Name)
+	Println(i + supplicant + spacer + r.Firstname)
 
 	for _, x := range r.Children {
 		x.report(i + increment)
@@ -255,6 +266,7 @@ func (r *scanSubject) inflate(groupId, projectId string) {
 }
 
 func (r *scanSubject) discover(folder string, path []string) {
+	subjects++
 	scan(folder, func(name string, mode os.FileMode) {
 		if mode.IsDir() {
 			newPath := append(path, name)
@@ -276,7 +288,7 @@ func (r *scanSubject) discover(folder string, path []string) {
 
 			r.Children = append(r.Children, session)
 		} else {
-			Println("File", name, "ignored as attachments to subjects are not allowed")
+			Fprintln(&reportBottom, "File", name, "ignored as attachments to subjects are not allowed")
 		}
 	})
 }
@@ -350,6 +362,7 @@ func (r *scanSession) inflate(groupId, projectId string) {
 }
 
 func (r *scanSession) discover(folder string, path []string) {
+	sessions++
 	scan(folder, func(name string, mode os.FileMode) {
 		if mode.IsDir() {
 			newPath := append(path, name)
@@ -387,7 +400,7 @@ func (r *scanAcquisition) report(i string) {
 	Println(i + supplicant + spacer + r.Name + rE(r.Exists))
 
 	for _, x := range r.Attachments {
-		Println(i + increment + supplicant + spacer + x.Name)
+		Println(i + increment + supplicant + spacer + filepath.Base(x.Path))
 	}
 
 	for _, x := range r.Packfiles {
@@ -489,7 +502,6 @@ func (r *scanAcquisition) inflate(sessionId, projectId string, metadata map[stri
 
 			// Start SSE
 			resp, err := c.Client.Do(req)
-
 			if err != nil {
 				return err
 			}
@@ -508,26 +520,37 @@ func (r *scanAcquisition) inflate(sessionId, projectId string, metadata map[stri
 }
 
 func (r *scanAcquisition) discover(folder string, path []string) {
+	acquisitions++
 	scan(folder, func(name string, mode os.FileMode) {
 		if mode.IsDir() {
+			packfiles++
 			packfile := api.CreateUploadSourceFromFilenames(filepath.Join(folder, name))[0]
 			r.Packfiles = append(r.Packfiles, packfile)
 
 		} else {
+			attachments++
 			attachment := api.CreateUploadSourceFromFilenames(filepath.Join(folder, name))[0]
 			r.Attachments = append(r.Attachments, attachment)
 		}
 	})
 }
 
-var c *api.Client
-var oc *oapi.Client
+// GLOBAL STATE FOR THE GLOBAL STATE THRONE
 
-func ScanUpload(folder string) {
-	x := LoadCreds()
-	c = api.NewApiKeyClient(x.Host, x.Key, x.Insecure)
-	oc = MakeClient()
-	Println()
+var c *api.Client
+
+var reportBottom bytes.Buffer
+
+var groups = 0
+var projects = 0
+var subjects = 0
+var sessions = 0
+var acquisitions = 0
+var attachments = 0
+var packfiles = 0
+
+func ScanUpload(client *api.Client, folder string) {
+	c = client
 
 	root := &scanRoot{}
 
@@ -538,6 +561,16 @@ func ScanUpload(folder string) {
 	Println()
 	root.report()
 	Println()
+	Println(string(reportBottom.Bytes()))
+
+	whatever := "                     "
+	Println("This scan consists of:", groups, "groups,\n",
+		whatever, projects, "projects,\n",
+		whatever, subjects, "subjects,\n",
+		whatever, sessions, "sessions,\n",
+		whatever, acquisitions, "acquisitions,\n",
+		whatever, attachments, "attachments, and\n",
+		whatever, packfiles, "packfiles.\n")
 	proceed := prompt.Confirm("Confirm upload? (yes/no)")
 	Println()
 	if !proceed {

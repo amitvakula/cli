@@ -1,0 +1,126 @@
+version: 2
+
+jobs:
+    build:
+        # The local circleci binary does not support relative directories.
+        # They plan to remove this limitation in the future.
+        # Ref: https://circleci.com/docs/2.0/local-jobs/#relative-path-for-workingdirectory
+        working_directory: "/workspace/src/flywheel.io/fw"
+
+        docker:
+            - image: buildpack-deps:zesty
+              environment:
+                # These make local builds faster by virtue of the source directory mount.
+                # Would be better to get caching in the local build environment and remove this section.
+                # Ref: https://discuss.circleci.com/t/caching-in-the-local-environment/12005
+                GIMME_ENV_PREFIX: "./.gimme/envs"
+                GIMME_VERSION_PREFIX: "./.gimme/versions"
+
+            - image: mongo:3.4
+              command: [--smallfiles]
+
+            - image: scitran/core:latest
+              command: |
+                bash -c 'set -ex; env; rm -rf code/api;
+                git clone https://github.com/scitran/core code/api; cd code/api;
+                git checkout "${CIRCLE_BRANCH}" || true; cd /var/scitran;
+                python /var/scitran/code/api/bin/database.py upgrade_schema;
+                /var/scitran/uwsgi-entrypoint.sh uwsgi --ini /var/scitran/config/uwsgi-config.ini --socket "[::]:9000" --processes 4 --threads 2;'
+
+            - image: nginx
+              environment:
+                # This config is represtitive of Flywheel systems in production as of 2017-05-22
+                NGINX_CONF: |
+                  server {
+                    listen 8080;
+                    location /api {
+                      uwsgi_pass localhost:9000;
+                      uwsgi_buffering off;
+                      uwsgi_buffers 8 1M;
+                      uwsgi_request_buffering off;
+                      include uwsgi_params;
+                      proxy_set_header Host $host;
+                      client_max_body_size 50g;
+                      add_header Access-Control-Allow-Origin $http_origin always;
+                      if ($request_method = OPTIONS) {
+                        add_header Access-Control-Allow-Origin $http_origin always;
+                        add_header Access-Control-Allow-Methods 'GET, HEAD, POST, PUT, DELETE, OPTIONS';
+                        add_header Access-Control-Allow-Headers 'Authorization, Content-Type, Content-MD5';
+                        add_header Access-Control-Max-Age 151200;
+                        return 204;
+                      }
+                    }
+                  }
+              command: |
+                bash -c '
+                  ln -sf /dev/stdout /var/log/nginx/access.log;
+                  ln -sf /dev/stderr /var/log/nginx/error.log;
+                  echo "$NGINX_CONF" > /etc/nginx/conf.d/proxy.conf;
+                  cat /etc/nginx/conf.d/proxy.conf;
+
+                  # Nginx is sometimes irritable about connecting to an upstream if the upstream does not work on the first request.
+                  # To prevent transient delays, hold off on launching nginx until the upstream port is open.
+                  # This loops forever, and eventually is killed off when prepare-environment gives up.
+
+                  while ! timeout 1 bash -c "echo > /dev/tcp/localhost/9000"; do sleep 0.5; done;
+
+                  nginx -g "daemon off;"'
+
+        steps:
+            - checkout
+
+            - restore_cache:
+                key: cli-golang-1-{{ checksum "make.sh"}}-{{ checksum "glide.lock" }}
+
+            # This is a hack to prevent downloading glide on every file change when iterating.
+            # Disable before pushing :/
+            # - run:
+            #     name: Hack
+            #     command: mkdir -p /workspace/bin/ && cp ./glide /workspace/bin/glide
+
+            - run:
+                name: Install Dependencies
+                command: ./make.sh glide install
+
+            - run:
+                name: Compile Standard Library
+                command: ./make.sh prepareCrossBuild
+
+            - save_cache:
+                key: cli-golang-1-{{ checksum "make.sh"}}-{{ checksum "glide.lock" }}
+                paths:
+                    - "./.gimme"
+                    - "./.glide"
+                    - "/workspace/bin"
+
+            - run:
+                name: Compile
+                command: ./make.sh cross
+
+            - run:
+                name: Check formatting
+                command: ./make.sh formatCheck
+
+            - run:
+                name: Wait for API
+                command: ./make.sh go run vendor/flywheel.io/sdk/.circleci/prepare-environment.go
+
+            - run:
+                name: Playtest
+                command: fw login localhost:8080:insecure-key || true
+                environment:
+                  PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/workspace/bin
+
+            - run:
+                name: Triage environment
+                command: ./make.sh go run vendor/flywheel.io/sdk/.circleci/triage-environment.go
+                when: on_fail
+
+            - run:
+                name: Cleanup
+                command: rm -rf /workspace/bin/glide /workspace/bin/fw
+                when: always
+
+            - store_artifacts:
+                path: "/workspace/bin"
+                destination: build

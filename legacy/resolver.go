@@ -1,4 +1,4 @@
-package api
+package legacy
 
 import (
 	. "fmt"
@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/mitchellh/mapstructure"
+
+	"flywheel.io/sdk/api"
 )
 
 // rawResolveResult represents the json structure of the resolver's results.
@@ -104,13 +106,13 @@ type resolvePath struct {
 	Path []string `json:"path"`
 }
 
-func (c *Client) ResolvePathString(path string) (*ResolveResult, *http.Response, error, *ApiError) {
+func ResolvePathString(client *api.Client, path string) (*ResolveResult, *http.Response, error, *api.Error) {
 
-	return c.ResolvePath(strings.Split(path, "/"))
+	return ResolvePath(client, strings.Split(path, "/"))
 }
 
-func (c *Client) ResolvePath(path []string) (*ResolveResult, *http.Response, error, *ApiError) {
-	var aerr *ApiError
+func ResolvePath(client *api.Client, path []string) (*ResolveResult, *http.Response, error, *api.Error) {
+	var aerr *api.Error
 	var raw rawResolveResult
 	var result ResolveResult
 
@@ -122,7 +124,7 @@ func (c *Client) ResolvePath(path []string) (*ResolveResult, *http.Response, err
 		Path: path,
 	}
 
-	resp, err := c.S.New().Post("resolve").BodyJSON(&request).Receive(&raw, &aerr)
+	resp, err := client.Sling.New().Post("resolve").BodyJSON(&request).Receive(&raw, &aerr)
 
 	if err != nil || aerr != nil {
 		return nil, resp, err, aerr

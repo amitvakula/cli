@@ -1,4 +1,7 @@
+
 # Flywheel Command-Line Tool
+
+[![Build status](https://circleci.com/gh/flywheel-io/cli/tree/master.svg?style=shield&circle-token=fa0c0bf6fa27a8548231fc12baff5f633ae201d8)](https://circleci.com/gh/flywheel-io/cli)
 
 ## Building
 
@@ -17,8 +20,8 @@ First, you need to generate an API key via your profile page.
 Login using the CLI with the URL of the site and your API key:
 
 ```
-$ fw login https://localhost:8443 TeFwKZ01-qLGtF2F9UmOIt4BuMjLysGMvbmQ3z2Z-BFoeoADs4imldee
-Logged in as Nathaniel Kofalt <nathanielkofalt@flywheel.io>
+$ fw login dev.flywheel.io:Xz6SLBbDFu0Zne6uA1
+Logged in as Nathaniel Kofalt!
 ```
 
 These credentials will be stored in `~/.config/flywheel`.
@@ -50,3 +53,5 @@ $ fw ls scitran/Neuroscience/patient_1/8403_1_1_localizer
 
 $ fw download scitran/Neuroscience/patient_1/8403_1_1_localizer/8403_1_1_localizer.dicom.zip
 ```
+
+

@@ -1,5 +1,10 @@
-/.glide/
 /.glidehash
 /.gimme-tmp/
-/release/
 /vendor/
+/.coverage.out
+/coverage.html
+
+# Ref comment in .circleci/config.yml
+/.glide/
+/.gimme/
+/glide

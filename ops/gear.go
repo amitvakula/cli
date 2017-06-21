@@ -108,7 +108,7 @@ func TryToLoadManifest() *api.Gear {
 
 	plan, err := ioutil.ReadFile("manifest.json")
 	if err == nil {
-		err = json.Unmarshal(plan, &gear)
+		Check(json.Unmarshal(plan, &gear))
 	}
 
 	if err != nil {

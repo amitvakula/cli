@@ -93,7 +93,7 @@ func PrintResolve(r *ResolveResult, userId string, showDbIds bool) {
 		case *Session:
 			level := FindPermissionById(userId, x.Permissions).Level
 			printId(x.Id)
-			Fprintf(w, "%s\t%s\t%s\t%s\n", level, tryTimestampFormat(x.Timestamp, timeFormat), x.Subject.Firstname+" "+x.Subject.Lastname, blueBold(x.Name))
+			Fprintf(w, "%s\t%s\t%s\t%s\n", level, tryTimestampFormat(x.Timestamp, timeFormat), x.Subject.Code, blueBold(x.Name))
 
 		case *Acquisition:
 			level := FindPermissionById(userId, x.Permissions).Level

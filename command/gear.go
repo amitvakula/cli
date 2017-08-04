@@ -3,7 +3,7 @@ package command
 import (
 	"github.com/spf13/cobra"
 
-	"flywheel.io/fw/ops"
+	"flywheel.io/fw/gears"
 )
 
 func (o *opts) gear() *cobra.Command {
@@ -25,7 +25,7 @@ func (o *opts) gearCreate() *cobra.Command {
 		Short:  "Create a new gear in the current folder",
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {
-			ops.GearCreate(o.Client, ops.DockerOrBust())
+			gears.GearCreate(o.Client, gears.DockerOrBust())
 		},
 	}
 
@@ -38,7 +38,7 @@ func (o *opts) gearRun() *cobra.Command {
 		Short: "Run your gear from the current folder",
 		Args:  cobra.ArbitraryArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			ops.GearRun(o.Client, ops.DockerOrBust(), args)
+			gears.GearRun(o.Client, gears.DockerOrBust(), args)
 		},
 	}
 
@@ -49,7 +49,7 @@ func (o *opts) gearRun() *cobra.Command {
 		if len(args) < 2 || args[1] == "-h" || args[1] == "--help" {
 			defaultHelpFunc(cmd, args)
 		} else {
-			ops.GearRun(o.Client, ops.DockerOrBust(), []string{args[1], "-h"})
+			gears.GearRun(o.Client, gears.DockerOrBust(), []string{args[1], "-h"})
 		}
 
 	})
@@ -65,7 +65,7 @@ func (o *opts) gearUpload() *cobra.Command {
 		Short:  "Upload your local gear to Flywheel",
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {
-			ops.GearUpload(o.Client, ops.DockerOrBust())
+			gears.GearUpload(o.Client, gears.DockerOrBust())
 		},
 	}
 

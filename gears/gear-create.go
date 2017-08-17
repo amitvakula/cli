@@ -32,8 +32,6 @@ func GearCreate(client *api.Client, docker *client.Client) {
 	gearName := strings.ToLower(gearLabel)
 	gearName = strings.Replace(gearName, " ", "-", -1)
 
-	gearDescription := "Gear created with gear builder"
-
 	Println()
 
 	choices := []string{"Python", "Just Linux (Ubuntu & Bash)", "Advanced configuration example", "Custom - use a docker image"}
@@ -145,9 +143,15 @@ func GearCreate(client *api.Client, docker *client.Client) {
 
 	gear := ManifestOrDefaultGear()
 
+	gearDescription := "Gear created with gear builder."
+
+	if gear.Description != "" {
+		gearDescription = gear.Description + " [" + gearDescription + "]"
+	}
+	gear.Description = gearDescription
+
 	gear.Name = gearName
 	gear.Label = gearLabel
-	gear.Description = gearDescription
 	gear.Version = "0"
 	gear.Author = author
 	gear.Maintainer = author

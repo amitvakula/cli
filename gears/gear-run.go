@@ -194,6 +194,7 @@ func GearRunActual(client *api.Client, docker *client.Client, image string, conf
 		&container.Config{
 			Image:      image,
 			WorkingDir: "/flywheel/v0",
+			Entrypoint: []string{},
 			Cmd:        []string{"bash", "-c", "rm -rf output; mkdir -p output; ./run"},
 			Env:        []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
 		},

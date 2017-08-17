@@ -6,7 +6,7 @@ unset CDPATH; cd "$( dirname "${BASH_SOURCE[0]}" )"; cd "$(pwd -P)"
 pkg="flywheel.io/fw"
 testPkg="flywheel.io/fw"
 coverPkg="flywheel.io/fw"
-goV=${GO_VERSION:-"1.8.1"}
+goV=${GO_VERSION:-"1.8.3"}
 minGlideV="0.12.3"
 targets=( "linux/amd64" "darwin/amd64" "windows/amd64" )
 #
@@ -33,6 +33,16 @@ if [[ "$localOs" == "darwin" ]]; then
 	# OSX has shasum. CentOS has sha1sum. Ubuntu has both.
 	alias sha1sum="shasum -a 1"
 fi
+
+prepareJunitGenerator() {
+	MakeGenerateJunit=${MakeGenerateJunit:-}
+
+	if [ -z "$MakeGenerateJunit" ]; then
+		return 0
+	else
+		go get -v -u github.com/jstemmer/go-junit-report
+	fi
+}
 
 prepareGo() {
 	# Configure gimme: get our desired Go version with reasonable logging, only binary downloads, and local state folder
@@ -62,6 +72,8 @@ prepareGo() {
 	# Load installed go and prepare for compiled tools
 	source "$src"
 	export PATH=$GOPATH/bin:$PATH
+
+	test -x "$GOPATH/bin/go-junit-report" || prepareJunitGenerator
 }
 
 cleanGlideLockfile() {
@@ -266,17 +278,36 @@ formatCheck() {
 
 _test() {
 	prepareGlide
-	hideEmptyTests="/\[no test files\]$/d; /^warning\: no packages being tested depend on /d; /^=== RUN   /d;"
+	filterTestOutput="/\[no test files\]$/d; /^warning\: no packages being tested depend on /d; /^=== RUN   /d;"
+	MakeGenerateJunit=${MakeGenerateJunit:-}
+
+	# Some helper functions
+	runTests()                 { go test -v -cover "$@"; }
+	runTestsWithCoverProfile() { runTests -coverprofile=.coverage.out -coverpkg $coverPkg "$@"; }
+	filterTestOutput()         { sed -r "$filterTestOutput"; }
+	generateHtml()             { go tool cover -html=.coverage.out -o coverage.html; rm -f .coverage.out; }
+
+	# Ignore junit XML generation unless specifically enabled
+	if [ -z "$MakeGenerateJunit" ]; then
+		generateJunit() { cat > /dev/null; }
+	else
+		generateJunit() {
+			# go-junit-report is incompatible with go test's -coverPkg flag.
+			# https://github.com/jstemmer/go-junit-report/issues/59
+			filterPackageName='s$^(coverage: [0-9\.]*% of statements) in .*$\1$;'
+
+			sed -r "$filterPackageName" | go-junit-report -go-version $goV -set-exit-code > .report.xml;
+		}
+	fi
 
 	# If testing a single package, coverprofile is availible.
 	# Set which package to test and which package to count coverage against.
 
 	if [[ $testPkg == "" ]]; then
-		go test -v -cover "$@" "$pkg" $(listPackages $pkg/) 2>&1 | sed -r "$hideEmptyTests"
+		runTests "$@" "$pkg" $(listPackages $pkg/) 2>&1 | tee >(generateJunit) | filterTestOutput
 	else
-		go test -v -cover -coverprofile=.coverage.out -coverpkg $coverPkg "$@" $testPkg 2>&1 | sed -r "$hideEmptyTests"
-
-		go tool cover -html=.coverage.out -o coverage.html
+		runTestsWithCoverProfile "$@" $testPkg 2>&1 | tee >(generateJunit) | filterTestOutput
+		generateHtml
 	fi
 }
 

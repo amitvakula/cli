@@ -71,8 +71,9 @@ func GearUpload(client *api.Client, docker *client.Client) {
 			Image:      image,
 			WorkingDir: "/flywheel/v0",
 			// oh boy
-			Cmd: []string{"bash", "-c", "shopt -s dotglob && rm -rf /Flywheel && mkdir -p /flywheel/v0 && cp /tmp/flywheel-copy-target/* /flywheel/v0/"},
-			Env: []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
+			Entrypoint: []string{},
+			Cmd:        []string{"bash", "-c", "shopt -s dotglob && rm -rf /Flywheel && mkdir -p /flywheel/v0 && cp /tmp/flywheel-copy-target/* /flywheel/v0/"},
+			Env:        []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
 		},
 		&container.HostConfig{
 			Mounts: []mount.Mount{

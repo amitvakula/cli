@@ -1,0 +1,16 @@
+imports:
+- name: flywheel.io/sdk
+  version: aae9aca8d200160a99e4ad05c989ba4131e1f633
+  repo: https://github.com/flywheel-io/sdk
+  subpackages:
+  - api
+- name: github.com/dghubble/sling
+  version: bbfb8293bd33a6baad33d718aacf66ef73a29f30
+- name: github.com/gillesdemey/go-dicom
+  version: ddd68259fc8a7811cef1930ad8c1948c63abd80c
+  repo: https://github.com/hkethi002/go-dicom
+- name: github.com/google/go-querystring
+  version: 53e6ce116135b80d037921a7fdd5138cf32d7a8a
+  subpackages:
+  - query
+testImports: []

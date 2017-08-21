@@ -10,3 +10,4 @@
 /.gimme/
 /.circleci/glide
 /.circleci/go-junit-report
+*.zip

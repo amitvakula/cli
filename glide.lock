@@ -1,4 +1,10 @@
 imports:
+- name: flywheel.io/fw
+  version: f1a7ab77fb3d76f3615964bbf262312791adce55
+  repo: https://github.com/flywheel-io/cli
+  subpackages:
+  - legacy
+  - util
 - name: flywheel.io/sdk
   version: aae9aca8d200160a99e4ad05c989ba4131e1f633
   repo: https://github.com/flywheel-io/sdk
@@ -6,6 +12,8 @@ imports:
   - api
 - name: github.com/dghubble/sling
   version: bbfb8293bd33a6baad33d718aacf66ef73a29f30
+- name: github.com/fatih/color
+  version: 62e9147c64a1ed519147b62a56a14e83e2be02c1
 - name: github.com/gillesdemey/go-dicom
   version: ddd68259fc8a7811cef1930ad8c1948c63abd80c
   repo: https://github.com/hkethi002/go-dicom
@@ -13,4 +21,26 @@ imports:
   version: 53e6ce116135b80d037921a7fdd5138cf32d7a8a
   subpackages:
   - query
+- name: github.com/howeyc/gopass
+  version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
+- name: github.com/mattn/go-colorable
+  version: 5411d3eea5978e6cdc258b30de592b60df6aba96
+  repo: https://github.com/mattn/go-colorable
+- name: github.com/mattn/go-isatty
+  version: 57fdcb988a5c543893cc61bce354a6e24ab70022
+  repo: https://github.com/mattn/go-isatty
+- name: github.com/mitchellh/mapstructure
+  version: d2dd0262208475919e1a362f675cfc0e7c10e905
+- name: github.com/segmentio/go-prompt
+  version: eb423f47b3338983141e73ddd1a30470287faec5
+  repo: https://github.com/kofalt/go-prompt
+- name: golang.org/x/crypto
+  version: f3241ce8505855877cc8a9717bd61a0f7c4ea83c
+  subpackages:
+  - ssh/terminal
+- name: golang.org/x/sys
+  version: e24f485414aeafb646f6fca458b0bf869c0880a1
+  repo: https://go.googlesource.com/sys
+  subpackages:
+  - unix
 testImports: []

@@ -10,3 +10,4 @@ import:
   repo: https://github.com/kofalt/go-prompt
 - package: github.com/segmentio/go-prompt
   repo: https://github.com/kofalt/go-prompt
+- package: github.com/dustin/go-humanize

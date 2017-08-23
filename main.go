@@ -3,6 +3,8 @@ package main
 import (
 	"github.com/gillesdemey/go-dicom"
 	prompt "github.com/segmentio/go-prompt"
+
+	humanize "github.com/dustin/go-humanize"
 	
 	"io/ioutil"
 	"io"
@@ -15,13 +17,12 @@ import (
 
 	"flag"
 	"flywheel.io/sdk/api"
-	"flywheel.io/fw/legacy"
 )
 
 
 var (
 	folder = flag.String("folder", "", "Folder with DICOM images to extract")
-	group_label = flag.String("group", "", "Group label")
+	group_id = flag.String("group", "", "Group Id")
 	project_label = flag.String("project", "", "Flywheel project to upload files to")
 )
 
@@ -52,29 +53,20 @@ func init() {
 }
 
 func main() {
-	api_key := "dev.flywheel.io:rWwbTp1kG8GdaL6ESv"
+	api_key := "docker.local.flywheel.io:8443:5ThfWvp5WUZLT8fLIE"
+	// api_options := api.DebugLogRequests(os.Stdout)
 	client := api.NewApiKeyClient(api_key)
-	var project_id string
-	result, _, err, aerr := legacy.ResolvePath(client, []string{*group_label, *project_label})
-	if aerr != nil {
-		panic(*aerr)
-	}
-	if err != nil {
-		panic(err)
-	}
-	project := result.Path[1]
-
-	project_id = project.(*legacy.Project).Id
+	_, _, _ = client.GetCurrentUser()
 
 	// folder input, find .dcm files
 	all_files := make([]DicomPath,0)
 	sessions := make(map[string]Session)
 	fmt.Println("Collecting Files...")
-	err = fp.Walk(*folder, fileWalker_project(&all_files))
+	err := fp.Walk(*folder, fileWalker_project(&all_files))
 	if err != nil {
 		panic(err)
 	}
-	err = sort_dicoms(sessions, &all_files, &project_id)
+	err = sort_dicoms(sessions, &all_files)
 	if err != nil {
 		panic(err)
 	}
@@ -84,7 +76,7 @@ func main() {
 	fmt.Println("This scan consists of:\n",
 		whatever, sessions_found, "sessions,\n",
 		whatever, acquisitions_found, "acquisitions,\n",
-		whatever, dicoms_found, "images, and\n")
+		whatever, dicoms_found, "images\n")
 	proceed := prompt.Confirm("Confirm upload? (yes/no)")
 	fmt.Println()
 	if !proceed {
@@ -95,7 +87,7 @@ func main() {
 	fmt.Println()
 
 
-	err = upload_dicoms(sessions, client, &project_id)
+	err = upload_dicoms(sessions, client)
 	if err != nil {
 		panic(err)
 	}
@@ -197,56 +189,68 @@ func ZipFiles(filename string, files []string) error {
         if err != nil {
             return err
         }
-				zipfile.Close()
+		zipfile.Close()
     }
     return nil
 }
 
 // uploads dicoms as zips at the acquisition level, creating the needed containers as it goes
-func upload_dicoms(sessions map[string]Session, c *api.Client, project_id *string) error {
-	project, _, err := c.GetProject(*project_id)
-	fmt.Println("\nUploading to:",project.Name)
+func upload_dicoms(sessions map[string]Session, c *api.Client) error {
+	tmp, err := ioutil.TempDir(".", "")
 	if err != nil {
-		panic(err)
+		return err
 	}
 	for _, session := range sessions {
 		sdk_session := session.SdkSession
-		session_id, _, err := c.AddSession(&sdk_session)
-		fmt.Println("\nCreating session", sdk_session.Name)
 		sessions_uploaded++
 
 
 		if err != nil {
-			panic(err)
+			return err
 		}
 		for _, acquisition := range session.Acquisitions {
-			acquisition.SdkAcquisition.SessionId = session_id
 			sdk_acquisition := acquisition.SdkAcquisition
-			acquisition_id, _, err := c.AddAcquisition(&sdk_acquisition)
-			fmt.Println("\nCreating acquisition", sdk_acquisition.Name)
 			acquisitions_uploaded++
 			if err != nil {
-				panic(err)
+				return err
 			}
 			paths := make([]string, 0)
 			for _, file := range acquisition.Files {
 				paths = append(paths, file.Path)
 			}
 			file_name := sdk_acquisition.Name + ".dcm.zip"
-			err = ZipFiles(file_name, paths)
+			file_path := tmp + "/" + file_name
+			err = ZipFiles(file_path, paths) 
+			if err != nil {
+				return err
+			}
+			meta_string := fmt.Sprintf("{\"group\": {\"_id\": \"%s\"},\"project\": {\"label\": \"%s\"},\"session\": {\"uid\": \"%s\",\"label\": \"%s\",\"subject\": {\"code\": \"%s\"}},\"acquisition\": {\"uid\": \"%s\",\"label\": \"%s\",\"files\": [{\"name\": \"%s\"}]}}",
+			*group_id, *project_label, sdk_session.Uid, sdk_session.Name, sdk_session.Subject.Code, sdk_acquisition.Uid, sdk_acquisition.Name, file_name)
+			metadata := []byte(meta_string)
+			src := &api.UploadSource{Name: file_name, Path: file_path}
+			prog, errc := c.UploadSimple("upload/reaper", metadata, src)
+			
+			for update := range prog {
+				fmt.Println("  Uploaded", humanize.Bytes(uint64(update)))
+			}
+
+			err = <-errc
 			if err != nil {
 				panic(err)
 			}
-			c.UploadFileToAcquisition(acquisition_id, file_name)
 			fmt.Println("Uploaded",file_name)
 		}
+	}
+	err = os.RemoveAll(tmp)
+	if err != nil {
+		panic(err)
 	}
 	fmt.Println("\nUpload Complete\n")
 	return nil
 }
 
 // sorts dicoms by study instance uid and series instance uid (session, acquisition)
-func sort_dicoms(sessions map[string]Session, files *[]DicomPath, project_id *string) error {
+func sort_dicoms(sessions map[string]Session, files *[]DicomPath) error {
 	fmt.Println("\nSorting ...")
 	for _,file := range *files{
 		session_name, nerr := determine_name(file, "Study")
@@ -259,13 +263,15 @@ func sort_dicoms(sessions map[string]Session, files *[]DicomPath, project_id *st
 		}
 		StudyInstanceUID,_ := extract_value(file, "StudyInstanceUID")
 		SeriesInstanceUID,_ := extract_value(file, "SeriesInstanceUID")
+		StudyInstanceUID = strings.Replace(StudyInstanceUID, ".", "", -1)
+		SeriesInstanceUID = strings.Replace(SeriesInstanceUID, ".", "", -1)
 		if nerr == nil {
 			if session, ok := sessions[StudyInstanceUID]; ok {
 				if acquisition, ok := session.Acquisitions[SeriesInstanceUID]; ok {
 					session.Acquisitions[SeriesInstanceUID].Files = append(acquisition.Files, file)
 					dicoms_found++
 				} else {
-					sdk_acquisition := api.Acquisition{Name: acquisition_name}
+					sdk_acquisition := api.Acquisition{Name: acquisition_name, Uid:SeriesInstanceUID}
 					new_acq := Acquisition{Files: make([]DicomPath,0), SdkAcquisition: sdk_acquisition}
 					session.Acquisitions[SeriesInstanceUID] = &new_acq
 					session.Acquisitions[SeriesInstanceUID].Files = append(new_acq.Files,file)
@@ -278,9 +284,9 @@ func sort_dicoms(sessions map[string]Session, files *[]DicomPath, project_id *st
 					fmt.Println("No subject code for sesion", session_name)
 				}
 				sdk_subject := api.Subject{Code: subject_code}
-				sdk_session := api.Session{Subject: &sdk_subject, Name: session_name, ProjectId: *project_id}
+				sdk_session := api.Session{Subject: &sdk_subject, Name: session_name, Uid: StudyInstanceUID}
 				sess := Session{SdkSession:sdk_session, Acquisitions: make(map[string]*Acquisition, 0)}
-				sdk_acquisition := api.Acquisition{Name: acquisition_name}
+				sdk_acquisition := api.Acquisition{Name: acquisition_name, Uid: SeriesInstanceUID}
 				new_acq := Acquisition{Files: make([]DicomPath,0), SdkAcquisition: sdk_acquisition}
 				new_acq.Files = append(new_acq.Files,file)
 				sess.Acquisitions[SeriesInstanceUID] = &new_acq

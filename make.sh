@@ -6,7 +6,7 @@ unset CDPATH; cd "$( dirname "${BASH_SOURCE[0]}" )"; cd "$(pwd -P)"
 pkg="flywheel.io/fw"
 testPkg="flywheel.io/fw"
 coverPkg="flywheel.io/fw"
-goV=${GO_VERSION:-"1.8.3"}
+goV=${GO_VERSION:-"1.9"}
 minGlideV="0.12.3"
 targets=( "linux/amd64" "darwin/amd64" "windows/amd64" )
 #
@@ -14,8 +14,8 @@ targets=( "linux/amd64" "darwin/amd64" "windows/amd64" )
 fatal() { echo -e "$1"; exit 1; }
 
 # Check that this project is in a gopath
-test -d ../../../src || fatal "This project must be located in a gopath.\nTry cloning instead to \"src/$pkg\"."
-export GOPATH=$(cd ../../../; pwd); unset GOBIN
+test -d ../../../src || fatal "This project must be located in a gopath.\\nTry cloning instead to \"src/$pkg\"."
+export GOPATH; GOPATH=$(cd ../../../; pwd); unset GOBIN
 
 # Get system info
 localOs=$( uname -s | tr '[:upper:]' '[:lower:]' )
@@ -23,12 +23,17 @@ localOs=$( uname -s | tr '[:upper:]' '[:lower:]' )
 # Load GNU coreutils on OSX
 if [[ "$localOs" == "darwin" ]]; then
 	# Check requirements: g-prefixed commands are available if brew packages are installed.
-	hash brew gsort gsed gfind 2>/dev/null || fatal "On OSX, homebrew is required. Install from http://brew.sh\nThen, run 'brew install bash coreutils findutils gnu-sed' to install the necessary tools."
+	hash brew gsort gsed gfind 2>/dev/null || fatal "On OSX, homebrew is required. Install from https://brew.sh\\nThen, run 'brew install bash coreutils findutils gnu-sed' to install the necessary tools."
 
-	# Load GNU coreutils, findutils, and sed into path
+	# Load GNU coreutils, findutils, and sed into path.
+	# The GNU versions of these commands are always found via this path suffix.
 	suffix="libexec/gnubin"
+
+	# As of at least homebrew 0.9.5, the --prefix command accepts multiple packages.
+	# This approach allows us to invoke homebrew once instead of N times, saving several seconds.
+	# There is a trailing ':', so no need to add one before postpending $PATH.
 	export PATH
-	PATH="$(brew --prefix coreutils)/$suffix:$(brew --prefix findutils)/$suffix:$(brew --prefix gnu-sed)/$suffix:$PATH"
+	PATH=$(brew --prefix coreutils findutils gnu-sed | tr '\n' ':' | sed "s#:#/$suffix:#g")$PATH
 
 	# OSX has shasum. CentOS has sha1sum. Ubuntu has both.
 	alias sha1sum="shasum -a 1"
@@ -109,9 +114,9 @@ prepareGlide() {
 
 	# Check the current glide version against the minimum project version
 	currentVersion=$(glide --version | cut -f 3 -d ' ' | tr -d 'v')
-	floorVersion=$(echo -e "$minGlideV\n$currentVersion" | sort -V | head -n 1)
+	floorVersion=$(echo -e "$minGlideV\\n$currentVersion" | sort -V | head -n 1)
 
-	if [[ $minGlideV != $floorVersion ]]; then
+	if [[ "$minGlideV" != "$floorVersion" ]]; then
 		echo "Glide $currentVersion is older than required minimum $minGlideV; upgrading..."
 		installGlide
 	fi
@@ -170,9 +175,9 @@ cross() {
 	# Check UPX version
 	if hash upx 2>/dev/null; then
 		currentUPXv=$(upx --version | head -n 1 | cut -f 2 -d ' ')
-		floorVersion=$(echo -e "$minUPXv\n$currentUPXv" | sort -V | head -n 1)
+		floorVersion=$(echo -e "$minUPXv\\n$currentUPXv" | sort -V | head -n 1)
 
-		if [[ $minUPXv == $floorVersion ]]; then
+		if [[ "$minUPXv" == "$floorVersion" ]]; then
 			useUPX=true
 		else
 			echo "Warning: your UPX version is too old and cannot compress OSX binaries correctly. Disabling."
@@ -223,16 +228,16 @@ prepareCrossBuild() {
 	# Filter out packages that are esoteric, require linking, unexported, or outside the stdlib
 	template='{{.ImportPath}}${{.Standard}}'
 	filter='^(cmd|crypto/x509|debug|go/(build|types)|plugin|runtime|syscall|testing)|internal|vendor|^(net|os/user)$|false$'
-	packages=( $( go list -f $template ... | grep -v -E $filter | cut -f 1 -d '$' ) )
+	packages=( $( go list -f "$template" ... | grep -v -E $filter | cut -f 1 -d '$' ) )
 
 	# Create a dummy Go file that imports every package, so we can cross-compile them ¯\_(ツ)_/¯
 	# This is mainly useful if you'd like to generate these object files, and then cache them for later.
 	# Results in faster cross-compile for your CI build!
 	folder="crossCompileStdlib"; mkdir -p "$folder"
 	tempfile="$folder/main.go"
-	echo -e "package main\nimport (" > $tempfile
+	echo -e "package main\\nimport (" > $tempfile
 	for package in "${packages[@]}"; do echo "	_ \"$package\"" >> $tempfile; done
-	echo -e ")\nfunc main() { }" >> $tempfile
+	echo -e ")\\nfunc main() { }" >> $tempfile
 
 	cross "$pkg/crossCompileStdlib"
 	rm -rf $folder
@@ -241,39 +246,23 @@ prepareCrossBuild() {
 }
 
 # Some go tools take package names. Some take file names. Some like the pacakge prefix. Some don't.
-# None of them omit the vendor directory like they should.
-# What follows is a result of these problems.
+# Starting with go 1.9, at least the alias "./..." omits the vendor directory:
 # https://github.com/golang/go/issues/19090
-#
-# Check for resolution:
-# git clone git@github.com:golang/go.git; cd go; git branch --contains fa1d54c2edad607866445577fe4949fbe55166e1
+# The below solutions assume at least 1.9. Before that, this was more work.
 
-
-# List packages with source code: packageA, packageB... First argument is a prefix (optional)
-listPackages() {
-	prefix=${1:-}
-	find . -name '*.go' -printf "%h\n" | sed '/^\.\/vendor/d; s#^\./##g; /\./d; s#^#'"$prefix"'#g' | sort --unique
-}
-
-# List files in the main package. First argument is a prefix (optional)
-listBaseFiles() {
-	prefix=${1:-}
-	find -maxdepth 1 -type f -name '*.go' | sed 's#^\./##g; s#^#'"$prefix"'#g'
-}
+listPackages()     { prepareGo; go list ./...;                                         }
+listPackageNames() { prepareGo; go list ./... | sed -r 's#^'"$pkg"'(/)?##g; /^\s*$/d'; }
+listBaseFiles()    { find . -maxdepth 1 -type f -name '*.go' | sed 's#^\./##g';        }
 
 format() {
 	prepareGo
-	gofmt -w -s $(listPackages && listBaseFiles)
+	gofmt -w -s $(listPackageNames && listBaseFiles)
 }
 
 formatCheck() {
 	prepareGo
-	badFiles=($(gofmt -l -s $(listPackages | grep -v bridge/dist && listBaseFiles)))
-
-	if [[ ${#badFiles[@]} -gt 0 ]]; then
-		echo "The following files need formatting: ${badFiles[*]}"
-		exit 1
-	fi
+	badFiles=($(gofmt -l -s $(listPackageNames && listBaseFiles)))
+	test "${#badFiles[@]}" -eq 0 || fatal "The following files need formatting: ${badFiles[*]}"
 }
 
 _test() {
@@ -296,7 +285,7 @@ _test() {
 			# https://github.com/jstemmer/go-junit-report/issues/59
 			filterPackageName='s$^(coverage: [0-9\.]*% of statements) in .*$\1$;'
 
-			sed -r "$filterPackageName" | go-junit-report -go-version $goV -set-exit-code > .report.xml;
+			sed -r "$filterPackageName" | go-junit-report -go-version "$goV" -set-exit-code > .report.xml;
 		}
 	fi
 
@@ -304,7 +293,7 @@ _test() {
 	# Set which package to test and which package to count coverage against.
 
 	if [[ $testPkg == "" ]]; then
-		runTests "$@" "$pkg" $(listPackages $pkg/) 2>&1 | tee >(generateJunit) | filterTestOutput
+		runTests "$@" $(listPackages) 2>&1 | tee >(generateJunit) | filterTestOutput
 	else
 		runTestsWithCoverProfile "$@" $testPkg 2>&1 | tee >(generateJunit) | filterTestOutput
 		generateHtml
@@ -314,7 +303,8 @@ _test() {
 clean() {
 	# Remove all build state
 	prepareGo
-	rm -rvf "$GOPATH/pkg" "${GOPATH:?}/bin/${pkg##*/}"
+	rm -rf "${GOPATH:?}/pkg"
+	rm -rvf "${GOPATH:?}/bin/${pkg##*/}"
 }
 
 showEnv() {

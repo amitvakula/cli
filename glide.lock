@@ -88,8 +88,7 @@ imports:
 - name: github.com/Sirupsen/logrus
   version: 5e5dc898656f695e2a086b8e12559febbfc01562
 - name: github.com/spf13/cobra
-  version: 7987bcca8ab8f5af6810da78ed24c3d0f6aa7bf4
-  repo: https://github.com/dnephin/cobra
+  version: 2df9a531813370438a4d79bfc33e21f58063ed87
 - name: github.com/spf13/pflag
   version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
 - name: golang.org/x/crypto

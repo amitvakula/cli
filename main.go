@@ -14,7 +14,7 @@ import (
 	"sync"
     "fmt"
 	"archive/zip"
-
+	"errors"
 	"flag"
 	"flywheel.io/sdk/api"
 )
@@ -24,6 +24,7 @@ var (
 	folder = flag.String("folder", "", "Folder with DICOM images to extract")
 	group_id = flag.String("group", "", "Group Id")
 	project_label = flag.String("project", "", "Flywheel project to upload files to")
+	api_key = flag.String("api", "", "API key to login")
 )
 
 type DicomPath struct {
@@ -53,16 +54,36 @@ func init() {
 }
 
 func main() {
-	api_key := "docker.local.flywheel.io:8443:5ThfWvp5WUZLT8fLIE"
-	// api_options := api.DebugLogRequests(os.Stdout)
-	client := api.NewApiKeyClient(api_key)
-	_, _, _ = client.GetCurrentUser()
+	client := api.NewApiKeyClient(*api_key)
+
+	if project_label == nil {
+		panic(errors.New("No project label given, use -project flag."))
+	}
+
+	if group_id == nil {
+		panic(errors.New("No group_id given, use -group flag."))
+	}
+
+	if folder == nil {
+		panic(errors.New("No folder given, use -folder flag."))
+	}
+
+	if api_key == nil {
+		panic(errors.New("No api_key given, use -api flag."))
+	}
+
+	// check if api key is valid
+	_, _, err := client.GetCurrentUser()
+	if err != nil {
+		panic(err)
+	}
+
 
 	// folder input, find .dcm files
 	all_files := make([]DicomPath,0)
 	sessions := make(map[string]Session)
 	fmt.Println("Collecting Files...")
-	err := fp.Walk(*folder, fileWalker_project(&all_files))
+	err = fp.Walk(*folder, fileWalker_project(&all_files))
 	if err != nil {
 		panic(err)
 	}
@@ -228,7 +249,7 @@ func upload_dicoms(sessions map[string]Session, c *api.Client) error {
 			*group_id, *project_label, sdk_session.Uid, sdk_session.Name, sdk_session.Subject.Code, sdk_acquisition.Uid, sdk_acquisition.Name, file_name)
 			metadata := []byte(meta_string)
 			src := &api.UploadSource{Name: file_name, Path: file_path}
-			prog, errc := c.UploadSimple("upload/reaper", metadata, src)
+			prog, errc := c.UploadSimple("upload/uid", metadata, src)
 			
 			for update := range prog {
 				fmt.Println("  Uploaded", humanize.Bytes(uint64(update)))

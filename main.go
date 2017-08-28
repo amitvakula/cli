@@ -5,7 +5,7 @@ import (
 	prompt "github.com/segmentio/go-prompt"
 
 	humanize "github.com/dustin/go-humanize"
-	
+
 	"io/ioutil"
 	"io"
 	"os"
@@ -52,6 +52,17 @@ var files_skipped = 0
 func init() {
 	flag.Parse()
 }
+
+// TODO: check for group permissions before scanning
+
+// replace panics with {return err}
+
+// TODO: fill this out :)
+func dicomScan(client *api.Client, folder string, group_id string, project_label string) error {
+
+	return errors.New("Not implemented")
+}
+
 
 func main() {
 	client := api.NewApiKeyClient(*api_key)
@@ -112,7 +123,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	
+
 }
 
 // make the dicom date and time fields somewhat readable when used as the container label
@@ -241,7 +252,7 @@ func upload_dicoms(sessions map[string]Session, c *api.Client) error {
 			}
 			file_name := sdk_acquisition.Name + ".dcm.zip"
 			file_path := tmp + "/" + file_name
-			err = ZipFiles(file_path, paths) 
+			err = ZipFiles(file_path, paths)
 			if err != nil {
 				return err
 			}
@@ -250,7 +261,7 @@ func upload_dicoms(sessions map[string]Session, c *api.Client) error {
 			metadata := []byte(meta_string)
 			src := &api.UploadSource{Name: file_name, Path: file_path}
 			prog, errc := c.UploadSimple("upload/uid", metadata, src)
-			
+
 			for update := range prog {
 				fmt.Println("  Uploaded", humanize.Bytes(uint64(update)))
 			}

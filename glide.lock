@@ -1,7 +1,4 @@
 imports:
-- name: flywheel.io/fw
-  version: f1a7ab77fb3d76f3615964bbf262312791adce55
-  repo: https://github.com/flywheel-io/cli
 - name: flywheel.io/sdk
   version: aae9aca8d200160a99e4ad05c989ba4131e1f633
   repo: https://github.com/flywheel-io/sdk

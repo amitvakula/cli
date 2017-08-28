@@ -1,13 +1,11 @@
 package: .
-import: 
+import:
 - package: flywheel.io/sdk
   repo: https://github.com/flywheel-io/sdk
 - package: github.com/gillesdemey/go-dicom
   repo: https://github.com/hkethi002/go-dicom
 - package: flywheel.io/fw
   repo: https://github.com/flywheel-io/cli
-- package: github.com/segmentio/go-prompt
-  repo: https://github.com/kofalt/go-prompt
 - package: github.com/segmentio/go-prompt
   repo: https://github.com/kofalt/go-prompt
 - package: github.com/dustin/go-humanize

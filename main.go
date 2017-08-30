@@ -382,12 +382,19 @@ func processFile(path string) DicomPath {
 
 
 
-		dcm.Discard(ppln, gw)
+		dcm.DiscardPixel(ppln, gw)
 		gw.Wait()
 		done.Done()
 	}()
 	done.Wait()
-	// _,_ := dcm.LookupElement("StudyInstanceUID")
+	_,err = dcm.LookupElement("SeriesInstanceUID")
+	if err != nil {
+		fmt.Println("No UID Data")
+	}
+	// _,err = dcm.LookupElement("PixelData")
+	// if err != nil {
+	// 	fmt.Println("No Pixel Data")
+	// }
 	// fmt.Println(el.Value)
 	dcm.Path = path
 	return *dcm

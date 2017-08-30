@@ -60,14 +60,17 @@ func (o *opts) gearRun() *cobra.Command {
 }
 
 func (o *opts) gearUpload() *cobra.Command {
+	var category string
+
 	cmd := &cobra.Command{
 		Use:    "upload",
 		Short:  "Upload your local gear to Flywheel",
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {
-			gears.GearUpload(o.Client, gears.DockerOrBust())
+			gears.GearUpload(o.Client, gears.DockerOrBust(), category)
 		},
 	}
+	cmd.Flags().StringVarP(&category, "category", "c", "converter", "Gear category: converter or analysis")
 
 	return cmd
 }

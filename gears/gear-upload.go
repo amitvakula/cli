@@ -28,7 +28,7 @@ func GearUpload(client *api.Client, docker *client.Client, category string) {
 
 	gearCategory := api.GearCategory(category)
 
-	if gearCategory != api.Utility && gearCategory != api.Analysis {
+	if gearCategory != api.Converter && gearCategory != api.Analysis {
 		Println("Invalid gear category. Check `fw gear upload -h` for options.")
 		os.Exit(1)
 	}

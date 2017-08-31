@@ -22,9 +22,16 @@ import (
 	"flywheel.io/sdk/api"
 )
 
-func GearUpload(client *api.Client, docker *client.Client) {
+func GearUpload(client *api.Client, docker *client.Client, category string) {
 	cwd, err := os.Getwd()
 	Check(err)
+
+	gearCategory := api.GearCategory(category)
+
+	if gearCategory != api.Utility && gearCategory != api.Analysis {
+		Println("Invalid gear category. Check `fw gear upload -h` for options.")
+		os.Exit(1)
+	}
 
 	// WOT
 	gear := TryToLoadManifest()
@@ -129,7 +136,7 @@ func GearUpload(client *api.Client, docker *client.Client) {
 	now := time.Now()
 	doc := &api.GearDoc{
 		// Id:
-		Category: "converter",
+		Category: gearCategory,
 		Gear:     gear,
 		// Source:
 		Created:  &now,
@@ -153,8 +160,10 @@ func GearUpload(client *api.Client, docker *client.Client) {
 	bar.SetUnits(pb.U_BYTES)
 	bar.Start()
 
+	total := int64(0)
 	for x := range progress {
-		bar.Add64(x)
+		bar.Add64(x - total)
+		total = x
 	}
 
 	bar.Finish()

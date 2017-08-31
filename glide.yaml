@@ -2,11 +2,7 @@ package: flywheel.io/fw
 import:
 - package: flywheel.io/sdk
   repo: https://github.com/flywheel-io/sdk
-# Support validation of positional arguments
-# https://github.com/spf13/cobra/pull/284
 - package: github.com/spf13/cobra
-  version: define_args
-  repo: https://github.com/dnephin/cobra
 - package: github.com/mitchellh/mapstructure
 - package: github.com/fatih/color
 - package: github.com/dustin/go-humanize

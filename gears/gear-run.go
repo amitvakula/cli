@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	. "fmt"
-	"io"
+	// "io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -118,7 +118,7 @@ func GearRunActual(client *api.Client, docker *client.Client, image string, conf
 	case "linux":
 		break
 	default:
-		Println("Warning: Gear builter is not yet tested on platform", runtime.GOOS)
+		Println("Warning: Gear builder is not yet tested on platform", runtime.GOOS)
 		Println()
 	}
 
@@ -131,10 +131,10 @@ func GearRunActual(client *api.Client, docker *client.Client, image string, conf
 	err = ioutil.WriteFile(tmpfile.Name(), raw, 0644)
 	Check(err)
 
-	pullProgress, err := docker.ImagePull(background, image, types.ImagePullOptions{})
-	Check(err)
-	io.Copy(ioutil.Discard, pullProgress)
-	pullProgress.Close()
+	// pullProgress, err := docker.ImagePull(background, image, types.ImagePullOptions{})
+	// Check(err)
+	// io.Copy(ioutil.Discard, pullProgress)
+	// pullProgress.Close()
 
 	mounts := []mount.Mount{}
 

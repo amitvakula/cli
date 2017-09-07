@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	. "fmt"
 	"io"
-	"io/ioutil"
+	// "io/ioutil"
 	"os"
 	"time"
 
@@ -17,6 +17,7 @@ import (
 	prompt "github.com/segmentio/go-prompt"
 
 	"github.com/cheggaaa/pb"
+	"github.com/klauspost/pgzip"
 
 	. "flywheel.io/fw/util"
 	"flywheel.io/sdk/api"
@@ -64,12 +65,12 @@ func GearUpload(client *api.Client, docker *client.Client, category string) {
 		Check(os.RemoveAll("output"))
 	}
 
-	Println("Checking that docker image is available...")
+	// Println("Checking that docker image is available...")
 
-	pullProgress, err := docker.ImagePull(background, image, types.ImagePullOptions{})
-	Check(err)
-	io.Copy(ioutil.Discard, pullProgress)
-	pullProgress.Close()
+	// pullProgress, err := docker.ImagePull(background, image, types.ImagePullOptions{})
+	// Check(err)
+	// io.Copy(ioutil.Discard, pullProgress)
+	// pullProgress.Close()
 
 	Println("Uploading gear to Flywheel...")
 
@@ -123,10 +124,20 @@ func GearUpload(client *api.Client, docker *client.Client, category string) {
 	}
 	Check(scanner.Err())
 
-	// dest, err := os.Create("result.tar")
-	// Check(err)
 	stream, err := docker.ContainerExport(background, containerId)
 	Check(err)
+
+	// Stream output through concurrent gzip
+	// Slightly unintuitive because of the mixed reader/writer conventions.
+	// Flow: stream --> gzW --> pw --> matched to pr by io.Pipe --> member of UploadSource struct --> consumed by client.UploadSimple
+
+	pr, pw := io.Pipe()
+	gzW := pgzip.NewWriter(pw)
+	go func() {
+		io.Copy(gzW, stream)
+		gzW.Close()
+		pw.Close()
+	}()
 
 	// n, err := io.Copy(dest, stream)
 	// Println(n)
@@ -147,7 +158,7 @@ func GearUpload(client *api.Client, docker *client.Client, category string) {
 	Check(err)
 	_ = raw
 
-	gearUpload := &api.UploadSource{Reader: stream, Name: "gear.tar"}
+	gearUpload := &api.UploadSource{Reader: pr, Name: "gear.tar.gz"}
 	progress, errChan := client.UploadSimple("/api/gears/temp", raw, gearUpload)
 
 	bar := pb.New(1000000000000)

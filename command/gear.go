@@ -14,6 +14,7 @@ func (o *opts) gear() *cobra.Command {
 
 	cmd.AddCommand(o.gearCreate())
 	cmd.AddCommand(o.gearRun())
+	cmd.AddCommand(o.gearModify())
 	cmd.AddCommand(o.gearUpload())
 
 	return cmd
@@ -55,6 +56,21 @@ func (o *opts) gearRun() *cobra.Command {
 	})
 	cmd.Flags().SetInterspersed(false)
 	//
+
+	return cmd
+}
+
+func (o *opts) gearModify() *cobra.Command {
+	var quiet bool
+	cmd := &cobra.Command{
+		Use:   "modify",
+		Short: "Modify your gear from an interactive shell",
+		Args:  cobra.ExactArgs(0),
+		Run: func(cmd *cobra.Command, args []string) {
+			gears.GearModify(gears.DockerOrBust(), quiet)
+		},
+	}
+	cmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Suppress help message at start")
 
 	return cmd
 }

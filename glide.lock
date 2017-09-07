@@ -1,6 +1,6 @@
 imports:
 - name: flywheel.io/sdk
-  version: 3177542
+  version: 3177542578761adc0de194e931b9893f7ea6542b
   repo: https://github.com/flywheel-io/sdk
   subpackages:
   - api
@@ -59,6 +59,16 @@ imports:
   version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/klauspost/compress
+  version: f3dce52e0576655d55fd69e74b63da96ad1108f3
+  subpackages:
+  - flate
+- name: github.com/klauspost/cpuid
+  version: ae7887de9fa5d2db4eaa8174a7eff2c1ac00f2da
+- name: github.com/klauspost/crc32
+  version: bab58d77464aa9cf4e84200c3276da0831fe0c03
+- name: github.com/klauspost/pgzip
+  version: 0bf5dcad4ada2814c3c00f996a982270bb81a506
 - name: github.com/mattn/go-colorable
   version: 5411d3eea5978e6cdc258b30de592b60df6aba96
   repo: https://github.com/mattn/go-colorable

@@ -97,7 +97,7 @@ func GearModify(docker *client.Client, quiet bool) {
 	// #3 is the only option that won't take longer than allowed and won't immediately fail in some scenario that we haven't foreseen.
 	// A healthy invocation of `docker ps` is a prerequisite for the gear builder, so this shouldn't pose a problem.
 
-	cmd := exec.Command("docker", "run", "-it", "-v", cwd+":/flywheel/v0", "--cidfile", ".containerId", image, "bash")
+	cmd := exec.Command("docker", "run", "-it", "-v", cwd+":/flywheel/v0", "--entrypoint", "", "--cidfile", ".containerId", image, "bash")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

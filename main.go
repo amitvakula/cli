@@ -8,6 +8,7 @@ import (
 	fp "path/filepath"
 
 	"archive/zip"
+	"encoding/json"
 	"errors"
 	"flag"
 	"flywheel.io/sdk/api"
@@ -293,11 +294,39 @@ func upload_dicoms(sessions map[string]Session, c *api.Client) error {
 			if err != nil {
 				return err
 			}
-			meta_string := fmt.Sprintf("{\"group\": {\"_id\": \"%s\"},\"project\": {\"label\": \"%s\"},\"session\": {\"uid\": \"%s\",\"label\": \"%s\",\"subject\": {\"code\": \"%s\"}},\"acquisition\": {\"uid\": \"%s\",\"label\": \"%s\",\"files\": [{\"name\": \"%s\"}]}}",
-				*group_id, *project_label, sdk_session.Uid, sdk_session.Name, sdk_session.Subject.Code, sdk_acquisition.Uid, sdk_acquisition.Name, file_name)
-			metadata := []byte(meta_string)
+
+			metadata := map[string]interface{}{
+				"group": map[string]interface{}{
+					"_id": *group_id,
+				},
+				"project": map[string]interface{}{
+					"label": *project_label,
+				},
+				"session": map[string]interface{}{
+					"uid":   sdk_session.Uid,
+					"label": sdk_session.Name,
+					"subject": map[string]interface{}{
+						"code": sdk_session.Subject.Code,
+					},
+				},
+				"acquisition": map[string]interface{}{
+					"uid":   sdk_acquisition.Uid,
+					"label": sdk_acquisition.Name,
+					"files": []interface{}{
+						map[string]interface{}{
+							"name": file_name,
+						},
+					},
+				},
+			}
+
+			metadata_bytes, err := json.Marshal(metadata)
+			if err != nil {
+				return err
+			}
+
 			src := &api.UploadSource{Name: file_name, Path: file_path}
-			prog, errc := c.UploadSimple("upload/uid", metadata, src)
+			prog, errc := c.UploadSimple("upload/uid", metadata_bytes, src)
 
 			for update := range prog {
 				fmt.Println("  Uploaded", humanize.Bytes(uint64(update)))

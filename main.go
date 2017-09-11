@@ -143,7 +143,8 @@ func main() {
 	fmt.Println("This scan consists of:\n",
 		whatever, sessions_found, "sessions,\n",
 		whatever, acquisitions_found, "acquisitions,\n",
-		whatever, dicoms_found, "images\n")
+		whatever, dicoms_found, "images\n",
+		whatever, files_skipped, "files skipped\n")
 	proceed := prompt.Confirm("Confirm upload? (yes/no)")
 	fmt.Println()
 	if !proceed {
@@ -352,13 +353,7 @@ func sort_dicoms(sessions map[string]Session, files *[]dicom.DicomFile) error {
 	fmt.Println("\nSorting ...")
 	for _, file := range *files {
 		session_name, nerr := determine_name(file, "Study")
-		if nerr != nil {
-			files_skipped++
-		}
 		acquisition_name, nerr := determine_name(file, "Series")
-		if nerr != nil {
-			files_skipped++
-		}
 		StudyInstanceUID, _ := extract_value(file, "StudyInstanceUID")
 		SeriesInstanceUID, _ := extract_value(file, "SeriesInstanceUID")
 		// Api expects uid without dots
@@ -448,6 +443,8 @@ func processFile(path string) (dicom.DicomFile, error) {
 	if string(bytes[n:m]) == "DICM" {
 		di.ProcessFile(bytes, m, explicit)
 		return di, nil
+	} else {
+		files_skipped++
+		return di, dicom.ErrNotDICM
 	}
-	return di, dicom.ErrNotDICM
 }

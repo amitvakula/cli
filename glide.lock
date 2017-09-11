@@ -11,9 +11,9 @@ imports:
   version: bbfb8293bd33a6baad33d718aacf66ef73a29f30
 - name: github.com/dustin/go-humanize
   version: 259d2a102b871d17f30e3cd9881a642961a1e486
-- name: github.com/gillesdemey/go-dicom
-  version: 46241acba78ad032197a85d93e12d13bd4b7eaf2
-  repo: https://github.com/hkethi002/go-dicom
+- name: github.com/DavidGamba/go-dicom
+  version: e829968c3f559cd776a67ce0524d21bb514af7af
+  repo: https://github.com/hkethi002/go-dicom-1
 - name: github.com/google/go-querystring
   version: 53e6ce116135b80d037921a7fdd5138cf32d7a8a
   subpackages:

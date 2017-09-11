@@ -1,30 +1,28 @@
 package main
 
 import (
-	"github.com/gillesdemey/go-dicom"
+	dicom "github.com/DavidGamba/go-dicom/dcmdump"
 	prompt "github.com/segmentio/go-prompt"
 
 	humanize "github.com/dustin/go-humanize"
-
-	"io/ioutil"
-	"io"
-	"os"
 	fp "path/filepath"
-	"strings"
-	"sync"
-    "fmt"
+
 	"archive/zip"
 	"errors"
 	"flag"
 	"flywheel.io/sdk/api"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"strings"
 )
 
-
 var (
-	folder = flag.String("folder", "", "Folder with DICOM images to extract")
-	group_id = flag.String("group", "", "Group Id")
+	folder        = flag.String("folder", "", "Folder with DICOM images to extract")
+	group_id      = flag.String("group", "", "Group Id")
 	project_label = flag.String("project", "", "Flywheel project to upload files to")
-	api_key = flag.String("api", "", "API key to login")
+	api_key       = flag.String("api", "", "API key to login")
 )
 
 type DicomPath struct {
@@ -34,11 +32,11 @@ type DicomPath struct {
 
 type Acquisition struct {
 	SdkAcquisition api.Acquisition
-	Files []DicomPath
+	Files          []dicom.DicomFile
 }
 
 type Session struct {
-	SdkSession api.Session
+	SdkSession   api.Session
 	Acquisitions map[string]*Acquisition
 }
 
@@ -57,12 +55,48 @@ func init() {
 
 // replace panics with {return err}
 
-// TODO: fill this out :)
+// To be used by cli
 func dicomScan(client *api.Client, folder string, group_id string, project_label string) error {
+	// check that user has permission to group
+	err := check_group_perms(client, group_id)
+	if err != nil {
+		return err
+	}
 
-	return errors.New("Not implemented")
+	sessions := make(map[string]Session)
+	fmt.Println("Collecting Files...")
+	all_files := make([]dicom.DicomFile, 0)
+
+	err = fp.Walk(folder, fileWalker(&all_files))
+	if err != nil {
+		return err
+	}
+	err = sort_dicoms(sessions, &all_files)
+	if err != nil {
+		return err
+	}
+
+	// Summary of what is to be uploaded
+	whatever := "                     "
+	fmt.Println("This scan consists of:\n",
+		whatever, sessions_found, "sessions,\n",
+		whatever, acquisitions_found, "acquisitions,\n",
+		whatever, dicoms_found, "images\n")
+	proceed := prompt.Confirm("Confirm upload? (yes/no)")
+	fmt.Println()
+	if !proceed {
+		fmt.Println("Canceled.")
+		return nil
+	}
+	fmt.Println("Beginning upload.")
+	fmt.Println()
+
+	err = upload_dicoms(sessions, client)
+	if err != nil {
+		return err
+	}
+	return nil
 }
-
 
 func main() {
 	client := api.NewApiKeyClient(*api_key)
@@ -89,12 +123,12 @@ func main() {
 		panic(err)
 	}
 
-
-	// folder input, find .dcm files
-	all_files := make([]DicomPath,0)
 	sessions := make(map[string]Session)
 	fmt.Println("Collecting Files...")
-	err = fp.Walk(*folder, fileWalker_project(&all_files))
+
+	all_files := make([]dicom.DicomFile, 0)
+
+	err = fp.Walk(*folder, fileWalker(&all_files))
 	if err != nil {
 		panic(err)
 	}
@@ -118,7 +152,6 @@ func main() {
 	fmt.Println("Beginning upload.")
 	fmt.Println()
 
-
 	err = upload_dicoms(sessions, client)
 	if err != nil {
 		panic(err)
@@ -126,28 +159,33 @@ func main() {
 
 }
 
+func check_group_perms(client *api.Client, group_id string) error {
+	_, _, err := client.GetGroup(group_id)
+	return err
+}
+
 // make the dicom date and time fields somewhat readable when used as the container label
 func parsable_time(dicom_time string) string {
 	time_array := strings.Split(dicom_time, "")
-	time := fmt.Sprintf("%s-%s-%s %s:%s:%s", strings.Join(time_array[:4],""), strings.Join(time_array[4:6],""), strings.Join(time_array[6:8],""), strings.Join(time_array[8:10],""), strings.Join(time_array[10:12],""), strings.Join(time_array[12:],""))
+	time := fmt.Sprintf("%s-%s-%s %s:%s:%s", strings.Join(time_array[:4], ""), strings.Join(time_array[4:6], ""), strings.Join(time_array[6:8], ""), strings.Join(time_array[8:10], ""), strings.Join(time_array[10:12], ""), strings.Join(time_array[12:], ""))
 	return time
 }
 
 // determine the name of a session, acquisition, or file
 // takes study or series as argument because then it's easier to find date and time of the dicom
-func determine_name(file DicomPath, level string) (string, error) {
+func determine_name(file dicom.DicomFile, level string) (string, error) {
 	POSSIBLE_NAMES := map[string]([]string){
-		"Study" : []string{
+		"Study": []string{
 			"StudyDescription",
 			"StudyDate", // Will need to do extra black magic for datetime
 			"StudyInstanceUID",
 		},
-		"Series" : []string{
+		"Series": []string{
 			"SeriesDescription",
 			"SeriesDate", // Same as for Sessions
 			"SeriesInstanceUID",
 		},
-		"File" : []string{
+		"File": []string{
 			"SeriesDescription",
 			"SeriesId",
 		},
@@ -157,9 +195,9 @@ func determine_name(file DicomPath, level string) (string, error) {
 		name, err := extract_value(file, tag)
 		if err == nil {
 			if attempt == 1 && level != "File" {
-				name2, err := extract_value(file, level + "Time")
+				name2, err := extract_value(file, level+"Time")
 				if err == nil {
-					return parsable_time(name+name2), nil
+					return parsable_time(name + name2), nil
 				}
 			} else {
 				return name, nil
@@ -170,63 +208,63 @@ func determine_name(file DicomPath, level string) (string, error) {
 }
 
 // simple function to deal with only needing values of dicom elements
-func extract_value(file DicomPath, lookup_string string) (string, error) {
+func extract_value(file dicom.DicomFile, lookup_string string) (string, error) {
 	el, err := file.LookupElement(lookup_string)
 	if err != nil {
 		return "", err
 	}
-	return el.Value[0].(string), err
+	return el.StringData(), err
 }
 
 // Found online at https://golangcode.com/create-zip-files-in-go/
 func ZipFiles(filename string, files []string) error {
 
-    newfile, err := os.Create(filename)
-    if err != nil {
-        return err
-    }
-    defer newfile.Close()
+	newfile, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer newfile.Close()
 
-    zipWriter := zip.NewWriter(newfile)
-    defer zipWriter.Close()
+	zipWriter := zip.NewWriter(newfile)
+	defer zipWriter.Close()
 
-    // Add files to zip
-    for _, file := range files {
+	// Add files to zip
+	for _, file := range files {
 
-        zipfile, err := os.Open(file)
-        if err != nil {
-          return err
-        }
+		zipfile, err := os.Open(file)
+		if err != nil {
+			return err
+		}
 
-        // Get the file information
-        info, err := zipfile.Stat()
-        if err != nil {
-            return err
-        }
+		// Get the file information
+		info, err := zipfile.Stat()
+		if err != nil {
+			return err
+		}
 
-        header, err := zip.FileInfoHeader(info)
-        if err != nil {
-            return err
-        }
+		header, err := zip.FileInfoHeader(info)
+		if err != nil {
+			return err
+		}
 
-        // Change to deflate to gain better compression
-        // see http://golang.org/pkg/archive/zip/#pkg-constants
-        header.Method = zip.Deflate
+		// Change to deflate to gain better compression
+		// see http://golang.org/pkg/archive/zip/#pkg-constants
+		header.Method = zip.Deflate
 
-        writer, err := zipWriter.CreateHeader(header)
-        if err != nil {
-            return err
-        }
-        _, err = io.Copy(writer, zipfile)
-        if err != nil {
-            return err
-        }
+		writer, err := zipWriter.CreateHeader(header)
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(writer, zipfile)
+		if err != nil {
+			return err
+		}
 		zipfile.Close()
-    }
-    return nil
+	}
+	return nil
 }
 
-// uploads dicoms as zips at the acquisition level, creating the needed containers as it goes
+// uploads dicoms as zips at the acquisition level, uses upload/uid endpoint
 func upload_dicoms(sessions map[string]Session, c *api.Client) error {
 	tmp, err := ioutil.TempDir(".", "")
 	if err != nil {
@@ -235,7 +273,6 @@ func upload_dicoms(sessions map[string]Session, c *api.Client) error {
 	for _, session := range sessions {
 		sdk_session := session.SdkSession
 		sessions_uploaded++
-
 
 		if err != nil {
 			return err
@@ -257,7 +294,7 @@ func upload_dicoms(sessions map[string]Session, c *api.Client) error {
 				return err
 			}
 			meta_string := fmt.Sprintf("{\"group\": {\"_id\": \"%s\"},\"project\": {\"label\": \"%s\"},\"session\": {\"uid\": \"%s\",\"label\": \"%s\",\"subject\": {\"code\": \"%s\"}},\"acquisition\": {\"uid\": \"%s\",\"label\": \"%s\",\"files\": [{\"name\": \"%s\"}]}}",
-			*group_id, *project_label, sdk_session.Uid, sdk_session.Name, sdk_session.Subject.Code, sdk_acquisition.Uid, sdk_acquisition.Name, file_name)
+				*group_id, *project_label, sdk_session.Uid, sdk_session.Name, sdk_session.Subject.Code, sdk_acquisition.Uid, sdk_acquisition.Name, file_name)
 			metadata := []byte(meta_string)
 			src := &api.UploadSource{Name: file_name, Path: file_path}
 			prog, errc := c.UploadSimple("upload/uid", metadata, src)
@@ -268,23 +305,23 @@ func upload_dicoms(sessions map[string]Session, c *api.Client) error {
 
 			err = <-errc
 			if err != nil {
-				panic(err)
+				return err
 			}
-			fmt.Println("Uploaded",file_name)
+			fmt.Println("Uploaded", file_name)
 		}
 	}
 	err = os.RemoveAll(tmp)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	fmt.Println("\nUpload Complete\n")
 	return nil
 }
 
 // sorts dicoms by study instance uid and series instance uid (session, acquisition)
-func sort_dicoms(sessions map[string]Session, files *[]DicomPath) error {
+func sort_dicoms(sessions map[string]Session, files *[]dicom.DicomFile) error {
 	fmt.Println("\nSorting ...")
-	for _,file := range *files{
+	for _, file := range *files {
 		session_name, nerr := determine_name(file, "Study")
 		if nerr != nil {
 			files_skipped++
@@ -293,23 +330,28 @@ func sort_dicoms(sessions map[string]Session, files *[]DicomPath) error {
 		if nerr != nil {
 			files_skipped++
 		}
-		StudyInstanceUID,_ := extract_value(file, "StudyInstanceUID")
-		SeriesInstanceUID,_ := extract_value(file, "SeriesInstanceUID")
+		StudyInstanceUID, _ := extract_value(file, "StudyInstanceUID")
+		SeriesInstanceUID, _ := extract_value(file, "SeriesInstanceUID")
+		// Api expects uid without dots
 		StudyInstanceUID = strings.Replace(StudyInstanceUID, ".", "", -1)
 		SeriesInstanceUID = strings.Replace(SeriesInstanceUID, ".", "", -1)
+
 		if nerr == nil {
 			if session, ok := sessions[StudyInstanceUID]; ok {
+				// Session and Acqusition already in the map
 				if acquisition, ok := session.Acquisitions[SeriesInstanceUID]; ok {
 					session.Acquisitions[SeriesInstanceUID].Files = append(acquisition.Files, file)
 					dicoms_found++
+					// Session in the map but no acquisition yet
 				} else {
-					sdk_acquisition := api.Acquisition{Name: acquisition_name, Uid:SeriesInstanceUID}
-					new_acq := Acquisition{Files: make([]DicomPath,0), SdkAcquisition: sdk_acquisition}
+					sdk_acquisition := api.Acquisition{Name: acquisition_name, Uid: SeriesInstanceUID}
+					new_acq := Acquisition{Files: make([]dicom.DicomFile, 0), SdkAcquisition: sdk_acquisition}
 					session.Acquisitions[SeriesInstanceUID] = &new_acq
-					session.Acquisitions[SeriesInstanceUID].Files = append(new_acq.Files,file)
+					session.Acquisitions[SeriesInstanceUID].Files = append(new_acq.Files, file)
 					acquisitions_found++
 					dicoms_found++
 				}
+				// Neither Session nor Acquisition is in the map
 			} else {
 				subject_code, err := extract_value(file, "PatientID")
 				if err != nil {
@@ -317,10 +359,10 @@ func sort_dicoms(sessions map[string]Session, files *[]DicomPath) error {
 				}
 				sdk_subject := api.Subject{Code: subject_code}
 				sdk_session := api.Session{Subject: &sdk_subject, Name: session_name, Uid: StudyInstanceUID}
-				sess := Session{SdkSession:sdk_session, Acquisitions: make(map[string]*Acquisition, 0)}
+				sess := Session{SdkSession: sdk_session, Acquisitions: make(map[string]*Acquisition, 0)}
 				sdk_acquisition := api.Acquisition{Name: acquisition_name, Uid: SeriesInstanceUID}
-				new_acq := Acquisition{Files: make([]DicomPath,0), SdkAcquisition: sdk_acquisition}
-				new_acq.Files = append(new_acq.Files,file)
+				new_acq := Acquisition{Files: make([]dicom.DicomFile, 0), SdkAcquisition: sdk_acquisition}
+				new_acq.Files = append(new_acq.Files, file)
 				sess.Acquisitions[SeriesInstanceUID] = &new_acq
 				sessions[StudyInstanceUID] = sess
 				sessions_found++
@@ -334,68 +376,49 @@ func sort_dicoms(sessions map[string]Session, files *[]DicomPath) error {
 	return nil
 }
 
-func dir_step(files *[]DicomPath, path string, info os.FileInfo, err error) error {
-	// Recurse into directories
-	if info.IsDir() {
-		fmt.Println("\tFrom", path)
-		if strings.HasSuffix(path, info.Name()) {
-			return nil
-		}
-		return fp.Walk(path+"/"+info.Name(), fileWalker_project(files))
-	}
-	// ignore if not a DICOM file
-	// although later on figure out how to implement attachments
-	if fp.Ext(info.Name()) != ".dcm" {
-		return nil
-	}
-	*files = append(*files, processFile(path))
-	return err
-}
-
-//wrapper for the actual fileWalker function so that it can collect files in an array
-func fileWalker_project(files *[]DicomPath) func(string, os.FileInfo, error) error {
+func fileWalker(files *[]dicom.DicomFile) func(string, os.FileInfo, error) error {
 	return func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			panic(err)
 		}
-		return dir_step(files, path, info, err)
+
+		// don't parse nested directories
+		if info.IsDir() {
+			fmt.Println("\tFrom", path)
+		} else {
+
+			file, err := processFile(path)
+			if err != nil {
+				// not a DICOM file
+				if err == dicom.ErrNotDICM {
+					return nil
+				}
+				return err
+			}
+			*files = append(*files, file)
+		}
+
+		return err
 	}
 }
-
-// processes files, courtesy of the library with some modifications
-func processFile(path string) DicomPath {
-
-	buff, err := ioutil.ReadFile(path)
+func processFile(path string) (dicom.DicomFile, error) {
+	di := dicom.DicomFile{}
+	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic(err)
+		// fmt.Fprintf(os.Stderr, "ERROR: failed to read file: '%s'\n", err)
+		return di, err
 	}
-	done := new(sync.WaitGroup)
-	done.Add(1)
-	dcm := &DicomPath{}
-	// fmt.Println(project)
 
-	go func() {
-		gw := new(sync.WaitGroup)
+	// Intro
+	n := 128
+	// DICM
+	m := n + 4
 
-		// parser
-		ppln := dcm.Parse(buff)
-
-
-
-		dcm.DiscardPixel(ppln, gw)
-		gw.Wait()
-		done.Done()
-	}()
-	done.Wait()
-	_,err = dcm.LookupElement("SeriesInstanceUID")
-	if err != nil {
-		fmt.Println("No UID Data")
+	explicit := true
+	di.Path = path
+	if string(bytes[n:m]) == "DICM" {
+		di.ProcessFile(bytes, m, explicit)
+		return di, nil
 	}
-	// _,err = dcm.LookupElement("PixelData")
-	// if err != nil {
-	// 	fmt.Println("No Pixel Data")
-	// }
-	// fmt.Println(el.Value)
-	dcm.Path = path
-	return *dcm
+	return di, dicom.ErrNotDICM
 }

@@ -17,6 +17,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"unsafe"
 )
 
 var (
@@ -133,6 +135,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	err = sort_dicoms(sessions, &all_files)
 	if err != nil {
 		panic(err)
@@ -189,7 +192,7 @@ func determine_name(file dicom.DicomFile, level string) (string, error) {
 		},
 		"File": []string{
 			"SeriesDescription",
-			"SeriesId",
+			"SeriesInstanceUID",
 		},
 	}
 	var err error
@@ -425,23 +428,28 @@ func fileWalker(files *[]dicom.DicomFile) func(string, os.FileInfo, error) error
 		return err
 	}
 }
+
 func processFile(path string) (dicom.DicomFile, error) {
 	di := dicom.DicomFile{}
-	bytes, err := ioutil.ReadFile(path)
+	// bytes, err := ioutil.ReadFile(path)
+	f, err := os.Open(path)
+	if err != nil {
+		return di, err
+	}
+	bytes := make([]byte, 132)
+	_, err = f.Read(bytes)
+	// fmt.Println(n1)
 	if err != nil {
 		// fmt.Fprintf(os.Stderr, "ERROR: failed to read file: '%s'\n", err)
 		return di, err
 	}
-
-	// Intro
-	n := 128
-	// DICM
-	m := n + 4
+	f.Close()
+	// fmt.Printf("Path: %s\tLength: %d\n", path, len(bytes))
 
 	explicit := true
 	di.Path = path
-	if string(bytes[n:m]) == "DICM" {
-		di.ProcessFile(bytes, m, explicit)
+	if string(bytes[128:]) == "DICM" {
+		di.ProcessFile(path, 132, explicit)
 		return di, nil
 	} else {
 		files_skipped++

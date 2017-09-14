@@ -102,6 +102,13 @@ func GearModify(docker *client.Client, quiet bool) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	// If there is a problem executing the command, try to delete the state file anyway.
+	// Alternatively, we could launch another coroutine, wait for the file to be readable, delete, and report back.
+	// But that seems a bit much, wouldn't you agree?
+	defer func() {
+		os.Remove(".containerId")
+	}()
+
 	err = cmd.Start()
 	Check(err)
 	err = cmd.Wait()

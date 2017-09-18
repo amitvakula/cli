@@ -417,7 +417,7 @@ func sort_dicoms(sessions map[string]Session, files *[]dicom.DicomFile, related_
 				if acquisition, ok := session.Acquisitions[SeriesInstanceUID]; ok {
 					session.Acquisitions[SeriesInstanceUID].Files = append(acquisition.Files, file)
 					// Create file in its acqusition folder
-					os.Link(file.Path, "tempDir/" + SeriesInstanceUID + "/" + SOPInstanceUID)
+					os.Symlink(file.Path, "tempDir/" + SeriesInstanceUID + "/" + SOPInstanceUID)
 					dicoms_found++
 					// Session in the map but no acquisition yet
 				} else {
@@ -428,7 +428,7 @@ func sort_dicoms(sessions map[string]Session, files *[]dicom.DicomFile, related_
 
 					// Create Acquisition folder and file in it
 					os.MkdirAll("tempDir/" + SeriesInstanceUID, 0777)
-					os.Link(file.Path, "tempDir/" + SeriesInstanceUID + "/" + SOPInstanceUID)
+					os.Symlink(file.Path, "tempDir/" + SeriesInstanceUID + "/" + SOPInstanceUID)
 
 					acquisitions_found++
 					dicoms_found++
@@ -453,7 +453,7 @@ func sort_dicoms(sessions map[string]Session, files *[]dicom.DicomFile, related_
 
 				// Create Appropriate folders and place file in it
 				os.MkdirAll("tempDir/" + SeriesInstanceUID, 0777)
-				os.Link(file.Path, "tempDir/" + SeriesInstanceUID + "/" + SOPInstanceUID)
+				os.Symlink(file.Path, "tempDir/" + SeriesInstanceUID + "/" + SOPInstanceUID)
 
 				sessions_found++
 				acquisitions_found++

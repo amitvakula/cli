@@ -8,7 +8,7 @@ imports:
   subpackages:
   - api
 - name: github.com/DavidGamba/go-dicom
-  version: ebadd12aa80083d5a1e30c3a5b3578f83439ef14
+  version: dd9e1b485643568855b9e0c14d3d755671aa8cd5
   repo: https://github.com/hkethi002/go-dicom-1
 - name: github.com/dghubble/sling
   version: bbfb8293bd33a6baad33d718aacf66ef73a29f30

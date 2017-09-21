@@ -1,7 +1,7 @@
-package main
+package dicom
 
 import (
-	dicom "github.com/DavidGamba/go-dicom/dcmdump"
+	dicom "github.com/davidgamba/go-dicom/dcmdump"
 	prompt "github.com/segmentio/go-prompt"
 
 	humanize "github.com/dustin/go-humanize"
@@ -9,27 +9,18 @@ import (
 
 	"archive/zip"
 	"encoding/json"
-	"errors"
-	"flag"
 	"flywheel.io/sdk/api"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"strings"
-)
 
-var (
-	folder        = flag.String("folder", "", "Folder with DICOM images to extract")
-	group_id      = flag.String("group", "", "Group Id")
-	project_label = flag.String("project", "", "Flywheel project to upload files to")
-	api_key       = flag.String("api", "", "API key to login")
-	related_acq   = flag.Bool("related", false, "Group related Series into one Acquisition, not working")
-	log_level     = flag.Int("log", 0, "Amount of output on stdout [0, 1, 2]")
+	. "flywheel.io/fw/util"
 )
 
 type DicomZip struct {
-	Files 			[]dicom.DicomFile
+	Files []dicom.DicomFile
 }
 
 type Acquisition struct {
@@ -49,104 +40,26 @@ var sessions_uploaded = 0
 var acquisitions_uploaded = 0
 var files_skipped = 0
 
-func init() {
-	flag.Parse()
-}
-
 // TODO: check for group permissions before scanning
 
 // replace panics with {return err}
 
-// To be used by cli
-func dicomScan(client *api.Client, folder string, group_id string, project_label string, related_acq bool, log_level int) error {
+func Scan(client *api.Client, folder string, group_id string, project_label string, related_acq bool, log_level int) {
 	// check that user has permission to group
 	err := check_group_perms(client, group_id)
-	if err != nil {
-		return err
-	}
+	Check(err)
 
 	sessions := make(map[string]Session)
 	fmt.Println("Collecting Files...")
 	all_files := make([]dicom.DicomFile, 0)
 
 	err = fp.Walk(folder, fileWalker(&all_files, log_level))
-	if err != nil {
-		return err
-	}
+	Check(err)
 	err = sort_dicoms(sessions, &all_files, related_acq)
-	if err != nil {
-		return err
-	}
+	Check(err)
 
-	if log_level>0 {
+	if log_level > 0 {
 		printTree(sessions, group_id, project_label)
-	}
-
-	// Summary of what is to be uploaded
-	whatever := "                     "
-	fmt.Println("This scan consists of:\n",
-		whatever, sessions_found, "sessions,\n",
-		whatever, acquisitions_found, "acquisitions,\n",
-		whatever, files_skipped, "files skipped\n")
-	proceed := prompt.Confirm("Confirm upload? (yes/no)")
-	fmt.Println()
-	if !proceed {
-		fmt.Println("Canceled.")
-		return nil
-	}
-	fmt.Println("Beginning upload.")
-	fmt.Println()
-
-	err = upload_dicoms(sessions, client, related_acq, log_level)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func main() {
-	client := api.NewApiKeyClient(*api_key)
-
-	if project_label == nil {
-		panic(errors.New("No project label given, use -project flag."))
-	}
-
-	if group_id == nil {
-		panic(errors.New("No group_id given, use -group flag."))
-	}
-
-	if folder == nil {
-		panic(errors.New("No folder given, use -folder flag."))
-	}
-
-	if api_key == nil {
-		panic(errors.New("No api_key given, use -api flag."))
-	}
-
-	// check if api key is valid
-	_, _, err := client.GetCurrentUser()
-	if err != nil {
-		panic(err)
-	}
-
-	sessions := make(map[string]Session)
-	fmt.Println("Collecting Files...")
-
-	all_files := make([]dicom.DicomFile, 0)
-
-	err = fp.Walk(*folder, fileWalker(&all_files, *log_level))
-	if err != nil {
-		panic(err)
-	}
-
-	err = sort_dicoms(sessions, &all_files, *related_acq)
-	if err != nil {
-		panic(err)
-	}
-
-
-	if *log_level>0 {
-		printTree(sessions, *group_id, *project_label)
 	}
 
 	// Summary of what is to be uploaded
@@ -164,11 +77,8 @@ func main() {
 	fmt.Println("Beginning upload.")
 	fmt.Println()
 
-	err = upload_dicoms(sessions, client, *related_acq, *log_level)
-	if err != nil {
-		panic(err)
-	}
-
+	err = upload_dicoms(sessions, client, related_acq, log_level, group_id, project_label)
+	Check(err)
 }
 
 func printTree(sessions map[string]Session, group_id string, project_label string) {
@@ -292,7 +202,7 @@ func ZipFiles(filename string, dir_path string) error {
 }
 
 // uploads dicoms as zips at the acquisition level, uses upload/uid endpoint
-func upload_dicoms(sessions map[string]Session, c *api.Client, related_acq bool, log_level int) error {
+func upload_dicoms(sessions map[string]Session, c *api.Client, related_acq bool, log_level int, group_id string, project_label string) error {
 	tmp, err := ioutil.TempDir(".", "")
 	if err != nil {
 		return err
@@ -318,10 +228,9 @@ func upload_dicoms(sessions map[string]Session, c *api.Client, related_acq bool,
 			file_path := tmp + "/" + file_name
 			err = ZipFiles(file_path, "tempDir/"+sdk_acquisition.Uid)
 			if err != nil {
-				fmt.Println("Failed to compress files for acqusition "+ sdk_acquisition.Name)
+				fmt.Println("Failed to compress files for acqusition " + sdk_acquisition.Name)
 				return err
 			}
-
 
 			if related_acq {
 				// fmt.Println("Related is true")
@@ -341,10 +250,10 @@ func upload_dicoms(sessions map[string]Session, c *api.Client, related_acq bool,
 
 			metadata := map[string]interface{}{
 				"group": map[string]interface{}{
-					"_id": *group_id,
+					"_id": group_id,
 				},
 				"project": map[string]interface{}{
-					"label": *project_label,
+					"label": project_label,
 				},
 				"session": map[string]interface{}{
 					"uid":   sdk_session.Uid,
@@ -417,7 +326,7 @@ func sort_dicoms(sessions map[string]Session, files *[]dicom.DicomFile, related_
 				if acquisition, ok := session.Acquisitions[SeriesInstanceUID]; ok {
 					session.Acquisitions[SeriesInstanceUID].Files = append(acquisition.Files, file)
 					// Create file in its acqusition folder
-					os.Symlink(file.Path, "tempDir/" + SeriesInstanceUID + "/" + SOPInstanceUID)
+					os.Symlink(file.Path, "tempDir/"+SeriesInstanceUID+"/"+SOPInstanceUID)
 					dicoms_found++
 					// Session in the map but no acquisition yet
 				} else {
@@ -427,8 +336,8 @@ func sort_dicoms(sessions map[string]Session, files *[]dicom.DicomFile, related_
 					session.Acquisitions[SeriesInstanceUID].Files = append(new_acq.Files, file)
 
 					// Create Acquisition folder and file in it
-					os.MkdirAll("tempDir/" + SeriesInstanceUID, 0777)
-					os.Symlink(file.Path, "tempDir/" + SeriesInstanceUID + "/" + SOPInstanceUID)
+					os.MkdirAll("tempDir/"+SeriesInstanceUID, 0777)
+					os.Symlink(file.Path, "tempDir/"+SeriesInstanceUID+"/"+SOPInstanceUID)
 
 					acquisitions_found++
 					dicoms_found++
@@ -452,8 +361,8 @@ func sort_dicoms(sessions map[string]Session, files *[]dicom.DicomFile, related_
 				sessions[StudyInstanceUID] = sess
 
 				// Create Appropriate folders and place file in it
-				os.MkdirAll("tempDir/" + SeriesInstanceUID, 0777)
-				os.Symlink(file.Path, "tempDir/" + SeriesInstanceUID + "/" + SOPInstanceUID)
+				os.MkdirAll("tempDir/"+SeriesInstanceUID, 0777)
+				os.Symlink(file.Path, "tempDir/"+SeriesInstanceUID+"/"+SOPInstanceUID)
 
 				sessions_found++
 				acquisitions_found++
@@ -475,7 +384,7 @@ func fileWalker(files *[]dicom.DicomFile, log_level int) func(string, os.FileInf
 		// don't parse nested directories
 		if info.IsDir() && log_level > 0 {
 			fmt.Println("\tFrom", path)
-		} else if ! info.IsDir() {
+		} else if !info.IsDir() {
 			file, err := processFile(path)
 			if err != nil {
 				// not a DICOM file

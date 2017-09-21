@@ -6,6 +6,14 @@ imports:
   - api
 - name: github.com/cheggaaa/pb
   version: f6ccf2184de4dd34495277e38dc19b6e7fbe0ea2
+- name: github.com/davidgamba/go-dicom
+  version: dd9e1b485643568855b9e0c14d3d755671aa8cd5
+  repo: https://github.com/hkethi002/go-dicom-1
+  subpackages:
+  - dcmdump
+  - dcmdump/tag
+  - dcmdump/ts
+  - dcmdump/vr
 - name: github.com/dghubble/sling
   version: bbfb8293bd33a6baad33d718aacf66ef73a29f30
 - name: github.com/docker/distribution

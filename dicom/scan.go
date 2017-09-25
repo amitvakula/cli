@@ -167,7 +167,10 @@ func ZipFiles(filename string, dir_path string) error {
 
 	// Add files to zip
 	for _, file_name := range filenames {
-		file := dir_path + "/" + file_name
+		file, err := os.Readlink(dir_path + "/" + file_name)
+		if err != nil {
+			return err
+		}
 		zipfile, err := os.Open(file)
 		if err != nil {
 			return err

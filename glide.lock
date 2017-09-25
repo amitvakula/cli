@@ -1,6 +1,6 @@
 imports:
 - name: flywheel.io/sdk
-  version: 3177542578761adc0de194e931b9893f7ea6542b
+  version: a26052c
   repo: https://github.com/flywheel-io/sdk
   subpackages:
   - api
@@ -59,6 +59,8 @@ imports:
   version: 259d2a102b871d17f30e3cd9881a642961a1e486
 - name: github.com/fatih/color
   version: 62e9147c64a1ed519147b62a56a14e83e2be02c1
+- name: github.com/flosch/pongo2
+  version: 5e81b817a0c48c1c57cdf1a9056cf76bdee02ca9
 - name: github.com/google/go-querystring
   version: 53e6ce116135b80d037921a7fdd5138cf32d7a8a
   subpackages:

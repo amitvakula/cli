@@ -60,3 +60,13 @@ func CreateContainerWithCleanup(docker *client.Client, ctx context.Context, conf
 
 	return containerId, cleanup, err
 }
+
+func TranslateEnvToEnvArray(env map[string]string) []string {
+	var result []string
+
+	for key, value := range env {
+		result = append(result, key+"="+value)
+	}
+
+	return result
+}

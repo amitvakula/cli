@@ -29,7 +29,7 @@ func GearUpload(client *api.Client, docker *client.Client, category string) {
 
 	gearCategory := api.GearCategory(category)
 
-	if gearCategory != api.Converter && gearCategory != api.Analysis {
+	if gearCategory != api.ConverterGear && gearCategory != api.AnalysisGear {
 		Println("Invalid gear category. Check `fw gear upload -h` for options.")
 		os.Exit(1)
 	}
@@ -64,6 +64,23 @@ func GearUpload(client *api.Client, docker *client.Client, category string) {
 
 		Check(os.RemoveAll("output"))
 	}
+
+	Println("Checking that gear is ready to upload...")
+
+	now := time.Now()
+	doc := &api.GearDoc{
+		// Id:
+		Category: gearCategory,
+		Gear:     gear,
+		// Source:
+		Created:  &now,
+		Modified: &now,
+	}
+
+	// gear-check added here rather than SDK, for now.
+	var aerr *api.Error
+	_, err = client.New().Post("gears/check").BodyJSON(doc).Receive(nil, &aerr)
+	Check(api.Coalesce(err, aerr))
 
 	// Println("Checking that docker image is available...")
 
@@ -144,22 +161,11 @@ func GearUpload(client *api.Client, docker *client.Client, category string) {
 	// Check(err)
 	// Check(dest.Close())
 
-	now := time.Now()
-	doc := &api.GearDoc{
-		// Id:
-		Category: gearCategory,
-		Gear:     gear,
-		// Source:
-		Created:  &now,
-		Modified: &now,
-	}
-
-	raw, err := json.MarshalIndent(doc, "", "\t")
+	docRaw, err := json.MarshalIndent(doc, "", "\t")
 	Check(err)
-	_ = raw
 
 	gearUpload := &api.UploadSource{Reader: pr, Name: "gear.tar.gz"}
-	progress, errChan := client.UploadSimple("/api/gears/temp", raw, gearUpload)
+	progress, errChan := client.UploadSimple("/api/gears/temp", docRaw, gearUpload)
 
 	bar := pb.New(1000000000000)
 	bar.ShowPercent = false

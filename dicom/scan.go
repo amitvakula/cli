@@ -236,7 +236,7 @@ func upload_dicoms(sessions map[string]Session, c *api.Client, related_acq bool,
 			for _, file := range acquisition.Files {
 				paths = append(paths, file.Path)
 			}
-			file_name := sdk_acquisition.Name + ".dcm.zip"
+			file_name := strings.TrimRight(sdk_acquisition.Name, " ") + ".dcm.zip"
 			file_path := tmp + "/" + file_name
 			err = ZipFiles(file_path, "tempDir/"+sdk_acquisition.Uid)
 			if err != nil {

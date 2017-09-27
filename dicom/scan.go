@@ -44,21 +44,27 @@ var files_skipped = 0
 
 // replace panics with {return err}
 
-func Scan(client *api.Client, folder string, group_id string, project_label string, related_acq bool, log_level int) {
+func Scan(client *api.Client, folder string, group_id string, project_label string, related_acq bool, quiet, noTree bool) {
 	// check that user has permission to group
 	err := check_group_perms(client, group_id)
+	Check(err)
+
+	err = os.Mkdir("tempDir", 0777)
 	Check(err)
 
 	sessions := make(map[string]Session)
 	fmt.Println("Collecting Files...")
 	all_files := make([]dicom.DicomFile, 0)
 
-	err = fp.Walk(folder, fileWalker(&all_files, log_level))
+	err = fp.Walk(folder, fileWalker(&all_files, quiet))
 	Check(err)
 	err = sort_dicoms(sessions, &all_files, related_acq)
+	defer func() {
+		os.RemoveAll("tempdir")
+	}()
 	Check(err)
 
-	if log_level > 0 {
+	if !noTree {
 		printTree(sessions, group_id, project_label)
 	}
 
@@ -77,7 +83,8 @@ func Scan(client *api.Client, folder string, group_id string, project_label stri
 	fmt.Println("Beginning upload.")
 	fmt.Println()
 
-	err = upload_dicoms(sessions, client, related_acq, log_level, group_id, project_label)
+	err = upload_dicoms(sessions, client, related_acq, group_id, project_label, quiet)
+	os.RemoveAll("tempdir")
 	Check(err)
 }
 
@@ -205,11 +212,13 @@ func ZipFiles(filename string, dir_path string) error {
 }
 
 // uploads dicoms as zips at the acquisition level, uses upload/uid endpoint
-func upload_dicoms(sessions map[string]Session, c *api.Client, related_acq bool, log_level int, group_id string, project_label string) error {
-	tmp, err := ioutil.TempDir(".", "")
+func upload_dicoms(sessions map[string]Session, c *api.Client, related_acq bool, group_id string, project_label string, quiet bool) error {
+	tmp, err := ioutil.TempDir(".", "temp_")
+	defer os.RemoveAll(tmp)
 	if err != nil {
 		return err
 	}
+
 	for _, session := range sessions {
 		sdk_session := session.SdkSession
 		sessions_uploaded++
@@ -285,7 +294,7 @@ func upload_dicoms(sessions map[string]Session, c *api.Client, related_acq bool,
 			prog, errc := c.UploadSimple("upload/uid", metadata_bytes, src)
 
 			for update := range prog {
-				if log_level > 1 {
+				if !quiet {
 					fmt.Println("  Uploaded", humanize.Bytes(uint64(update)))
 				}
 			}
@@ -294,9 +303,8 @@ func upload_dicoms(sessions map[string]Session, c *api.Client, related_acq bool,
 			if err != nil {
 				return err
 			}
-			if log_level > 0 {
-				fmt.Println("Uploaded", file_name)
-			}
+
+			fmt.Println("Uploaded", file_name)
 		}
 	}
 	err = os.RemoveAll(tmp)
@@ -312,6 +320,7 @@ func upload_dicoms(sessions map[string]Session, c *api.Client, related_acq bool,
 // sorts dicoms by study instance uid and series instance uid (session, acquisition)
 func sort_dicoms(sessions map[string]Session, files *[]dicom.DicomFile, related_acq bool) error {
 	fmt.Println("\nSorting ...")
+
 	for _, file := range *files {
 		session_name, nerr := determine_name(file, "Study")
 		acquisition_name, nerr := determine_name(file, "Series")
@@ -321,7 +330,6 @@ func sort_dicoms(sessions map[string]Session, files *[]dicom.DicomFile, related_
 		// Api expects uid without dots
 		StudyInstanceUID = strings.Replace(StudyInstanceUID, ".", "", -1)
 		SeriesInstanceUID = strings.Replace(SeriesInstanceUID, ".", "", -1)
-		os.Mkdir("tempDir", 0777)
 
 		if nerr == nil {
 			if session, ok := sessions[StudyInstanceUID]; ok {
@@ -378,23 +386,24 @@ func sort_dicoms(sessions map[string]Session, files *[]dicom.DicomFile, related_
 	return nil
 }
 
-func fileWalker(files *[]dicom.DicomFile, log_level int) func(string, os.FileInfo, error) error {
+func fileWalker(files *[]dicom.DicomFile, quiet bool) func(string, os.FileInfo, error) error {
 	return func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		// don't parse nested directories
-		if info.IsDir() && log_level > 0 {
+		if info.IsDir() && !quiet {
 			fmt.Println("\tFrom", path)
 		} else if !info.IsDir() {
 			file, err := processFile(path)
 			if err != nil {
-				// not a DICOM file
 				if err == dicom.ErrNotDICM || err == io.EOF {
+					// not a DICOM file
 					return nil
+				} else {
+					return err
 				}
-				panic(err)
 			}
 			*files = append(*files, file)
 		}

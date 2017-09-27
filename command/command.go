@@ -27,8 +27,7 @@ func BuildCommand(version, buildHash, buildDate string) *cobra.Command {
 	cmd.AddCommand(o.batch())
 	cmd.AddCommand(o.gear())
 	cmd.AddCommand(o.job())
-	cmd.AddCommand(o.importCmd())
-	cmd.AddCommand(o.scan())
+	cmd.AddCommand(o.importCommand())
 	cmd.AddCommand(o.version(version, buildHash, buildDate))
 
 	return cmd

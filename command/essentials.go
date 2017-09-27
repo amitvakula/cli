@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"flywheel.io/fw/dicom"
 	"flywheel.io/fw/ops"
 	. "flywheel.io/fw/util"
 )
@@ -108,37 +107,5 @@ func (o *opts) upload() *cobra.Command {
 			ops.Upload(o.Client, args[0], args[1])
 		},
 	}
-	return cmd
-}
-
-func (o *opts) importCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:    "import [folder]",
-		Short:  "Import a structured folder into Flywheel",
-		Args:   cobra.ExactArgs(1),
-		PreRun: o.RequireClient,
-		Run: func(cmd *cobra.Command, args []string) {
-			ops.ScanUpload(o.Client, args[0])
-		},
-	}
-
-	return cmd
-}
-
-func (o *opts) scan() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:    "scan [folder] [group] [project]",
-		Short:  "Scan a folder of dicom files and upload",
-		Args:   cobra.ExactArgs(3),
-		PreRun: o.RequireClient,
-		Run: func(cmd *cobra.Command, args []string) {
-
-			// related_acq is marked as not working, so force-set to false
-			// force-set log_level to 2; change out for a verbose flag later.
-
-			dicom.Scan(o.Client, args[0], args[1], args[2], false, 2)
-		},
-	}
-
 	return cmd
 }

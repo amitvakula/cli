@@ -113,6 +113,9 @@ func GearRun(client *api.Client, docker *client.Client, args []string) {
 func GearRunActual(client *api.Client, docker *client.Client, image string, config map[string]interface{}, inputs map[string]string, env map[string]string, command string) {
 
 	// Load docker env, with a default path
+	if env == nil {
+		env = map[string]string{}
+	}
 	defaultPath := "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 	_, pathDefined := env["PATH"]
 	if !pathDefined {

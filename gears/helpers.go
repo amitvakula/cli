@@ -15,7 +15,6 @@ import (
 
 	. "flywheel.io/fw/util"
 	"flywheel.io/sdk/api"
-
 )
 
 func RenderTemplate(template string, context map[string]interface{}) (string, error) {

@@ -3,8 +3,8 @@ package legacy
 import (
 	. "fmt"
 	"os"
-	"strings"
 	"strconv"
+	"strings"
 
 	"flywheel.io/sdk/api"
 

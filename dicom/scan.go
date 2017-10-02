@@ -14,6 +14,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"strings"
 
 	. "flywheel.io/fw/util"
@@ -49,7 +50,22 @@ func Scan(client *api.Client, folder string, group_id string, project_label stri
 	err := check_group_perms(client, group_id)
 	Check(err)
 
+	if runtime.GOOS == "windows" {
+		proceed := prompt.Confirm("Dicom Importer not supported on Windows. Continue?(yes/no)")
+		fmt.Println()
+		if !proceed {
+			fmt.Println("Canceled.")
+			return
+		}
+	}
+
 	err = os.Mkdir("tempDir", 0777)
+	if err != nil {
+		fmt.Println("Previous tempDir found, cleaning up...")
+		err = os.RemoveAll("tempdir")
+		Check(err)
+		err = os.Mkdir("tempDir", 0777)
+	}
 	Check(err)
 
 	sessions := make(map[string]Session)
@@ -90,7 +106,7 @@ func Scan(client *api.Client, folder string, group_id string, project_label stri
 
 func printTree(sessions map[string]Session, group_id string, project_label string) {
 	fmt.Printf("\nDerived hierarchy\n")
-	fmt.Printf("%s\n\t%s\n", project_label, group_id)
+	fmt.Printf("%s\n\t%s\n", group_id, project_label)
 	for _, session := range sessions {
 		fmt.Printf("\t\t%s >>> %s\n", session.SdkSession.Name, session.SdkSession.Subject.Code)
 		for _, acq := range session.Acquisitions {

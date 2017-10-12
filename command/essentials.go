@@ -109,17 +109,3 @@ func (o *opts) upload() *cobra.Command {
 	}
 	return cmd
 }
-
-func (o *opts) scan() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:    "scan [folder]",
-		Short:  "Scan and upload a folder",
-		Args:   cobra.ExactArgs(1),
-		PreRun: o.RequireClient,
-		Run: func(cmd *cobra.Command, args []string) {
-			ops.ScanUpload(o.Client, args[0])
-		},
-	}
-
-	return cmd
-}

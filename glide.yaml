@@ -7,9 +7,14 @@ import:
 - package: github.com/fatih/color
 - package: github.com/dustin/go-humanize
 - package: gopkg.in/mgo.v2
-  repo:    https://github.com/go-mgo/mgo
   version: v2
+  repo: https://github.com/go-mgo/mgo
 - package: github.com/segmentio/go-prompt
   repo: https://github.com/kofalt/go-prompt
 - package: github.com/cheggaaa/pb
 - package: github.com/mattn/go-runewidth
+# Custom fork of go-dicom package
+- package: github.com/davidgamba/go-dicom
+  repo: https://github.com/hkethi002/go-dicom-1
+  subpackages:
+  - dcmdump

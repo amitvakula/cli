@@ -12,5 +12,5 @@ func JobStatus(client *api.Client, id string) {
 	job, _, err := client.GetJob(id)
 	Check(err)
 
-	Println("Job", id, "is", job.State+".")
+	Println("Job is", job.State+".")
 }

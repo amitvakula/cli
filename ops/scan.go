@@ -231,7 +231,7 @@ func (r *scanProject) discover(folder string, path []string) {
 			subject := &scanSubject{
 				Subject: &api.Subject{
 					// Id:   randStringOfLength(24),
-					Firstname: name,
+					Code: name,
 				},
 			}
 
@@ -252,7 +252,7 @@ type scanSubject struct {
 }
 
 func (r *scanSubject) report(i string) {
-	Println(i + supplicant + spacer + r.Firstname)
+	Println(i + supplicant + spacer + r.Code)
 
 	for _, x := range r.Children {
 		x.report(i + increment)

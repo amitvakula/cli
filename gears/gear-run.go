@@ -169,11 +169,6 @@ func GearRunActual(client *api.Client, docker *client.Client, image string, conf
 	err = ioutil.WriteFile(tmpfile.Name(), raw, 0644)
 	Check(err)
 
-	// pullProgress, err := docker.ImagePull(background, image, types.ImagePullOptions{})
-	// Check(err)
-	// io.Copy(ioutil.Discard, pullProgress)
-	// pullProgress.Close()
-
 	mounts := []mount.Mount{}
 
 	mounts = append(mounts, mount.Mount{

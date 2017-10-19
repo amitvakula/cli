@@ -2,6 +2,8 @@ package gears
 
 import (
 	. "fmt"
+	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/docker/docker/api/types"
@@ -47,8 +49,39 @@ func CreateContainerWithCleanup(docker *client.Client, ctx context.Context, conf
 	// ctx context.Context, config *container.Config,
 	// hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, containerName string
 
-	resp, err := docker.ContainerCreate(ctx, config, hostConfig, nil, containerName)
-	containerId := resp.ID
+	// Closure because we need this twice
+	createContainer := func() (string, error) {
+		resp, err := docker.ContainerCreate(ctx, config, hostConfig, nil, containerName)
+		return resp.ID, err
+	}
+
+	// Attempt to just create the container.
+	containerId, createErr := createContainer()
+
+	// Attempt to pull if container create failed.
+	// Should we check specifically for "no such image"?. Maybe, but maybe not. Let's go for broke.
+	if createErr != nil {
+
+		// Is there even an image to try?
+		if config.Image == "" {
+			Println("No image provided and ref does not exist locally")
+			return "", func() {}, createErr
+		}
+
+		Println("Downloading " + config.Image + "...")
+
+		pullProgress, pullErr := docker.ImagePull(ctx, config.Image, types.ImagePullOptions{})
+		io.Copy(ioutil.Discard, pullProgress)
+		pullProgress.Close()
+
+		// Even the pull failed? Give up.
+		if pullErr != nil {
+			return "", func() {}, pullErr
+		}
+
+		// Okay, the pull succeeded, let's try to create again.
+		containerId, createErr = createContainer()
+	}
 
 	cleanup := func() {
 		docker.ContainerRemove(ctx, containerId, types.ContainerRemoveOptions{
@@ -58,7 +91,7 @@ func CreateContainerWithCleanup(docker *client.Client, ctx context.Context, conf
 		})
 	}
 
-	return containerId, cleanup, err
+	return containerId, cleanup, createErr
 }
 
 func TranslateEnvToEnvArray(env map[string]string) []string {

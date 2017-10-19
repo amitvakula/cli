@@ -23,14 +23,14 @@ import (
 	"flywheel.io/sdk/api"
 )
 
-func GearUpload(client *api.Client, docker *client.Client, category string) {
+func GearUpload(client *api.Client, docker *client.Client, category, filepath string) {
 	cwd, err := os.Getwd()
 	Check(err)
 
 	gearCategory := api.GearCategory(category)
 
 	if gearCategory != api.ConverterGear && gearCategory != api.AnalysisGear {
-		Println("Invalid gear category. Check `fw gear upload -h` for options.")
+		Fprintln(os.Stderr, "Invalid gear category. Check `fw gear upload -h` for options.")
 		os.Exit(1)
 	}
 
@@ -38,13 +38,13 @@ func GearUpload(client *api.Client, docker *client.Client, category string) {
 	gear := TryToLoadManifest()
 
 	if gear == nil {
-		Println("No gear found! Try `fw gear create` first.")
+		Fprintln(os.Stderr, "No gear found! Try `fw gear create` first.")
 		os.Exit(1)
 	}
 
 	if gear.Custom == nil || gear.Custom["gear-builder"] == nil || gear.Custom["gear-builder"].(map[string]interface{})["image"] == nil {
-		Println("The gear manifest in this folder does not have the gear-builder information it needs.")
-		Println("Try `fw gear create` first.")
+		Fprintln(os.Stderr, "The gear manifest in this folder does not have the gear-builder information it needs.")
+		Fprintln(os.Stderr, "Try `fw gear create` first.")
 		os.Exit(1)
 	}
 
@@ -54,18 +54,16 @@ func GearUpload(client *api.Client, docker *client.Client, category string) {
 
 	_, err = os.Stat("output")
 	if err == nil {
-		Println("Output folder exists and will be deleted as part of the upload process.")
+		Fprintln(os.Stderr, "Output folder exists and will be deleted as part of the upload process.")
 		proceed := prompt.Confirm("Continue? (yes/no)")
-		Println()
+		Fprintln(os.Stderr)
 		if !proceed {
-			Println("Canceled.")
+			Fprintln(os.Stderr, "Canceled.")
 			os.Exit(1)
 		}
 
 		Check(os.RemoveAll("output"))
 	}
-
-	Println("Checking that gear is ready to upload...")
 
 	now := time.Now()
 	doc := &api.GearDoc{
@@ -77,19 +75,15 @@ func GearUpload(client *api.Client, docker *client.Client, category string) {
 		Modified: &now,
 	}
 
-	// gear-check added here rather than SDK, for now.
-	var aerr *api.Error
-	_, err = client.New().Post("gears/check").BodyJSON(doc).Receive(nil, &aerr)
-	Check(api.Coalesce(err, aerr))
+	if filepath == "" {
+		Fprintln(os.Stderr, "Checking that gear is ready to upload...")
+		// gear-check added here rather than SDK, for now.
+		var aerr *api.Error
+		_, err = client.New().Post("gears/check").BodyJSON(doc).Receive(nil, &aerr)
+		Check(api.Coalesce(err, aerr))
 
-	// Println("Checking that docker image is available...")
-
-	// pullProgress, err := docker.ImagePull(background, image, types.ImagePullOptions{})
-	// Check(err)
-	// io.Copy(ioutil.Discard, pullProgress)
-	// pullProgress.Close()
-
-	Println("Uploading gear to Flywheel...")
+		Fprintln(os.Stderr, "Uploading gear to Flywheel...")
+	}
 
 	containerId, cleanup, err := CreateContainerWithCleanup(docker, background,
 		&container.Config{
@@ -122,13 +116,13 @@ func GearUpload(client *api.Client, docker *client.Client, category string) {
 	// I guess the error channel of ContainerWait is completely untrustworthy
 	select {
 	case err = <-errorChan:
-		Println(err)
+		Fprintln(os.Stderr, err)
 	default:
-		// Println("Err chan is useless")
+		// Fprintln(os.Stderr, "Err chan is useless")
 	}
 
 	if status.StatusCode != 0 {
-		Println("Exit code was", status.StatusCode)
+		Fprintln(os.Stderr, "Exit code was", status.StatusCode)
 	}
 	Check(err)
 
@@ -137,60 +131,73 @@ func GearUpload(client *api.Client, docker *client.Client, category string) {
 
 	scanner := bufio.NewScanner(out)
 	for scanner.Scan() {
-		Println(stripCtlFromBytes(scanner.Text()))
+		Fprintln(os.Stderr, stripCtlFromBytes(scanner.Text()))
 	}
 	Check(scanner.Err())
-
-	stream, err := docker.ContainerExport(background, containerId)
-	Check(err)
-
-	// Stream output through concurrent gzip
-	// Slightly unintuitive because of the mixed reader/writer conventions.
-	// Flow: stream --> gzW --> pw --> matched to pr by io.Pipe --> member of UploadSource struct --> consumed by client.UploadSimple
-
-	pr, pw := io.Pipe()
-	gzW := pgzip.NewWriter(pw)
-	go func() {
-		io.Copy(gzW, stream)
-		gzW.Close()
-		pw.Close()
-	}()
-
-	// n, err := io.Copy(dest, stream)
-	// Println(n)
-	// Check(err)
-	// Check(dest.Close())
 
 	docRaw, err := json.MarshalIndent(doc, "", "\t")
 	Check(err)
 
-	gearUpload := &api.UploadSource{Reader: pr, Name: "gear.tar.gz"}
-	progress, errChan := client.UploadSimple("/api/gears/temp", docRaw, gearUpload)
+	// Closure to hide streams you should not read from
+	pr := func() *io.PipeReader {
+		stream, err := docker.ContainerExport(background, containerId)
+		Check(err)
 
-	bar := pb.New(1000000000000)
-	bar.ShowPercent = false
-	bar.ShowCounters = false
-	bar.ShowTimeLeft = false
-	bar.ShowBar = false
-	bar.ShowSpeed = true
-	bar.ShowFinalTime = true
-	bar.SetUnits(pb.U_BYTES)
-	bar.Start()
+		// Stream output through concurrent gzip
+		// Slightly unintuitive because of the mixed reader/writer conventions.
+		// Flow: stream --> gzW --> pw --> matched to pr by io.Pipe --> consumer by io.Copy or UploadSource
+		//   if UploadSource:
+		//     member of UploadSource struct --> consumed by client.UploadSimple
 
-	total := int64(0)
-	for x := range progress {
-		bar.Add64(x - total)
-		total = x
+		pr, pw := io.Pipe()
+		gzW := pgzip.NewWriter(pw)
+		go func() {
+			io.Copy(gzW, stream)
+			gzW.Close()
+			pw.Close()
+		}()
+
+		return pr
+	}()
+
+	if filepath == "--" {
+		_, err := io.Copy(os.Stdout, pr)
+		Check(err)
+	} else if filepath != "" {
+		file, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0755)
+		Check(err)
+
+		_, err = io.Copy(file, pr)
+		Check(err)
+	} else {
+		gearUpload := &api.UploadSource{Reader: pr, Name: "gear.tar.gz"}
+		progress, errChan := client.UploadSimple("/api/gears/temp", docRaw, gearUpload)
+
+		bar := pb.New(1000000000000)
+		bar.ShowPercent = false
+		bar.ShowCounters = false
+		bar.ShowTimeLeft = false
+		bar.ShowBar = false
+		bar.ShowSpeed = true
+		bar.ShowFinalTime = true
+		bar.SetUnits(pb.U_BYTES)
+		bar.Start()
+
+		total := int64(0)
+		for x := range progress {
+			bar.Add64(x - total)
+			total = x
+		}
+
+		bar.Finish()
+		Fprintln(os.Stderr, "Waiting for server...")
+
+		err = <-errChan
+		Check(err)
+
+		Fprintln(os.Stderr)
+		Fprintln(os.Stderr)
+		Fprintln(os.Stderr, "Done! You should now see your gear in the Flywheel web interface,")
+		Fprintln(os.Stderr, "or find it with `fw job list-gears`.")
 	}
-
-	bar.Finish()
-	Println("Waiting for server...")
-
-	err = <-errChan
-	Check(err)
-
-	Println()
-	Println()
-	Println("Done! You should now see your gear in the Flywheel web interface,")
-	Println("or find it with `fw job list-gears`.")
 }

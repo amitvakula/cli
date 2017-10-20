@@ -4,6 +4,7 @@ import (
 	. "fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"flywheel.io/sdk/api"
 
@@ -50,6 +51,11 @@ func GenGearConfigs(gear *api.Gear) []*GearConfig {
 	}
 
 	for key, x := range gear.Inputs {
+
+		if x["base"].(string) != "file" {
+			continue
+		}
+
 		config := &GearConfig{
 			Name:  key,
 			CType: "file",
@@ -129,6 +135,8 @@ func GenConfigStruct(configs []*GearConfig) map[string]interface{} {
 			f, err := strconv.ParseBool(strVal)
 			Check(err)
 			c.Value = f
+		case "array":
+			c.Value = strings.Split(strVal, ",")
 		default:
 			Println("Unknown config type", c.CType)
 			os.Exit(1)

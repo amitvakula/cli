@@ -47,6 +47,9 @@ func GearRun(client *api.Client, docker *client.Client, args []string) {
 	var values interface{}
 	var image string
 
+	var environment map[string]string
+	var command string
+
 	// cmd base
 	jobRunActual := &cobra.Command{
 		Use:   "run",
@@ -66,7 +69,7 @@ func GearRun(client *api.Client, docker *client.Client, args []string) {
 			}
 			inputs := legacy.GenInputs(configsCast)
 
-			GearRunActual(client, docker, image, config, inputs)
+			GearRunActual(client, docker, image, config, inputs, environment, command)
 		},
 	}
 
@@ -83,6 +86,12 @@ func GearRun(client *api.Client, docker *client.Client, args []string) {
 		Println("Try `fw gear create` first.")
 		os.Exit(1)
 	}
+
+	if gear.Environment != nil {
+		environment = gear.Environment
+	}
+
+	command = gear.Command
 
 	gearBuilderConfig := gear.Custom["gear-builder"].(map[string]interface{})
 	image = gearBuilderConfig["image"].(string)
@@ -101,7 +110,36 @@ func GearRun(client *api.Client, docker *client.Client, args []string) {
 	jobRunActual.Execute()
 }
 
-func GearRunActual(client *api.Client, docker *client.Client, image string, config map[string]interface{}, inputs map[string]string) {
+func GearRunActual(client *api.Client, docker *client.Client, image string, config map[string]interface{}, inputs map[string]string, env map[string]string, command string) {
+
+	// Load docker env, with a default path
+	if env == nil {
+		env = map[string]string{}
+	}
+	defaultPath := "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+	_, pathDefined := env["PATH"]
+	if !pathDefined {
+		env["PATH"] = defaultPath
+	}
+	envArray := TranslateEnvToEnvArray(env)
+
+	// Load command, with a default
+	if command == "" {
+		command = "./run"
+	} else {
+
+		configMap := config["config"].(map[string]interface{})
+
+		// Println(command)
+		// Println(configMap)
+		// Println(RenderTemplate("Hello {{ name|capfirst }}!", map[string]interface{}{"name": "fred"}))
+
+		var err error
+		command, err = RenderTemplate(command, configMap)
+		Check(err)
+
+		// Println(command)
+	}
 
 	cwd, err := os.Getwd()
 	Check(err)
@@ -130,11 +168,6 @@ func GearRunActual(client *api.Client, docker *client.Client, image string, conf
 	Check(err)
 	err = ioutil.WriteFile(tmpfile.Name(), raw, 0644)
 	Check(err)
-
-	// pullProgress, err := docker.ImagePull(background, image, types.ImagePullOptions{})
-	// Check(err)
-	// io.Copy(ioutil.Discard, pullProgress)
-	// pullProgress.Close()
 
 	mounts := []mount.Mount{}
 
@@ -195,8 +228,8 @@ func GearRunActual(client *api.Client, docker *client.Client, image string, conf
 			Image:      image,
 			WorkingDir: "/flywheel/v0",
 			Entrypoint: []string{},
-			Cmd:        []string{"bash", "-c", "rm -rf output; mkdir -p output; ./run"},
-			Env:        []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
+			Cmd:        []string{"bash", "-c", "rm -rf output; mkdir -p output; " + command},
+			Env:        envArray,
 		},
 		&container.HostConfig{
 			Mounts: mounts,

@@ -97,11 +97,6 @@ func GearCreate(client *api.Client, docker *client.Client) {
 	gearPath := "/flywheel/v0"
 
 	Println()
-	Println("Downloading gear...")
-	// pullProgress, err := docker.ImagePull(background, image, types.ImagePullOptions{})
-	// Check(err)
-	// io.Copy(ioutil.Discard, pullProgress)
-	// pullProgress.Close()
 
 	containerId, cleanup, err := CreateContainerWithCleanup(docker, background, &container.Config{Image: image}, nil, "")
 	Check(err)
@@ -119,11 +114,6 @@ func GearCreate(client *api.Client, docker *client.Client) {
 		Println("This docker image does not appear to be a Flywheel Gear;")
 		Println("  the /flywheel/v0 folder is missing.")
 		Println("Providing an example gear script to get you started...")
-
-		// pullProgress, pullErr := docker.ImagePull(background, "flywheel/base-gear-ubuntu", types.ImagePullOptions{})
-		// Check(pullErr)
-		// io.Copy(ioutil.Discard, pullProgress)
-		// pullProgress.Close()
 
 		containerId, cleanup, createErr := CreateContainerWithCleanup(docker, background, &container.Config{Image: "flywheel/base-gear-ubuntu"}, nil, "")
 		Check(createErr)

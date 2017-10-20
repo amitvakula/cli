@@ -10,11 +10,33 @@ import (
 	"os"
 	"strings"
 
+	"github.com/flosch/pongo2"
 	prompt "github.com/segmentio/go-prompt"
 
 	. "flywheel.io/fw/util"
 	"flywheel.io/sdk/api"
 )
+
+func RenderTemplate(template string, context map[string]interface{}) (string, error) {
+	tpl, err := pongo2.FromString(template)
+	if err != nil {
+		return "", err
+	}
+
+	out, err := tpl.Execute(pongo2.Context(context))
+	return out, err
+}
+
+// >:|
+func RenderTemplateStringMap(template string, context map[string]string) (string, error) {
+	x := map[string]interface{}{}
+
+	for key, value := range context {
+		x[key] = value
+	}
+
+	return RenderTemplate(template, x)
+}
 
 func stripCtlFromBytes(str string) string {
 

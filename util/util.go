@@ -11,7 +11,7 @@ import (
 // :/
 func Check(err error) {
 	if err != nil {
-		Println(err)
+		Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
@@ -29,7 +29,7 @@ func PrintFormat(x interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	Println(string(y))
+	Fprintln(os.Stderr, string(y))
 }
 
 // Aims to match the $GOPATH/src this binary was compiled with, during stack trace output.

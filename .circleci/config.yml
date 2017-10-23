@@ -10,9 +10,11 @@ jobs:
         docker:
             - image: buildpack-deps:zesty
               environment:
+                # Enable the installation and use of junit XML output
+                MakeGenerateJunit: "1"
                 # These make local builds faster by virtue of the source directory mount.
                 # Would be better to get caching in the local build environment and remove this section.
-                # Ref: https://discuss.circleci.com/t/caching-in-the-local-environment/12005
+                # Ref: https://discuss.circleci.com/t/caching-in-the-local-2-0-environment/13542
                 GIMME_ENV_PREFIX: "./.gimme/envs"
                 GIMME_VERSION_PREFIX: "./.gimme/versions"
 
@@ -20,16 +22,18 @@ jobs:
               command: [--smallfiles]
 
             - image: scitran/core:latest
+              # The scitran image really shouldn't need a pip install, but it seems that sometimes the image is out of date.
               command: |
                 bash -c 'set -ex; env; rm -rf code/api;
                 git clone https://github.com/scitran/core code/api; cd code/api;
                 git checkout "${CIRCLE_BRANCH}" || true; cd /var/scitran;
+                time pip install -r /var/scitran/code/api/requirements.txt;
                 python /var/scitran/code/api/bin/database.py upgrade_schema;
                 /var/scitran/uwsgi-entrypoint.sh uwsgi --ini /var/scitran/config/uwsgi-config.ini --socket "[::]:9000" --processes 4 --threads 2;'
 
-            - image: nginx
+            - image: nginx:stable
               environment:
-                # This config is represtitive of Flywheel systems in production as of 2017-05-22
+                # This config is representative of Flywheel systems in production as of 2017-05-22
                 NGINX_CONF: |
                   server {
                     listen 8080;
@@ -111,10 +115,10 @@ jobs:
                 environment:
                   PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/workspace/bin
 
-            - run:
-                name: Triage environment
-                command: ./make.sh go run vendor/flywheel.io/sdk/.circleci/triage-environment.go
-                when: on_fail
+            # - run:
+            #     name: Triage environment
+            #     command: ./make.sh go run vendor/flywheel.io/sdk/.circleci/triage-environment.go
+            #     when: on_fail
 
             - run:
                 name: Cleanup

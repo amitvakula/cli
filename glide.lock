@@ -6,14 +6,8 @@ imports:
   - api
 - name: github.com/cheggaaa/pb
   version: f6ccf2184de4dd34495277e38dc19b6e7fbe0ea2
-- name: github.com/davidgamba/go-dicom
-  version: dd9e1b485643568855b9e0c14d3d755671aa8cd5
-  repo: https://github.com/hkethi002/go-dicom-1
-  subpackages:
-  - dcmdump
-  - dcmdump/tag
-  - dcmdump/ts
-  - dcmdump/vr
+- name: github.com/cosnicolaou/llog
+  version: afed407739a24b4fec02a5a214defc813ffc750c
 - name: github.com/dghubble/sling
   version: bbfb8293bd33a6baad33d718aacf66ef73a29f30
 - name: github.com/docker/distribution
@@ -61,6 +55,16 @@ imports:
   version: 62e9147c64a1ed519147b62a56a14e83e2be02c1
 - name: github.com/flosch/pongo2
   version: 5e81b817a0c48c1c57cdf1a9056cf76bdee02ca9
+- name: github.com/gobwas/glob
+  version: 51eb1ee00b6d931c66d229ceeb7c31b985563420
+  subpackages:
+  - compiler
+  - match
+  - syntax
+  - syntax/ast
+  - syntax/lexer
+  - util/runes
+  - util/strings
 - name: github.com/google/go-querystring
   version: 53e6ce116135b80d037921a7fdd5138cf32d7a8a
   subpackages:
@@ -111,6 +115,13 @@ imports:
   version: 2df9a531813370438a4d79bfc33e21f58063ed87
 - name: github.com/spf13/pflag
   version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
+- name: github.com/yasushi-saito/go-dicom
+  version: 19b372600e2c5abef3c8fa7ba2daa594cf247098
+  repo: https://github.com/hkethi002/go-dicom
+  subpackages:
+  - dcmdump
+  - dicomio
+  - dicomuid
 - name: golang.org/x/crypto
   version: f3241ce8505855877cc8a9717bd61a0f7c4ea83c
   subpackages:
@@ -127,7 +138,29 @@ imports:
   subpackages:
   - unix
   - windows
+- name: golang.org/x/text
+  version: 825fc78a2fd6fa0a5447e300189e3219e05e1f25
+  subpackages:
+  - encoding
+  - encoding/charmap
+  - encoding/htmlindex
+  - encoding/internal
+  - encoding/internal/identifier
+  - encoding/japanese
+  - encoding/korean
+  - encoding/simplifiedchinese
+  - encoding/traditionalchinese
+  - encoding/unicode
+  - internal/tag
+  - internal/utf8internal
+  - language
+  - runes
+  - transform
 - name: gopkg.in/mgo.v2
   version: 3f83fa5005286a7fe593b055f0d7771a7dce4655
   repo: https://github.com/go-mgo/mgo
+- name: v.io/x/lib
+  version: a4b4937710e360572a474dfdd48cb10848b35f1b
+  subpackages:
+  - vlog
 testImports: []

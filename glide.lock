@@ -115,11 +115,11 @@ imports:
   version: 2df9a531813370438a4d79bfc33e21f58063ed87
 - name: github.com/spf13/pflag
   version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
-- name: github.com/yasushi-saito/go-dicom
-  version: 19b372600e2c5abef3c8fa7ba2daa594cf247098
-  repo: https://github.com/hkethi002/go-dicom
+- name: github.com/grailbio/go-dicom
+  version: 663daa846eaf525c2a557274c2702448adfd3d78
+  repo: https://github.com/hkethi002/go-dicom-2
   subpackages:
-  - dcmdump
+  - dicomtag
   - dicomio
   - dicomuid
 - name: golang.org/x/crypto

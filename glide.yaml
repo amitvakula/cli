@@ -14,8 +14,8 @@ import:
 - package: github.com/cheggaaa/pb
 - package: github.com/mattn/go-runewidth
 # Custom fork of go-dicom package
-- package: github.com/yasushi-saito/go-dicom
-  repo: https://github.com/hkethi002/go-dicom
+- package: github.com/grailbio/go-dicom
+  repo: https://github.com/hkethi002/go-dicom-2
   subpackages:
   - dcmdump
 - package: github.com/flosch/pongo2

@@ -1,8 +1,9 @@
 package dicom
 
 import (
+	dicom "github.com/grailbio/go-dicom"
+	tag "github.com/grailbio/go-dicom/dicomtag"
 	prompt "github.com/segmentio/go-prompt"
-	dicom "github.com/yasushi-saito/go-dicom"
 
 	humanize "github.com/dustin/go-humanize"
 	fp "path/filepath"
@@ -25,12 +26,12 @@ type DicomFile struct {
 
 type Acquisition struct {
 	SdkAcquisition api.Acquisition
-	Files          map[string]DicomFile
+	Files          map[string]DicomFile // Key is SOP Instance UID
 }
 
 type Session struct {
 	SdkSession   api.Session
-	Acquisitions map[string]*Acquisition
+	Acquisitions map[string]*Acquisition // Key is Series Instance UID
 }
 
 var sessions_found = 0
@@ -261,10 +262,6 @@ func upload_dicoms(sessions map[string]Session, c *api.Client, related_acq bool,
 			}
 			file_name := strings.TrimRight(sdk_acquisition.Name, " ") + ".dcm.zip"
 
-			if related_acq {
-				continue
-			}
-
 			metadata := map[string]interface{}{
 				"group": map[string]interface{}{
 					"_id": group_id,
@@ -385,7 +382,6 @@ func sort_dicoms(sessions map[string]Session, files *[]DicomFile, related_acq bo
 func fileWalker(files *[]DicomFile, quiet bool) func(string, os.FileInfo, error) error {
 	return func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			Check(err)
 			return err
 		}
 
@@ -406,7 +402,6 @@ func fileWalker(files *[]DicomFile, quiet bool) func(string, os.FileInfo, error)
 			}
 			*files = append(*files, file)
 		}
-		Check(err)
 		return err
 	}
 }
@@ -415,19 +410,19 @@ func processFile(path string) (DicomFile, error) {
 	var err error
 	// tags = make([]string,0)
 	di := &DicomFile{}
-	tagList := []dicom.Tag{
-		dicom.TagSeriesInstanceUID,
-		dicom.TagStudyInstanceUID,
-		dicom.TagStudyDate,
-		dicom.TagStudyTime,
-		dicom.TagSeriesDate,
-		dicom.TagSeriesTime,
-		dicom.TagStudyDescription,
-		dicom.TagSeriesDescription,
-		dicom.TagPatientID,
-		dicom.TagSOPInstanceUID,
+	tagList := []tag.Tag{
+		tag.SeriesInstanceUID,
+		tag.StudyInstanceUID,
+		tag.StudyDate,
+		tag.StudyTime,
+		tag.SeriesDate,
+		tag.SeriesTime,
+		tag.StudyDescription,
+		tag.SeriesDescription,
+		tag.PatientID,
+		tag.SOPInstanceUID,
 	}
-	di.DataSet, err = dicom.ReadDataSetFromFile(path, dicom.ReadOptions{DropPixelData: true, StopAtTag: &dicom.TagStackID, ReturnTags: tagList})
+	di.DataSet, err = dicom.ReadDataSetFromFile(path, dicom.ReadOptions{DropPixelData: true, StopAtTag: &tag.StackID, ReturnTags: tagList})
 	di.Path = path
 	return *di, err
 }

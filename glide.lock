@@ -116,7 +116,7 @@ imports:
 - name: github.com/spf13/pflag
   version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
 - name: github.com/grailbio/go-dicom
-  version: 663daa846eaf525c2a557274c2702448adfd3d78
+  version: a7d483eb5dee1c82097e2c88b837928a0dacb9f2
   repo: https://github.com/hkethi002/go-dicom-2
   subpackages:
   - dicomtag

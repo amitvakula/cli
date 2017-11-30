@@ -21,14 +21,16 @@ func (o *opts) gear() *cobra.Command {
 }
 
 func (o *opts) gearCreate() *cobra.Command {
+	var clearCustomList bool = false
 	cmd := &cobra.Command{
 		Use:    "create",
 		Short:  "Create a new gear in the current folder",
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {
-			gears.GearCreate(o.Client, gears.DockerOrBust())
+			gears.GearCreate(o.Client, gears.DockerOrBust(), clearCustomList)
 		},
 	}
+	cmd.Flags().BoolVarP(&clearCustomList, "clear-custom-containers", "C", false, "Clear the custom container list")
 
 	return cmd
 }

@@ -19,7 +19,7 @@ import (
 	"flywheel.io/sdk/api"
 )
 
-func GearCreate(client *api.Client, docker *client.Client) {
+func GearCreate(client *api.Client, docker *client.Client, clearCustomList bool) {
 
 	user, _, err := client.GetCurrentUser()
 	Check(err)
@@ -38,6 +38,10 @@ func GearCreate(client *api.Client, docker *client.Client) {
 	results := []string{"flywheel/gear-base-anaconda", "flywheel/base-gear-ubuntu", "flywheel/example-gear", ""}
 
 	options := LoadOptions()
+	if clearCustomList {
+		options.CustomGearImages = []string{}
+		options.Save()
+	}
 
 	for _, x := range options.CustomGearImages {
 		choices = append(choices, "[Recent image] "+x)

@@ -30,7 +30,7 @@ func (o *opts) gearCreate() *cobra.Command {
 			gears.GearCreate(o.Client, gears.DockerOrBust(), clearCustomList)
 		},
 	}
-	cmd.Flags().BoolVarP(&clearCustomList, "clear-custom-containers", "C", false, "Clear the custom container list")
+	cmd.Flags().BoolVar(&clearCustomList, "clear-custom-containers", false, "Clear the custom container list")
 
 	return cmd
 }

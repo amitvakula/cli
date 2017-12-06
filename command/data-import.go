@@ -36,6 +36,7 @@ func (o *opts) importFolder() *cobra.Command {
 func (o *opts) importDicom() *cobra.Command {
 	var quiet bool
 	var noTree bool
+	var local bool
 
 	cmd := &cobra.Command{
 		Use:    "dicom [folder] [group] [project]",
@@ -47,12 +48,13 @@ func (o *opts) importDicom() *cobra.Command {
 			// related_acq is marked as not working, so force-set to false
 			// force-set log_level to 2; change out for a verbose flag later.
 
-			dicom.Scan(o.Client, args[0], args[1], args[2], false, quiet, noTree)
+			dicom.Scan(o.Client, args[0], args[1], args[2], false, quiet, noTree, local)
 		},
 	}
 
 	cmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Show less scan and upload progress")
 	cmd.Flags().BoolVar(&noTree, "no-tree", false, "Do not show upload summary tree")
+	cmd.Flags().BoolVarP(&local, "local", "l", false, "Save derived hierarchy locally")
 
 	return cmd
 }

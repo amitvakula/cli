@@ -161,6 +161,7 @@ imports:
   repo: https://github.com/go-mgo/mgo
 - name: v.io/x/lib
   version: a4b4937710e360572a474dfdd48cb10848b35f1b
+  repo: https://github.com/vanadium/go.lib
   subpackages:
   - vlog
 testImports: []

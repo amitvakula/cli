@@ -20,3 +20,7 @@ import:
   - dcmdump
 - package: github.com/flosch/pongo2
   version: ^3.0.0
+- package: v.io/x/lib
+  repo: https://github.com/vanadium/go.lib
+  subpackages:
+  - vlog

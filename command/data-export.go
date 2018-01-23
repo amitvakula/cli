@@ -24,7 +24,7 @@ func (o *opts) exportBids() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:    "bids [dest folder]",
-		Short:  "Export a BIDS project to the destination folder",
+		Short:  "Export a BIDS project to the destination folder (requires Docker)",
 		Args:   cobra.ExactArgs(1),
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {

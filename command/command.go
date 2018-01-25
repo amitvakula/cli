@@ -70,7 +70,7 @@ func (o *opts) initClient() {
 	if o.Credentials == nil {
 		o.Credentials, _ = LoadCreds()
 	}
-	if o.Client == nil {
+	if o.Client == nil && o.Credentials != nil {
 		o.Client, _ = MakeClientWithCreds(o.Credentials.Key, o.Credentials.Insecure)
 	}
 }

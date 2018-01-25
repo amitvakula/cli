@@ -498,7 +498,7 @@ func (r *scanAcquisition) inflate(sessionId, projectId string, metadata map[stri
 			/*
 				metadata:{"project":{"_id":"58a47373d2b6ed0013a4a9fb"},"session":{"label":"01/01/70 00:00 AM","subject":{"code":"XXX"}},"acquisition":{"label":"Localizer","timestamp":"1970-01-01T06:00:00.000Z"},"packfile":{"type":"dicom"}}
 			*/
-			packfileQuery := PackfileQuery{
+			packfileQuery := &PackfileQuery{
 				Token:    token,
 				Metadata: mdString,
 			}

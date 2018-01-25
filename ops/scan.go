@@ -20,6 +20,11 @@ import (
 	. "flywheel.io/fw/util"
 )
 
+type PackfileQuery struct {
+	Token    string `url:"token"`
+	Metadata string `url:"metadata,omitempty"`
+}
+
 func resolveLast(path []string) legacy.Container {
 	result, _, err, _ := legacy.ResolvePath(c, path)
 	Check(err)
@@ -493,8 +498,12 @@ func (r *scanAcquisition) inflate(sessionId, projectId string, metadata map[stri
 			/*
 				metadata:{"project":{"_id":"58a47373d2b6ed0013a4a9fb"},"session":{"label":"01/01/70 00:00 AM","subject":{"code":"XXX"}},"acquisition":{"label":"Localizer","timestamp":"1970-01-01T06:00:00.000Z"},"packfile":{"type":"dicom"}}
 			*/
+			packfileQuery := PackfileQuery{
+				Token:    token,
+				Metadata: mdString,
+			}
 
-			req, err := c.New().Get("projects/" + projectId + "/packfile-end?token=" + token + "&metadata=" + mdString).Request()
+			req, err := c.New().Get("projects/" + projectId + "/packfile-end").QueryStruct(packfileQuery).Request()
 
 			if err != nil {
 				return err

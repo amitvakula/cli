@@ -28,13 +28,15 @@ func BuildCommand(version, buildHash, buildDate string) *cobra.Command {
 	cmd.AddCommand(o.gear())
 	cmd.AddCommand(o.job())
 	cmd.AddCommand(o.importCommand())
+	cmd.AddCommand(o.exportCommand())
 	cmd.AddCommand(o.version(version, buildHash, buildDate))
 
 	return cmd
 }
 
 type opts struct {
-	Client *api.Client
+	Client      *api.Client
+	Credentials *Creds
 }
 
 func (o *opts) fw() *cobra.Command {
@@ -43,11 +45,7 @@ func (o *opts) fw() *cobra.Command {
 		Short: "Flywheel command-line interface",
 
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			//
-			// Check RequireClient below when making any changes to this function.
-			//
-			client, _ := MakeClient()
-			o.Client = client
+			o.initClient()
 		},
 	}
 
@@ -67,16 +65,23 @@ func (o *opts) version(version, buildHash, buildDate string) *cobra.Command {
 	return cmd
 }
 
+// General client initialization. Calling once already initialized is a no-op.
+func (o *opts) initClient() {
+	if o.Credentials == nil {
+		o.Credentials, _ = LoadCreds()
+	}
+	if o.Client == nil && o.Credentials != nil {
+		o.Client, _ = MakeClientWithCreds(o.Credentials.Key, o.Credentials.Insecure)
+	}
+}
+
 // Helper func that requires a valid API key on disk
 func (o *opts) RequireClient(cmd *cobra.Command, args []string) {
 
 	// If you use RequireClient as a PersistentPreRun on a subcommand, it
 	// will obliterate the root command's closure. For this reason, duplicate
 	// what it does here!
-	if o.Client == nil {
-		client, _ := MakeClient()
-		o.Client = client
-	}
+	o.initClient()
 
 	if o.Client == nil {
 		Println("You are not currently logged in.")

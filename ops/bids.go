@@ -17,6 +17,37 @@ import (
 const BidsContainerVersion = "latest"
 const BidsContainerName = "flywheel/bids-client"
 
+func ImportBids(docker *client.Client, apiKey string, folder string, group_id string, project_label string) {
+	// Make sure that bidsDir is an absolute path
+	bidsDir, err := filepath.Abs(folder)
+	if err != nil {
+		Fprintln(os.Stderr, "Could not resolve source directory:", folder)
+		os.Exit(1)
+	}
+	// Map The destination dir to /local/bids
+	binding := Sprintf("%s:/local/bids", bidsDir)
+
+	cmd := []string{
+		"python", "code/upload_bids.py",
+		"--bids-dir", "/local/bids",
+		"--api-key", apiKey,
+		"-g", group_id,
+		"-p", project_label,
+	}
+
+	status, err := runBidsCmdInContainer(docker, []string{binding}, cmd)
+	if err != nil {
+		// Intentionally obtuse error message, ideally we would hide that we're
+		// calling into a container
+		Fprintln(os.Stderr, "Error importing BIDS data --", err.Error())
+		os.Exit(1)
+	} else {
+		if status != 0 {
+			os.Exit(int(status))
+		}
+	}
+}
+
 func ExportBids(docker *client.Client, apiKey string, folder string, projectLabel string, sourceData bool) {
 	// Make sure that bidsDir is an absolute path
 	bidsDir, err := filepath.Abs(folder)

@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"flywheel.io/fw/dicom"
+	"flywheel.io/fw/gears"
 	"flywheel.io/fw/ops"
 )
 
@@ -15,6 +16,7 @@ func (o *opts) importCommand() *cobra.Command {
 
 	cmd.AddCommand(o.importFolder())
 	cmd.AddCommand(o.importDicom())
+	cmd.AddCommand(o.importBids())
 
 	return cmd
 }
@@ -55,6 +57,21 @@ func (o *opts) importDicom() *cobra.Command {
 	cmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Show less scan and upload progress")
 	cmd.Flags().BoolVar(&noTree, "no-tree", false, "Do not show upload summary tree")
 	cmd.Flags().BoolVarP(&local, "local", "l", false, "Save derived hierarchy locally")
+
+	return cmd
+}
+
+func (o *opts) importBids() *cobra.Command {
+
+	cmd := &cobra.Command{
+		Use:    "bids [folder] [group] [project]",
+		Short:  "Import a BIDS project to the destination project (requires Docker)",
+		Args:   cobra.ExactArgs(3),
+		PreRun: o.RequireClient,
+		Run: func(cmd *cobra.Command, args []string) {
+			ops.ImportBids(gears.DockerOrBust(), o.Credentials.Key, args[0], args[1], args[2])
+		},
+	}
 
 	return cmd
 }

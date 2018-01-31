@@ -68,7 +68,7 @@ func (o *opts) importBids() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    "bids [folder] [group]",
 		Short:  "Import a BIDS project to the destination project (requires Docker)",
-		Args:   cobra.RangeArgs(2,3),
+		Args:   cobra.ExactArgs(2),
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {
 			ops.ImportBids(gears.DockerOrBust(), o.Credentials.Key, args[0], args[1], projectLabel)

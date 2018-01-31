@@ -17,12 +17,17 @@ import (
 const BidsContainerVersion = "latest"
 const BidsContainerName = "flywheel/bids-client"
 
-func ImportBids(docker *client.Client, apiKey string, folder string, group_id string, project_label string) {
+func ImportBids(docker *client.Client, apiKey string, folder string, group_id string, projectLabel string) {
 	// Make sure that bidsDir is an absolute path
+
 	bidsDir, err := filepath.Abs(folder)
 	if err != nil {
 		Fprintln(os.Stderr, "Could not resolve source directory:", folder)
 		os.Exit(1)
+	}
+	// If optional project label flag not given, use base directory of folder path
+	if projectLabel == "" {
+		projectLabel = filepath.Base(folder)
 	}
 	// Map The destination dir to /local/bids
 	binding := Sprintf("%s:/local/bids", bidsDir)
@@ -32,7 +37,7 @@ func ImportBids(docker *client.Client, apiKey string, folder string, group_id st
 		"--bids-dir", "/local/bids",
 		"--api-key", apiKey,
 		"-g", group_id,
-		"-p", project_label,
+		"-p", projectLabel,
 	}
 
 	status, err := runBidsCmdInContainer(docker, []string{binding}, cmd)

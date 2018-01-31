@@ -63,15 +63,19 @@ func (o *opts) importDicom() *cobra.Command {
 
 func (o *opts) importBids() *cobra.Command {
 
+	var projectLabel string
+
 	cmd := &cobra.Command{
-		Use:    "bids [folder] [group] [project]",
+		Use:    "bids [folder] [group]",
 		Short:  "Import a BIDS project to the destination project (requires Docker)",
-		Args:   cobra.ExactArgs(3),
+		Args:   cobra.RangeArgs(2,3),
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {
-			ops.ImportBids(gears.DockerOrBust(), o.Credentials.Key, args[0], args[1], args[2])
+			ops.ImportBids(gears.DockerOrBust(), o.Credentials.Key, args[0], args[1], projectLabel)
 		},
 	}
+
+	cmd.Flags().StringVarP(&projectLabel, "project", "p", "", "Label of project to import into")
 
 	return cmd
 }

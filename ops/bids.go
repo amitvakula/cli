@@ -14,7 +14,7 @@ import (
 )
 
 //  TODO: Keep this up to date with major release version
-const BidsContainerVersion = "latest"
+const BidsContainerVersion = "0.3"
 const BidsContainerName = "flywheel/bids-client"
 
 func ImportBids(docker *client.Client, apiKey string, folder string, group_id string, projectLabel string) {

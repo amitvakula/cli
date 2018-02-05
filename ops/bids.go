@@ -108,7 +108,8 @@ func runBidsCmdInContainer(docker *client.Client, bindings []string, cmd []strin
 	}
 
 	hostCfg := container.HostConfig{
-		Binds: bindings,
+		Binds:       bindings,
+		NetworkMode: "host",
 	}
 
 	// Create and start the container instance

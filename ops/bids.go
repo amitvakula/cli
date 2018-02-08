@@ -2,6 +2,7 @@ package ops
 
 import (
 	. "fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -94,8 +95,15 @@ func runBidsCmdInContainer(docker *client.Client, bindings []string, cmd []strin
 	ctx := context.Background()
 
 	// Pull the image every time
-	_, err := docker.ImagePull(ctx, imageName, types.ImagePullOptions{})
+	out, err := docker.ImagePull(ctx, imageName, types.ImagePullOptions{})
 	if err != nil {
+		return -1, err
+	}
+
+	// Make sure that we've read the full image
+	defer out.Close()
+	Fprintln(os.Stdout, "Preparing...")
+	if _, err := ioutil.ReadAll(out); err != nil {
 		return -1, err
 	}
 

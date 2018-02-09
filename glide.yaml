@@ -6,6 +6,7 @@ import:
 - package: github.com/mitchellh/mapstructure
 - package: github.com/fatih/color
 - package: github.com/dustin/go-humanize
+- package: github.com/kennygrant/sanitize
 - package: gopkg.in/mgo.v2
   version: v2
   repo: https://github.com/go-mgo/mgo

@@ -1,6 +1,6 @@
 imports:
 - name: flywheel.io/sdk
-  version: 939814e
+  version: 939814e51e45cc30b77ad220192c27fa823c458f
   repo: https://github.com/flywheel-io/sdk
   subpackages:
   - api
@@ -37,6 +37,7 @@ imports:
   - pkg/ioutils
   - pkg/longpath
   - pkg/mount
+  - pkg/stdcopy
   - pkg/system
   - pkg/tlsconfig
 - name: github.com/docker/go-connections
@@ -69,10 +70,20 @@ imports:
   version: 53e6ce116135b80d037921a7fdd5138cf32d7a8a
   subpackages:
   - query
+- name: github.com/grailbio/go-dicom
+  version: a7d483eb5dee1c82097e2c88b837928a0dacb9f2
+  repo: https://github.com/hkethi002/go-dicom-2
+  subpackages:
+  - dcmdump
+  - dicomio
+  - dicomtag
+  - dicomuid
 - name: github.com/howeyc/gopass
   version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/kennygrant/sanitize
+  version: 2e6820834a1f36c626bf19a253b7d3cc060e9b8b
 - name: github.com/klauspost/compress
   version: f3dce52e0576655d55fd69e74b63da96ad1108f3
   subpackages:
@@ -115,13 +126,6 @@ imports:
   version: 2df9a531813370438a4d79bfc33e21f58063ed87
 - name: github.com/spf13/pflag
   version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
-- name: github.com/grailbio/go-dicom
-  version: a7d483eb5dee1c82097e2c88b837928a0dacb9f2
-  repo: https://github.com/hkethi002/go-dicom-2
-  subpackages:
-  - dicomtag
-  - dicomio
-  - dicomuid
 - name: golang.org/x/crypto
   version: f3241ce8505855877cc8a9717bd61a0f7c4ea83c
   subpackages:
@@ -131,6 +135,8 @@ imports:
   subpackages:
   - context
   - context/ctxhttp
+  - html
+  - html/atom
   - proxy
 - name: golang.org/x/sys
   version: e24f485414aeafb646f6fca458b0bf869c0880a1

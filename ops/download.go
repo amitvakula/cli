@@ -4,10 +4,13 @@ import (
 	. "fmt"
 	"math"
 	"os"
+	"strconv"
 	"strings"
 
 	humanize "github.com/dustin/go-humanize"
 	prompt "github.com/segmentio/go-prompt"
+
+	"github.com/kennygrant/sanitize"
 
 	"flywheel.io/sdk/api"
 
@@ -29,13 +32,41 @@ func Download(client *api.Client, upath, savePath string, force bool) {
 	// It should get much nicer after some SDK fiddling.
 
 	var parent interface{}
-	var name string
+	var download, name string
 	size := float64(0)
 
 	file, ok := last.(*legacy.File)
 	if ok {
 		parent = path[len(path)-2]
-		name = file.Name
+
+		download = file.Name
+		name = sanitize.Name(file.Name)
+		prefix := ""
+		suffix := ""
+
+		splits := strings.SplitN(name, ".", 2)
+		if len(splits) == 2 {
+			prefix = splits[0]
+			suffix = "." + splits[1]
+		} else {
+			prefix = name
+		}
+
+		i := 1
+
+		for {
+			if _, err := os.Stat(name); err == nil {
+				name = prefix + "-" + strconv.Itoa(i) + suffix
+				i++
+
+				if i > 1000000 {
+					Println("Could not find a viable filename for " + sanitize.Name(file.Name) + ".tar, check filesystem permissions?")
+					os.Exit(1)
+				}
+			} else {
+				break
+			}
+		}
 
 	} else {
 		wat := last.(legacy.Container)
@@ -72,12 +103,29 @@ func Download(client *api.Client, upath, savePath string, force bool) {
 		}
 
 		parent = ticket
-		name = "download.tar"
+		download = wat.GetName()
+		name = sanitize.Name(wat.GetName()) + ".tar"
+		i := 1
+
+		for {
+			if _, err := os.Stat(name); err == nil {
+				name = sanitize.Name(wat.GetName()) + "-" + strconv.Itoa(i) + ".tar"
+				i++
+
+				if i > 1000000 {
+					Println("Could not find a viable filename for " + sanitize.Name(wat.GetName()) + ".tar, check filesystem permissions?")
+					os.Exit(1)
+				}
+			} else {
+				break
+			}
+		}
+
 		size = float64(ticket.Size)
 	}
 
 	if savePath == "--" {
-		_, err := legacy.Download(client, name, parent, os.Stdout)
+		_, err := legacy.Download(client, download, parent, os.Stdout)
 		Check(err)
 		return
 	}
@@ -86,7 +134,7 @@ func Download(client *api.Client, upath, savePath string, force bool) {
 		savePath = name
 	}
 
-	resp, err := legacy.DownloadToFile(client, name, parent, savePath)
+	resp, err := legacy.DownloadToFile(client, download, parent, savePath)
 	Check(err)
 
 	// Container downloads have content length of -1

@@ -54,7 +54,7 @@ func ImportBids(docker *client.Client, apiKey string, folder string, group_id st
 	}
 }
 
-func ExportBids(docker *client.Client, apiKey string, folder string, projectLabel string, sourceData bool) {
+func ExportBids(docker *client.Client, apiKey string, folder string, projectLabel string, sourceData bool, sesssions []string, subjects []string, dataTypes []string) {
 	// Make sure that bidsDir is an absolute path
 	bidsDir, err := filepath.Abs(folder)
 	if err != nil {
@@ -74,6 +74,21 @@ func ExportBids(docker *client.Client, apiKey string, folder string, projectLabe
 
 	if sourceData {
 		cmd = append(cmd, "--source-data")
+	}
+	if len(sesssions) > 0 {
+		for i := 0; i < len(sesssions); i++ {
+			cmd = append(append(cmd, "--session"), sesssions[i])
+		}
+	}
+	if len(subjects) > 0 {
+		for i := 0; i < len(subjects); i++ {
+			cmd = append(append(cmd, "--subject"), sesssions[i])
+		}
+	}
+	if len(dataTypes) > 0 {
+		for i := 0; i < len(dataTypes); i++ {
+			cmd = append(append(cmd, "--folder"), sesssions[i])
+		}
 	}
 
 	status, err := runBidsCmdInContainer(docker, []string{binding}, cmd)

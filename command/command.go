@@ -39,6 +39,21 @@ type opts struct {
 	Credentials *Creds
 }
 
+type arrayFlags []string
+
+func (i *arrayFlags) String() string {
+	return "TODO"
+}
+
+func (i *arrayFlags) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
+func (i *arrayFlags) Type() string {
+	return "string"
+}
+
 func (o *opts) fw() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "fw",

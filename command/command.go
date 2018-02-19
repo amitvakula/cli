@@ -3,6 +3,7 @@ package command
 import (
 	. "fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -42,7 +43,7 @@ type opts struct {
 type arrayFlags []string
 
 func (i *arrayFlags) String() string {
-	return "TODO"
+	return strings.Join(*i, ", ")
 }
 
 func (i *arrayFlags) Set(value string) error {

@@ -31,7 +31,7 @@ func (o *opts) exportBids() *cobra.Command {
 		Args:   cobra.ExactArgs(1),
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {
-			ops.ExportBids(gears.DockerOrBust(), o.Credentials.Key, args[0], projectLabel, sourceData, []string(sessions), []string(subjects), []string(dataTypes))
+			ops.ExportBids(gears.DockerOrBust(), o.Credentials.Key, args[0], projectLabel, sourceData, sessions, subjects, dataTypes)
 		},
 	}
 	cmd.Flags().StringVarP(&projectLabel, "project", "p", "", "The label of the project to export")

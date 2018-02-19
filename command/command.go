@@ -3,7 +3,6 @@ package command
 import (
 	. "fmt"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -38,21 +37,6 @@ func BuildCommand(version, buildHash, buildDate string) *cobra.Command {
 type opts struct {
 	Client      *api.Client
 	Credentials *Creds
-}
-
-type arrayFlags []string
-
-func (i *arrayFlags) String() string {
-	return strings.Join(*i, ", ")
-}
-
-func (i *arrayFlags) Set(value string) error {
-	*i = append(*i, value)
-	return nil
-}
-
-func (i *arrayFlags) Type() string {
-	return "string"
 }
 
 func (o *opts) fw() *cobra.Command {

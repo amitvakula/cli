@@ -21,9 +21,9 @@ func (o *opts) exportCommand() *cobra.Command {
 func (o *opts) exportBids() *cobra.Command {
 	var projectLabel string
 	var sourceData bool = false
-	var sessions arrayFlags
-	var subjects arrayFlags
-	var dataTypes arrayFlags
+	var sessions []string
+	var subjects []string
+	var dataTypes []string
 
 	cmd := &cobra.Command{
 		Use:    "bids [dest folder]",
@@ -35,10 +35,10 @@ func (o *opts) exportBids() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&projectLabel, "project", "p", "", "The label of the project to export")
-	cmd.Flags().Var(&sessions, "session", "Limit export to the given session names")
+	cmd.Flags().StringArrayVar(&sessions, "session", []string{}, "Limit export to the given session names")
 	cmd.Flags().BoolVar(&sourceData, "source-data", false, "Include sourcedata in BIDS export")
-	cmd.Flags().Var(&subjects, "subject", "Limit export to the given subjects")
-	cmd.Flags().Var(&dataTypes, "data-type", "Limit export to the given data-types (e.g. func)")
+	cmd.Flags().StringArrayVar(&subjects, "subject", []string{}, "Limit export to the given subjects")
+	cmd.Flags().StringArrayVar(&dataTypes, "data-type", []string{}, "Limit export to the given data-types (e.g. func)")
 
 	return cmd
 }

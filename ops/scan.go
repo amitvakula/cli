@@ -352,9 +352,9 @@ func (r *scanSession) inflate(groupId, projectId string) {
 			},
 			"session": map[string]interface{}{
 				"label": r.Name,
-				// "subject": map[string]interface{}{
-				// 	"code": r.Subject.Name,
-				// },
+				"subject": map[string]interface{}{
+					"code": r.Subject.Code,
+				},
 			},
 			"acquisition": map[string]interface{}{
 				"label": x.Name,

@@ -11,10 +11,15 @@ import (
 	"flywheel.io/fw/ops"
 )
 
+var UserAgent = ""
+
 // Each command is separated into its own function.
 // This is to prevent any flag variable pointers from cross-contaminating.
 
 func BuildCommand(version, buildHash, buildDate string) *cobra.Command {
+	// Set UserAgent string based on provided version
+	UserAgent = Sprintf("CLI/%s", version)
+
 	o := opts{}
 
 	cmd := o.fw()

@@ -510,7 +510,7 @@ func (r *scanAcquisition) inflate(sessionId, projectId string, metadata map[stri
 			}
 
 			// Start SSE
-			resp, err := c.Client.Do(req)
+			resp, err := c.Doer.Do(req)
 			if err != nil {
 				return err
 			}

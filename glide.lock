@@ -1,6 +1,6 @@
 imports:
 - name: flywheel.io/sdk
-  version: 939814e51e45cc30b77ad220192c27fa823c458f
+  version: 52a13b7dc26aa7aefb2b048d2c4e1a97b3b49543
   repo: https://github.com/flywheel-io/sdk
   subpackages:
   - api
@@ -56,6 +56,9 @@ imports:
   version: 62e9147c64a1ed519147b62a56a14e83e2be02c1
 - name: github.com/flosch/pongo2
   version: 5e81b817a0c48c1c57cdf1a9056cf76bdee02ca9
+- name: github.com/globalsign/mgo
+  version: baa28fcb8e7d5dfab92026c0920cb6c9ae72faa2
+  repo: https://github.com/globalsign/mgo
 - name: github.com/gobwas/glob
   version: 51eb1ee00b6d931c66d229ceeb7c31b985563420
   subpackages:
@@ -162,9 +165,6 @@ imports:
   - language
   - runes
   - transform
-- name: gopkg.in/mgo.v2
-  version: 3f83fa5005286a7fe593b055f0d7771a7dce4655
-  repo: https://github.com/go-mgo/mgo
 - name: v.io/x/lib
   version: a4b4937710e360572a474dfdd48cb10848b35f1b
   repo: https://github.com/vanadium/go.lib

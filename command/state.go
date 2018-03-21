@@ -59,11 +59,12 @@ func MakeClientWithCreds(key string, insecure bool) (*api.Client, error) {
 		return nil, errors.New("Invalid API key format. Please re-generate in the Flywheel user interface.")
 	}
 
-	if !insecure {
-		return api.NewApiKeyClient(key), nil
-	} else {
-		return api.NewApiKeyClient(key, api.InsecureNoSSLVerification), nil
+	opts := []api.ApiKeyClientOption{api.UserAgent(UserAgent)}
+	if insecure {
+		opts = append(opts, api.InsecureNoSSLVerification)
 	}
+
+	return api.NewApiKeyClient(key, opts...), nil
 }
 
 // Save persists the Creds to ConfigPath. Exits on error.

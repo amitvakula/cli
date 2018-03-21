@@ -42,7 +42,7 @@ func Download(client *api.Client, filename string, parent interface{}, dest io.W
 		return nil, err
 	}
 
-	resp, err := client.Client.Do(req)
+	resp, err := client.Doer.Do(req)
 	if err != nil {
 		return resp, err
 	}
@@ -143,7 +143,7 @@ func Upload(client *api.Client, filename string, parent interface{}, metadata []
 		return nil, err
 	}
 
-	resp, err := client.Client.Do(req)
+	resp, err := client.Doer.Do(req)
 	if err != nil {
 		return resp, err
 	}

@@ -282,11 +282,18 @@ func (r *scanSubject) discover(folder string, path []string) {
 					Subject: r.Subject,
 				},
 			}
-
-			c := resolveLast(newPath)
-			if c != nil {
-				session.Exists = true
-				session.Id = c.GetId()
+			resolveResult, _, _, _ := legacy.ResolvePath(c, path)
+			if resolveResult != nil {
+				for j := 0; j < len(resolveResult.Children); j++ {
+					child := resolveResult.Children[j].(*legacy.Session)
+					if child.GetSubjectCode() == r.Subject.Code && child.GetName() == session.Name {
+						s := Sprintf("<id:%s>", child.GetId())
+						newPath = append(path, s)
+						session.Exists = true
+						session.Id = child.GetId()
+						break
+					}
+				}
 			}
 
 			session.discover(filepath.Join(folder, name), newPath)

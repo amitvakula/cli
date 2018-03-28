@@ -92,6 +92,9 @@ func (u *Session) GetId() string {
 func (u *Session) GetName() string {
 	return u.Name
 }
+func (u *Session) GetSubjectCode() string {
+	return u.Subject.Code
+}
 
 type Acquisition api.Acquisition
 

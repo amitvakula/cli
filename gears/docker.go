@@ -71,13 +71,17 @@ func CreateContainerWithCleanup(docker *client.Client, ctx context.Context, conf
 		Println("Downloading " + config.Image + "...")
 
 		pullProgress, pullErr := docker.ImagePull(ctx, config.Image, types.ImagePullOptions{})
-		io.Copy(ioutil.Discard, pullProgress)
-		pullProgress.Close()
 
 		// Even the pull failed? Give up.
 		if pullErr != nil {
+			if pullProgress != nil {
+				pullProgress.Close()
+			}
 			return "", func() {}, pullErr
 		}
+
+		io.Copy(ioutil.Discard, pullProgress)
+		pullProgress.Close()
 
 		// Okay, the pull succeeded, let's try to create again.
 		containerId, createErr = createContainer()

@@ -52,7 +52,7 @@ func Scan(client *api.Client, folder string, group_id string, project_label stri
 	Check(err)
 
 	// Check if user gave project id as input ex. <id:43f34f8439fh34f>
-	r, _ := regexp.Compile(`\<id:([\da-z]+)\>`)
+	r := regexp.MustCompile(`^\<id:([\da-z]+)\>$`)
 	matches := r.FindStringSubmatch(project_label)
 	if len(matches) == 2 {
 		project, _, err := client.GetProject(matches[1])

@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 
 	. "flywheel.io/fw/util"
@@ -49,6 +50,15 @@ func Scan(client *api.Client, folder string, group_id string, project_label stri
 	// check that user has permission to group
 	group_label, err := check_group_perms(client, group_id)
 	Check(err)
+
+	// Check if user gave project id as input ex. <id:43f34f8439fh34f>
+	r := regexp.MustCompile(`^\<id:([\da-z]+)\>$`)
+	matches := r.FindStringSubmatch(project_label)
+	if len(matches) == 2 {
+		project, _, err := client.GetProject(matches[1])
+		Check(err)
+		project_label = project.Name
+	}
 
 	sessions := make(map[string]Session)
 	fmt.Println("Collecting Files...")

@@ -41,7 +41,7 @@ func (o *opts) importDicom() *cobra.Command {
 	var local bool
 
 	cmd := &cobra.Command{
-		Use:    "dicom [folder] [group] [project]",
+		Use:    "dicom [folder] [group-id] [project-label]",
 		Short:  "Import a folder of dicom files",
 		Args:   cobra.ExactArgs(3),
 		PreRun: o.RequireClient,

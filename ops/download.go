@@ -18,7 +18,7 @@ import (
 	. "flywheel.io/fw/util"
 )
 
-func Download(client *api.Client, upath, savePath string, force bool) {
+func Download(client *api.Client, upath, savePath string, force bool, include []string, exclude []string) {
 	upath = strings.TrimRight(upath, "/")
 	parts := strings.Split(upath, "/")
 
@@ -84,6 +84,10 @@ func Download(client *api.Client, upath, savePath string, force bool) {
 				},
 			},
 			Optional: true,
+		}
+
+		if len(include) > 0 || len(exclude) > 0 {
+			ticketRequest.Filters = legacy.NewContainerFilter(include, exclude)
 		}
 
 		ticket, _, err := legacy.GetDownloadTicket(client, ticketRequest)

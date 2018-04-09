@@ -9,9 +9,30 @@ type ContainerTicketRequestElem struct {
 	Id    string `json:"_id"`
 }
 
+type ContainerTicketFilterElem struct {
+	Include []string `json:"+,omitempty"`
+	Exclude []string `json:"-,omitempty"`
+}
+
+type ContainerTicketFilter struct {
+	Types *ContainerTicketFilterElem `json:"types"`
+}
+
 type ContainerTicketRequest struct {
 	Nodes    []*ContainerTicketRequestElem `json:"nodes"`
+	Filters  []*ContainerTicketFilter      `json:"filters,omitempty"`
 	Optional bool                          `json:"optional"`
+}
+
+func NewContainerFilter(include []string, exclude []string) []*ContainerTicketFilter {
+	return []*ContainerTicketFilter{
+		{
+			Types: &ContainerTicketFilterElem{
+				Include: include,
+				Exclude: exclude,
+			},
+		},
+	}
 }
 
 type ContainerTicketResponse struct {

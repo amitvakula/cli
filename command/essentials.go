@@ -2,6 +2,7 @@ package command
 
 import (
 	. "fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -82,17 +83,27 @@ func (o *opts) ls() *cobra.Command {
 func (o *opts) download() *cobra.Command {
 	var output string
 	var force bool
+	var include []string
+	var exclude []string
 	cmd := &cobra.Command{
 		Use:    "download [source-path]",
 		Short:  "Download a remote file or container",
 		Args:   cobra.ExactArgs(1),
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {
-			ops.Download(o.Client, args[0], output, force)
+
+			if len(include) > 0 && len(exclude) > 0 {
+				Println("The --include and --exclude filters are mutually exclusive; use one or the other.")
+				os.Exit(1)
+			}
+
+			ops.Download(o.Client, args[0], output, force, include, exclude)
 		},
 	}
 	cmd.Flags().StringVarP(&output, "output", "o", "", "Destination filename (-- for stdout)")
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "Force download, without prompting")
+	cmd.Flags().StringSliceVarP(&include, "include", "i", []string{}, "Download only these types")
+	cmd.Flags().StringSliceVarP(&exclude, "exclude", "e", []string{}, "Download everything but these types")
 
 	return cmd
 }

@@ -23,8 +23,20 @@ func (o *opts) importCommand() *cobra.Command {
 
 func (o *opts) importFolder() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "folder [folder]",
-		Short:  "Import a structured folder",
+		Use: "folder [folder]",
+		Short: `Import a structured folder
+
+folder
+└── group-id
+    └── project-label
+        └── subject-label
+            └── session-label
+                └── acquisition-label
+                    ├── dicom
+                    │   ├── 1.dcm
+                    │   └── 2.dcm
+                    ├── data.foo
+                    └── scan.nii.gz`,
 		Args:   cobra.ExactArgs(1),
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {

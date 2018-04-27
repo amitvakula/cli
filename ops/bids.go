@@ -34,7 +34,7 @@ func ImportBids(docker *client.Client, apiKey string, folder string, group_id st
 	binding := Sprintf("%s:/local/bids", bidsDir)
 
 	cmd := []string{
-		"python", "code/upload_bids.py",
+		"upload_bids",
 		"--bids-dir", "/local/bids",
 		"--api-key", apiKey,
 		"-g", group_id,
@@ -66,7 +66,7 @@ func ExportBids(docker *client.Client, apiKey string, folder string, projectLabe
 	binding := Sprintf("%s:/local/bids", bidsDir)
 
 	cmd := []string{
-		"python", "code/export_bids.py",
+		"export_bids",
 		"--bids-dir", "/local/bids",
 		"--api-key", apiKey,
 		"-p", projectLabel,

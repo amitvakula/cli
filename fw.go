@@ -7,7 +7,7 @@ import (
 	. "flywheel.io/fw/util"
 )
 
-var Version = "4.4.4"
+var Version = "5.0.0"
 var BuildHash = "dev"
 var BuildDate = "dev"
 

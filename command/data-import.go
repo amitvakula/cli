@@ -25,7 +25,7 @@ func (o *opts) importFolder() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "folder [folder]",
 		Short: "Import a structured folder",
-		Long: `Import a folder with the following sturcture:
+		Long: `Import a folder with the following structure:
 
 root-folder
 └── group-id

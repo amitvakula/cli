@@ -25,7 +25,8 @@ func (o *opts) importFolder() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "folder [folder]",
 		Short: "Import a structured folder",
-		Long: `Import a structured folder
+		Long: `Import a folder with the following sturcture:
+
 root-folder
 └── group-id
     └── project-label
@@ -37,7 +38,8 @@ root-folder
                     │   └── 2.dcm
                     ├── data.foo
                     └── scan.nii.gz
-File can be placed at the project level and below. Files to be uploaded via a packfile upload must be placed in a folder under the acquisition folder, the folder name will be used as the file type.`,
+
+Files can be placed at the project level and below. Files to be uploaded via a packfile upload must be placed in a folder under the acquisition folder, the folder name will be used as the file type.`,
 		Args:   cobra.ExactArgs(1),
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {

@@ -6,8 +6,8 @@ unset CDPATH; cd "$( dirname "${BASH_SOURCE[0]}" )"; cd "$(pwd -P)"
 pkg="flywheel.io/fw"
 testPkg="flywheel.io/fw"
 coverPkg="flywheel.io/fw"
-goV=${GO_VERSION:-"1.9.2"}
-minGlideV="0.12.3"
+goV=${GO_VERSION:-"1.9.5"}
+minGlideV="0.13.1"
 targets=( "linux/amd64" "darwin/amd64" "windows/amd64" )
 #
 
@@ -79,6 +79,11 @@ prepareGo() {
 	export PATH=$GOPATH/bin:$PATH
 
 	test -x "$GOPATH/bin/go-junit-report" || prepareJunitGenerator
+}
+
+glideClean() {
+	# Cut down on glide chatter
+	egrep -v '(Lock file may be out of date|Found desired version locally|Setting version for)'
 }
 
 cleanGlideLockfile() {
@@ -191,7 +196,7 @@ cross() {
 		os=${targetSplit[0]}; arch=${targetSplit[1]}
 
 		echo -e "\n-- Building $os $arch --"
-		GOOS=$os GOARCH=$arch build "$package" "-X main.BuildHash=$BuildHash -X 'main.BuildDate=$BuildDate'"
+		GOOS=$os GOARCH=$arch build "$package" "-X main.BuildHash=$BuildHash -X 'main.BuildDate=$BuildDate'" -ldflags '-d -s -w'
 
 
 		if $useUPX; then
@@ -318,7 +323,7 @@ case "$cmd" in
 		prepareGo; $cmd "$@";;
 
 	"glide")
-		prepareGlide; glide "$@"; cleanGlideLockfile;;
+		prepareGlide; glide "$@" 2> >(glideClean); cleanGlideLockfile;;
 
 	"test")
 		_test "$@";;

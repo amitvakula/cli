@@ -1,6 +1,6 @@
 imports:
 - name: flywheel.io/sdk
-  version: 52a13b7dc26aa7aefb2b048d2c4e1a97b3b49543
+  version: d27f0a931837dfdabab88b0651071f3546451798
   repo: https://github.com/flywheel-io/sdk
   subpackages:
   - api

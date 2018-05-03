@@ -12,6 +12,8 @@ import (
 
 	"github.com/docker/docker/client"
 
+	prompt "github.com/segmentio/go-prompt"
+
 	. "flywheel.io/fw/util"
 )
 
@@ -152,6 +154,13 @@ func GearModify(docker *client.Client, quiet bool) {
 	Check(err)
 	err = cmd.Wait()
 	Check(err)
+
+	Fprintln(os.Stderr)
+	proceed := prompt.Confirm("Would you like to save your gear changes? (yes/no)")
+	Fprintln(os.Stderr)
+	if !proceed {
+		os.Exit(0)
+	}
 
 	// Save changes
 	gear.Custom["gear-builder"].(map[string]interface{})["image"] = label

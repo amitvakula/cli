@@ -8,6 +8,8 @@ import (
 	humanize "github.com/dustin/go-humanize"
 	fp "path/filepath"
 
+	"github.com/kennygrant/sanitize"
+
 	"archive/zip"
 	"encoding/json"
 	"flywheel.io/sdk/api"
@@ -15,6 +17,8 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 
 	. "flywheel.io/fw/util"
@@ -221,9 +225,16 @@ func ZipFiles(newfile io.Writer, acq *Acquisition) error {
 	zipWriter := zip.NewWriter(newfile)
 	defer zipWriter.Close()
 
+	// Sort by path ahead of time, to hopefully keep grouped files together
+	// when renaming is necessary
+	sort.Sort(sort.StringSlice(filenames))
+
+	// Used to track filenames already used in the zipfile
+	usednames := make(map[string]bool)
+
 	// Add files to zip
-	for _, file := range filenames {
-		zipfile, err := os.Open(file)
+	for _, filepath := range filenames {
+		zipfile, err := os.Open(filepath)
 		if err != nil {
 			return err
 		}
@@ -238,6 +249,37 @@ func ZipFiles(newfile io.Writer, acq *Acquisition) error {
 		if err != nil {
 			return err
 		}
+
+		// Since we store files flat, there could be naming conflicts.
+		// This will rename conflicting files with _N
+		if _, found := usednames[header.Name]; found {
+			prefix := ""
+			suffix := ""
+
+			splits := strings.SplitN(header.Name, ".", 2)
+			if len(splits) == 2 {
+				prefix = splits[0]
+				suffix = "." + splits[1]
+			} else {
+				prefix = header.Name
+			}
+
+			i := 1
+			for {
+				filename := prefix + "_" + strconv.Itoa(i) + suffix
+				if _, found = usednames[filename]; found {
+					i++
+					if i > 1000000 {
+						fmt.Println("Could not find a viable filename for " + sanitize.Name(header.Name))
+						os.Exit(1)
+					}
+				} else {
+					header.Name = filename
+					break
+				}
+			}
+		}
+		usednames[header.Name] = true
 
 		// Change to deflate to gain better compression
 		// see http://golang.org/pkg/archive/zip/#pkg-constants

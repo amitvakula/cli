@@ -17,7 +17,6 @@ import (
 	"io"
 	"os"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -217,24 +216,15 @@ func extract_value(file DicomFile, lookup_string string) (string, error) {
 
 // Found online at https://golangcode.com/create-zip-files-in-go/
 func ZipFiles(newfile io.Writer, acq *Acquisition) error {
-	filenames := make([]string, 0, len(acq.Files))
-	for _, di := range acq.Files {
-		filenames = append(filenames, di.Path)
-	}
-
 	zipWriter := zip.NewWriter(newfile)
 	defer zipWriter.Close()
-
-	// Sort by path ahead of time, to hopefully keep grouped files together
-	// when renaming is necessary
-	sort.Sort(sort.StringSlice(filenames))
 
 	// Used to track filenames already used in the zipfile
 	usednames := make(map[string]bool)
 
 	// Add files to zip
-	for _, filepath := range filenames {
-		zipfile, err := os.Open(filepath)
+	for _, file := range acq.Files {
+		zipfile, err := os.Open(file.Path)
 		if err != nil {
 			return err
 		}
@@ -248,6 +238,19 @@ func ZipFiles(newfile io.Writer, acq *Acquisition) error {
 		header, err := zip.FileInfoHeader(info)
 		if err != nil {
 			return err
+		}
+
+		// By default, name the file: {Modality}.{SOPInstanceUID}.dcm
+		SOPInstanceUID, _ := extract_value(file, "SOPInstanceUID")
+		if len(SOPInstanceUID) > 0 {
+			Modality, err := extract_value(file, "Modality")
+			if err != nil {
+				fmt.Println(err)
+			}
+			if len(Modality) == 0 {
+				Modality = "NA"
+			}
+			header.Name = fmt.Sprintf("%s.%s.dcm", Modality, SOPInstanceUID)
 		}
 
 		// Since we store files flat, there could be naming conflicts.
@@ -473,6 +476,7 @@ func processFile(path string) (DicomFile, error) {
 		tag.SeriesDescription,
 		tag.PatientID,
 		tag.SOPInstanceUID,
+		tag.Modality,
 	}
 	di.DataSet, err = dicom.ReadDataSetFromFile(path, dicom.ReadOptions{DropPixelData: true, StopAtTag: &tag.StackID, ReturnTags: tagList})
 	di.Path = path

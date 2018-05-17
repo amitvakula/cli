@@ -8,8 +8,6 @@ import (
 	humanize "github.com/dustin/go-humanize"
 	fp "path/filepath"
 
-	"github.com/kennygrant/sanitize"
-
 	"archive/zip"
 	"encoding/json"
 	"flywheel.io/sdk/api"
@@ -17,7 +15,6 @@ import (
 	"io"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 
 	. "flywheel.io/fw/util"
@@ -219,11 +216,8 @@ func ZipFiles(newfile io.Writer, acq *Acquisition) error {
 	zipWriter := zip.NewWriter(newfile)
 	defer zipWriter.Close()
 
-	// Used to track filenames already used in the zipfile
-	usednames := make(map[string]bool)
-
 	// Add files to zip
-	for _, file := range acq.Files {
+	for SOPInstanceUID, file := range acq.Files {
 		zipfile, err := os.Open(file.Path)
 		if err != nil {
 			return err
@@ -241,48 +235,13 @@ func ZipFiles(newfile io.Writer, acq *Acquisition) error {
 		}
 
 		// By default, name the file: {Modality}.{SOPInstanceUID}.dcm
-		SOPInstanceUID, _ := extract_value(file, "SOPInstanceUID")
 		if len(SOPInstanceUID) > 0 {
-			Modality, err := extract_value(file, "Modality")
-			if err != nil {
-				fmt.Println(err)
-			}
+			Modality, _ := extract_value(file, "Modality")
 			if len(Modality) == 0 {
 				Modality = "NA"
 			}
 			header.Name = fmt.Sprintf("%s.%s.dcm", Modality, SOPInstanceUID)
 		}
-
-		// Since we store files flat, there could be naming conflicts.
-		// This will rename conflicting files with _N
-		if _, found := usednames[header.Name]; found {
-			prefix := ""
-			suffix := ""
-
-			splits := strings.SplitN(header.Name, ".", 2)
-			if len(splits) == 2 {
-				prefix = splits[0]
-				suffix = "." + splits[1]
-			} else {
-				prefix = header.Name
-			}
-
-			i := 1
-			for {
-				filename := prefix + "_" + strconv.Itoa(i) + suffix
-				if _, found = usednames[filename]; found {
-					i++
-					if i > 1000000 {
-						fmt.Println("Could not find a viable filename for " + sanitize.Name(header.Name))
-						os.Exit(1)
-					}
-				} else {
-					header.Name = filename
-					break
-				}
-			}
-		}
-		usednames[header.Name] = true
 
 		// Change to deflate to gain better compression
 		// see http://golang.org/pkg/archive/zip/#pkg-constants
@@ -394,8 +353,21 @@ func sort_dicoms(sessions map[string]Session, files *[]DicomFile, related_acq bo
 			if session, ok := sessions[StudyInstanceUID]; ok {
 				// Session and Acqusition already in the map
 				if _, ok := session.Acquisitions[SeriesInstanceUID]; ok {
-					session.Acquisitions[SeriesInstanceUID].Files[SOPInstanceUID] = file
-					dicoms_found++
+					if existing_file, exists := session.Acquisitions[SeriesInstanceUID].Files[SOPInstanceUID]; exists {
+						// Check if it's safe to ignore this file
+						equal, err := ShallowFileCmp(existing_file.Path, file.Path)
+						if err != nil {
+							os.Exit(1)
+						}
+						if !equal {
+							fmt.Printf("File \"%s\" and \"%s\" conflict!\n", existing_file.Path, file.Path)
+							fmt.Printf("Both files have the same ID, but contents differ!\n")
+							os.Exit(1)
+						}
+					} else {
+						session.Acquisitions[SeriesInstanceUID].Files[SOPInstanceUID] = file
+						dicoms_found++
+					}
 					// Session in the map but no acquisition yet
 				} else {
 					sdk_acquisition := api.Acquisition{Name: acquisition_name, Uid: SeriesInstanceUID}

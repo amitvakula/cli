@@ -25,3 +25,4 @@ import:
   repo: https://github.com/vanadium/go.lib
   subpackages:
   - vlog
+- package: github.com/udhos/equalfile

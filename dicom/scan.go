@@ -8,6 +8,8 @@ import (
 	humanize "github.com/dustin/go-humanize"
 	fp "path/filepath"
 
+	"github.com/udhos/equalfile"
+
 	"archive/zip"
 	"encoding/json"
 	"flywheel.io/sdk/api"
@@ -213,17 +215,12 @@ func extract_value(file DicomFile, lookup_string string) (string, error) {
 
 // Found online at https://golangcode.com/create-zip-files-in-go/
 func ZipFiles(newfile io.Writer, acq *Acquisition) error {
-	filenames := make([]string, 0, len(acq.Files))
-	for _, di := range acq.Files {
-		filenames = append(filenames, di.Path)
-	}
-
 	zipWriter := zip.NewWriter(newfile)
 	defer zipWriter.Close()
 
 	// Add files to zip
-	for _, file := range filenames {
-		zipfile, err := os.Open(file)
+	for SOPInstanceUID, file := range acq.Files {
+		zipfile, err := os.Open(file.Path)
 		if err != nil {
 			return err
 		}
@@ -237,6 +234,15 @@ func ZipFiles(newfile io.Writer, acq *Acquisition) error {
 		header, err := zip.FileInfoHeader(info)
 		if err != nil {
 			return err
+		}
+
+		// By default, name the file: {Modality}.{SOPInstanceUID}.dcm
+		if len(SOPInstanceUID) > 0 {
+			Modality, _ := extract_value(file, "Modality")
+			if len(Modality) == 0 {
+				Modality = "NA"
+			}
+			header.Name = fmt.Sprintf("%s.%s.dcm", Modality, SOPInstanceUID)
 		}
 
 		// Change to deflate to gain better compression
@@ -349,8 +355,23 @@ func sort_dicoms(sessions map[string]Session, files *[]DicomFile, related_acq bo
 			if session, ok := sessions[StudyInstanceUID]; ok {
 				// Session and Acqusition already in the map
 				if _, ok := session.Acquisitions[SeriesInstanceUID]; ok {
-					session.Acquisitions[SeriesInstanceUID].Files[SOPInstanceUID] = file
-					dicoms_found++
+					if existing_file, exists := session.Acquisitions[SeriesInstanceUID].Files[SOPInstanceUID]; exists {
+						// Check if it's safe to ignore this file
+						cmp := equalfile.New(nil, equalfile.Options{})
+						equal, err := cmp.CompareFile(existing_file.Path, file.Path)
+						if err != nil {
+							fmt.Printf("Error reading file: %v\n", err)
+							os.Exit(1)
+						}
+						if !equal {
+							fmt.Printf("File \"%s\" and \"%s\" conflict!\n", existing_file.Path, file.Path)
+							fmt.Printf("Both files have the same IDs, but contents differ!\n")
+							os.Exit(1)
+						}
+					} else {
+						session.Acquisitions[SeriesInstanceUID].Files[SOPInstanceUID] = file
+						dicoms_found++
+					}
 					// Session in the map but no acquisition yet
 				} else {
 					sdk_acquisition := api.Acquisition{Name: acquisition_name, Uid: SeriesInstanceUID}
@@ -431,6 +452,7 @@ func processFile(path string) (DicomFile, error) {
 		tag.SeriesDescription,
 		tag.PatientID,
 		tag.SOPInstanceUID,
+		tag.Modality,
 	}
 	di.DataSet, err = dicom.ReadDataSetFromFile(path, dicom.ReadOptions{DropPixelData: true, StopAtTag: &tag.StackID, ReturnTags: tagList})
 	di.Path = path

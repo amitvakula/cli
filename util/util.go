@@ -48,23 +48,3 @@ func GracefulRecover(postamble ...interface{}) {
 		Println(postamble...)
 	}
 }
-
-// Compare two files by looking at the following fields from os.Stat:
-// File Mode
-// Modified Time
-// Size
-func ShallowFileCmp(path1, path2 string) (bool, error) {
-	stat1, err := os.Stat(path1)
-	if err != nil {
-		Printf("Unable to read \"%s\": %v\n", path1, err)
-		return false, err
-	}
-	stat2, err := os.Stat(path2)
-	if err != nil {
-		Printf("Unable to read \"%s\": %v\n", path2, err)
-		return false, err
-	}
-	return (stat1.Mode() == stat2.Mode() &&
-		stat1.ModTime() == stat2.ModTime() &&
-		stat1.Size() == stat2.Size()), nil
-}

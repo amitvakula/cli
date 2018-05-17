@@ -8,6 +8,8 @@ import (
 	humanize "github.com/dustin/go-humanize"
 	fp "path/filepath"
 
+	"github.com/udhos/equalfile"
+
 	"archive/zip"
 	"encoding/json"
 	"flywheel.io/sdk/api"
@@ -355,13 +357,15 @@ func sort_dicoms(sessions map[string]Session, files *[]DicomFile, related_acq bo
 				if _, ok := session.Acquisitions[SeriesInstanceUID]; ok {
 					if existing_file, exists := session.Acquisitions[SeriesInstanceUID].Files[SOPInstanceUID]; exists {
 						// Check if it's safe to ignore this file
-						equal, err := ShallowFileCmp(existing_file.Path, file.Path)
+						cmp := equalfile.New(nil, equalfile.Options{})
+						equal, err := cmp.CompareFile(existing_file.Path, file.Path)
 						if err != nil {
+							fmt.Printf("Error reading file: %v\n", err)
 							os.Exit(1)
 						}
 						if !equal {
 							fmt.Printf("File \"%s\" and \"%s\" conflict!\n", existing_file.Path, file.Path)
-							fmt.Printf("Both files have the same ID, but contents differ!\n")
+							fmt.Printf("Both files have the same IDs, but contents differ!\n")
 							os.Exit(1)
 						}
 					} else {

@@ -3,10 +3,12 @@ package gears
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	. "fmt"
 	"io"
 	// "io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -19,11 +21,12 @@ import (
 	"github.com/cheggaaa/pb"
 	"github.com/klauspost/pgzip"
 
+	"flywheel.io/fw/legacy"
 	. "flywheel.io/fw/util"
 	"flywheel.io/sdk/api"
 )
 
-func GearUpload(client *api.Client, docker *client.Client, category, filepath string) {
+func GearUpload(client *api.Client, docker *client.Client, category, filepath, project string) {
 	cwd, err := os.Getwd()
 	Check(err)
 
@@ -64,6 +67,26 @@ func GearUpload(client *api.Client, docker *client.Client, category, filepath st
 
 		Check(os.RemoveAll("output"))
 	}
+	projectId := ""
+
+	if project != "" {
+		parts := strings.Split(project, "/")
+
+		result, _, err, aerr := legacy.ResolvePath(client, parts)
+		Check(api.Coalesce(err, aerr))
+
+		path := result.Path
+		target := path[len(path)-1]
+
+		switch target := target.(type) {
+		case *legacy.Project:
+			projectId = target.Id
+		default:
+			Check(errors.New("The project path must be a project, not any other container type."))
+		}
+	}
+
+	Println(projectId)
 
 	now := time.Now()
 	doc := &api.GearDoc{
@@ -73,6 +96,10 @@ func GearUpload(client *api.Client, docker *client.Client, category, filepath st
 		// Source:
 		Created:  &now,
 		Modified: &now,
+	}
+
+	if projectId != "" {
+		doc.Projects = []string{projectId}
 	}
 
 	if filepath == "" {

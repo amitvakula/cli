@@ -86,8 +86,6 @@ func GearUpload(client *api.Client, docker *client.Client, category, filepath, p
 		}
 	}
 
-	Println(projectId)
-
 	now := time.Now()
 	doc := &api.GearDoc{
 		// Id:

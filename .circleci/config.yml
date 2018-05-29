@@ -16,6 +16,18 @@ jobs:
                 key: cli-golang-1-{{ checksum "make.sh"}}-{{ checksum "glide.lock" }}
 
             - run:
+                name: Install Python3 & UPX
+                command: apt -y update && apt -y install python3 python3-pip python3-venv unzip upx
+
+            - run:
+                name: Execute python unit tests 
+                command: ./make.sh testPython
+
+            - run:
+                name: Build python packages
+                command: ./make.sh buildPython
+
+            - run:
                 name: Install Dependencies
                 command: ./make.sh glide install
 
@@ -40,17 +52,21 @@ jobs:
 
             - run:
                 name: Get musl
-                command: apt -y update && apt -y install musl-tools && which musl-gcc
+                command: apt -y install musl-tools && which musl-gcc
 
             - run:
                 name: Make static
-                command: CC=`which musl-gcc` ./make.sh go build -v --ldflags '-linkmode external -extldflags "-static"' fw.go && mv ./fw /workspace/bin/linux_amd64/fw
+                command: | 
+                  CC=`which musl-gcc` ./make.sh go build -v --ldflags '-linkmode external -extldflags "-static"' fw.go \
+                  && mv ./fw /workspace/bin/linux_amd64/fw \
+                  && ./make.sh compressExecutable /workspace/bin/linux_amd64/fw
 
             - run:
                 name: Cleanup
-                command: rm -rf /workspace/bin/glide /workspace/bin/go-junit-report /workspace/bin/fw
+                command: rm -rf /workspace/bin/glide /workspace/bin/go-junit-report /workspace/bin/fw /workspace/bin/go-bindata
                 when: always
 
             - store_artifacts:
                 path: "/workspace/bin"
                 destination: build
+

@@ -11,20 +11,30 @@ var Version = "5.2.2"
 var BuildHash = "dev"
 var BuildDate = "dev"
 
-func main() {
+func InvokeCommand(args []string) int {
 	defer GracefulRecover()
 
 	// Hack: Add -- for gear run
-	if len(os.Args) >= 4 && os.Args[1] == "gear" && os.Args[2] == "run" && os.Args[3] != "--" {
+	if len(args) >= 4 && args[1] == "gear" && args[2] == "run" && args[3] != "--" {
 		tmp := make([]string, 3)
-		copy(tmp, os.Args)
+		copy(tmp, args)
 		tmp = append(tmp, "--")
-		os.Args = append(tmp, os.Args[3:]...)
-
+		args = append(tmp, args[3:]...)
 	}
 
-	err := command.BuildCommand(Version, BuildHash, BuildDate).Execute()
+	// Will exit if the command is delegated
+	command.DelegateCommandToPython(args)
+
+	cmd := command.BuildCommand(Version, BuildHash, BuildDate)
+	cmd.SetArgs(args[1:])
+
+	err := cmd.Execute()
 	if err != nil {
-		os.Exit(-1)
+		return -1
 	}
+	return 0
+}
+
+func main() {
+	InvokeCommand(os.Args)
 }

@@ -9,6 +9,7 @@ coverPkg="flywheel.io/fw"
 goV=${GO_VERSION:-"1.10.3"}
 minGlideV="0.13.1"
 targets=( "linux/amd64" "darwin/amd64" "windows/amd64" )
+venv_dir="python/.venv"
 #
 
 fatal() { echo -e "$1"; exit 1; }
@@ -16,6 +17,9 @@ fatal() { echo -e "$1"; exit 1; }
 # Check that this project is in a gopath
 test -d ../../../src || fatal "This project must be located in a gopath.\\nTry cloning instead to \"src/$pkg\"."
 export GOPATH; GOPATH=$(cd ../../../; pwd); unset GOBIN
+
+# Check that python3 is installed
+/usr/bin/env python3 --version >> /dev/null 2>&1  || fatal "This project requires an available python3 interpreter"
 
 # Get system info
 localOs=$( uname -s | tr '[:upper:]' '[:lower:]' )
@@ -39,6 +43,26 @@ if [[ "$localOs" == "darwin" ]]; then
 	alias sha1sum="shasum -a 1"
 fi
 
+# Versions of UPX prior to 3.92 had compatibility issues with OSX 10.12 Sierra.
+# Don't compress the binaries unless UPX is present and new enough.
+#
+# https://upx.github.io/upx-news.txt
+# https://apple.stackexchange.com/questions/251808/this-upx-compressed-binary-contains-an-invalid-mach-o-header-and-cannot-be-load
+minUPXv="3.92"
+useUPX=false
+
+# Check UPX version
+if hash upx 2>/dev/null; then
+	currentUPXv=$(upx --version | head -n 1 | cut -f 2 -d ' ')
+	floorVersion=$(echo -e "$minUPXv\\n$currentUPXv" | sort -V | head -n 1)
+
+	if [[ "$minUPXv" == "$floorVersion" ]]; then
+		useUPX=true
+	else
+		echo "Warning: your UPX version is too old and cannot compress OSX binaries correctly. Disabling."
+	fi
+fi
+
 prepareJunitGenerator() {
 	MakeGenerateJunit=${MakeGenerateJunit:-}
 
@@ -47,6 +71,29 @@ prepareJunitGenerator() {
 	else
 		go get -v -u github.com/jstemmer/go-junit-report
 	fi
+}
+
+preparePkgData() {
+	test -x "$GOPATH/bin/go-bindata" || (
+		go get -v -u github.com/jteeuwen/go-bindata/...
+	)
+
+	# Prepare data files
+	mkdir -p pkgdata/
+	for platform in darwin linux windows
+	do
+		srcdir="python/dist/${platform}-x86_64/"
+		dstfile="pkgdata/pkgdata_${platform}.go"
+		if [ ! -d ${srcdir} ]; then 
+			echo "Python package-data folder ${srcdir} does not exist! Run 'make.sh buildPython' first!"
+			exit 1
+		fi
+		if [ "${srcdir}/version.json" -nt "${dstfile}" ]; then
+			echo "Generating ${dstfile}"
+			go-bindata -nocompress -pkg pkgdata -prefix "${srcdir}" -o "${dstfile}" "${srcdir}"
+			gofmt -s -w "${dstfile}"
+		fi
+	done
 }
 
 prepareGo() {
@@ -79,6 +126,8 @@ prepareGo() {
 	export PATH=$GOPATH/bin:$PATH
 
 	test -x "$GOPATH/bin/go-junit-report" || prepareJunitGenerator
+
+	preparePkgData
 }
 
 glideClean() {
@@ -169,26 +218,6 @@ cross() {
 	BuildDate=$( hash date 2> /dev/null && date "+%Y-%m-%d %H:%M"     2>/dev/null || echo "unknown" )
 	# Datestamp is ISO 8601-ish, without seconds or timezones.
 
-	# Versions of UPX prior to 3.92 had compatibility issues with OSX 10.12 Sierra.
-	# Don't compress the binaries unless UPX is present and new enough.
-	#
-	# https://upx.github.io/upx-news.txt
-	# https://apple.stackexchange.com/questions/251808/this-upx-compressed-binary-contains-an-invalid-mach-o-header-and-cannot-be-load
-	minUPXv="3.92"
-	useUPX=false
-
-	# Check UPX version
-	if hash upx 2>/dev/null; then
-		currentUPXv=$(upx --version | head -n 1 | cut -f 2 -d ' ')
-		floorVersion=$(echo -e "$minUPXv\\n$currentUPXv" | sort -V | head -n 1)
-
-		if [[ "$minUPXv" == "$floorVersion" ]]; then
-			useUPX=true
-		else
-			echo "Warning: your UPX version is too old and cannot compress OSX binaries correctly. Disabling."
-		fi
-	fi
-
 	for target in "${targets[@]}"; do
 
 		# Split target on slash to get operating system & architecture
@@ -198,24 +227,19 @@ cross() {
 		echo -e "\n-- Building $os $arch --"
 		GOOS=$os GOARCH=$arch build "$package" "-X main.BuildHash=$BuildHash -X 'main.BuildDate=$BuildDate'" -ldflags '-d -s -w'
 
-
-		if $useUPX; then
-			if [[ "$localOs" == "$os" && "$arch" =~ .*$localArch ]] ; then
-				path="$GOPATH/bin/"
-			else
-				path="$GOPATH/bin/${os}_${arch}"
-			fi
-
-			binary=$( find "$path" -maxdepth 1 | grep -E "${pkg##*/}(\.exe)*" | head -n 1 )
-			nice upx -q "$binary" 2>&1 | grep -- "->" || true
+		# Compress using UPX (if enabled)
+		if [[ "$localOs" == "$os" && "$arch" =~ .*$localArch ]] ; then
+			path="$GOPATH/bin/"
+		else
+			path="$GOPATH/bin/${os}_${arch}"
 		fi
+
+		binary=$( find "$path" -maxdepth 1 | grep -E "${pkg##*/}(\.exe)*" | head -n 1 )
+		compressExecutable "$binary"
 
 		# If this system is the current build target, copy the binary to a build folder.
 		# Makes it easier to export a cross-build.
 		if [[ "$localOs" == "$os" && "$arch" =~ .*$localArch ]] ; then
-			path="$GOPATH/bin/"
-			binary=$( find "$path" -maxdepth 1 | grep -E "${pkg##*/}(\.exe)*" | head -n 1 )
-
 			mkdir -p "$GOPATH/bin/${os}_${arch}/"
 			cp "$binary" "$GOPATH/bin/${os}_${arch}/"
 		fi
@@ -270,6 +294,12 @@ formatCheck() {
 	test "${#badFiles[@]}" -eq 0 || fatal "The following files need formatting: ${badFiles[*]}"
 }
 
+compressExecutable() {
+	if $useUPX; then
+		nice upx -q "$1" 2>&1 | grep -- "->" || true
+	fi
+}
+
 _test() {
 	prepareGlide
 	filterTestOutput="/\[no test files\]$/d; /^warning\: no packages being tested depend on /d; /^=== RUN   /d;"
@@ -317,6 +347,35 @@ showEnv() {
 	(go env; echo "PATH=$PATH") | sed 's/^/export /g'
 }
 
+preparePython() {
+	if [ ! -d "${venv_dir}" ]; then
+		/usr/bin/env python3 -m venv "${venv_dir}"
+	fi
+}
+
+buildPython() {
+	preparePython
+	# Workaround for virtualenv issue https://github.com/pypa/virtualenv/issues/1029
+	set +u
+	source "${venv_dir}/bin/activate"
+	set -u
+	echo "Installing build dependencies..."
+	pip install -q -r python/build-requirements.txt
+	python python/compile.py 
+}
+
+testPython() {
+	preparePython
+	# Workaround for virtualenv issue https://github.com/pypa/virtualenv/issues/1029
+	set +u
+	source "${venv_dir}/bin/activate"
+	set -u
+	echo "Installing test dependencies..."
+	pip install -q -r python/test-requirements.txt
+	pip install -q -e python/
+	py.test python/tests/unit_tests
+}
+
 cmd=${1:-"build"}; shift || true
 case "$cmd" in
 	"go" | "godoc" | "gofmt")
@@ -337,9 +396,12 @@ case "$cmd" in
 		( sleep 0.5; hash firefox 2> /dev/null && firefox http://localhost:6060/pkg/$pkg ) &
 		godoc -http :6060;;
 
+	"compressExecutable")
+		compressExecutable "$1";;
+
 	*)
 		type "${cmd}" >/dev/null 2>&1 && eval "${cmd}" || (
-			echo "Usage: ./make.sh {go|godoc|gofmt|glide|build|format|clean|test|env|ci|cross}"
+			echo "Usage: ./make.sh {go|godoc|gofmt|glide|build|format|clean|test|env|ci|cross|buildPython|testPython}"
 			exit 1
 		);;
 esac

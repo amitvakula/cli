@@ -1,9 +1,10 @@
+import collections
 import os
 from ctypes import *
 
 # Build with: ./make.sh go build -buildmode=c-shared -o build/fw.dylib fw.go
 SRC_DIR = os.path.abspath(os.path.dirname(__file__))
-LEGACY_LIB_PATH = os.path.join(SRC_DIR, '../build/fw.dylib')
+LEGACY_LIB_PATH = os.path.join(SRC_DIR, '../../build/fw.dylib')
 
 #typedef struct { void *data; GoInt len; GoInt cap; } GoSlice;
 class GoSlice(Structure):
@@ -19,6 +20,15 @@ class GoString(Structure):
         ("p", c_char_p),
         ("n", c_longlong)
     ]
+
+_lib = None
+def load_lib():
+    global _lib
+    if _lib is None:
+        _lib = cdll.LoadLibrary(LEGACY_LIB_PATH)
+        _lib.InvokeCommand.argtypes = [GoSlice]
+        _lib.GetCommands.restype = c_char_p 
+    return _lib
 
 def args_to_slice(args):
     """ Convert a list of args to a GoSlice structure.
@@ -46,10 +56,17 @@ def invoke_command(args):
     Returns:
         int: The return code
     """
-    lib = cdll.LoadLibrary(LEGACY_LIB_PATH)
-    lib.InvokeCommand.argtypes = [GoSlice]
-
+    lib = load_lib()
     return lib.InvokeCommand(args_to_slice(args))
 
-
+def get_commands():
+    lib = load_lib()
+    ret = lib.GetCommands()
+    result = collections.OrderedDict()
+    for line in ret.decode('utf-8').splitlines():
+        line = line.strip()
+        if line:
+            cmd, desc = line.split(':', maxsplit=1)
+            result[cmd] = desc
+    return result
 

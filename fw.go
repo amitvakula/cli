@@ -34,6 +34,14 @@ func InvokeCommand(args []string) int {
 	return 0
 }
 
+//export GetCommands
+func GetCommands() *C.char {
+	cmd := command.BuildCommand(Version, BuildHash, BuildDate)
+	cmd.SetUsageTemplate(`{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+{{.Name}}:{{.Short}}{{end}}{{end}}`)
+	return C.CString(cmd.UsageString())
+}
+
 func main() {
 	InvokeCommand(os.Args)
 }

@@ -1,11 +1,6 @@
 import fs
 from ..importers import FolderImporter, ContainerFactory
-
-def is_fs_path(path):
-    # C: is a filesystem
-    # as is anything without a colon
-    # Otherwise we might have something like: ftp://...
-    return path.find(':') < 2
+from ..util import to_fs_url
 
 def add_command(subparsers):
     parser = subparsers.add_parser('folder', help='Import a structured folder')
@@ -40,12 +35,7 @@ def import_folder(args):
     importer = build_folder_importer(args)
     print('Template: {}'.format(importer.get_template_str()))
 
-    if is_fs_path(args.folder):
-        fs_url = 'osfs://{}'.format(args.folder)
-    else:
-        fs_url = args.folder
-
-    src_fs = fs.open_fs(fs_url)
+    src_fs = fs.open_fs(to_fs_url(args.folder))
 
     importer.discover(src_fs, args.symlinks)
 

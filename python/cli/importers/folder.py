@@ -1,7 +1,10 @@
+import collections
 import copy
 import fs
 import os
-from ..util import set_nested_attr, METADATA_ALIASES
+import sys
+
+from ..util import set_nested_attr, sorted_container_nodes, METADATA_ALIASES, NO_FILE_CONTAINERS
 from .container_factory import ContainerFactory
 
 class ImportFolderNode(object):
@@ -70,6 +73,7 @@ class FolderImporter(object):
         self.project = project
         self.de_id = de_id
         self.merge_subject_and_session = merge_subject_and_session
+        self.messages = []
 
     def add_template_node(self, **kwargs):
         """Adds a template node to the folder path
@@ -109,6 +113,86 @@ class FolderImporter(object):
             set_nested_attr(context, 'project.label', self.project)
 
         return context
+
+    def print_summary(self, file=sys.stdout):
+        """Print a summary of the import operation in tree format.
+        
+        Arguments:
+            file (fileobj): A file-like object that supports write(string)
+        """
+        # Generally - Print current container, print files, walk to next child
+        spacer_str = '|   '
+        entry_str = '├── '
+
+        def write(level, msg):
+            print('{}{}{}'.format(level*spacer_str, entry_str, msg), file=file)
+
+        groups = self.container_factory.get_groups()
+        queue = collections.deque([(0, group) for group in sorted_container_nodes(groups)])
+
+        counts = {
+            'group': 0,
+            'project': 0,
+            'subject': 0,
+            'session': 0,
+            'acquisition': 0,
+            'file': 0,
+            'packfile': 0
+        }
+
+        while queue:
+            level, current = queue.popleft()
+            cname = current.label or current.id
+            status = 'using' if current.exists else 'creating'
+            
+            write(level, '{} ({})'.format(cname, status))
+
+            level = level + 1
+            for path in sorted(current.files, key=str.lower):
+                name = fs.path.basename(path)
+                write(level, fs.path.basename(path))
+
+            for packfile_type, files in current.packfiles:
+                write(level, '{} ({} files)'.format(packfile_type, len(files)))
+
+            for child in sorted_container_nodes(current.children):
+                queue.appendleft((level, child))
+
+            # Update counts
+            counts[current.container_type] = counts[current.container_type] + 1
+            counts['file'] = counts['file'] + len(current.files)
+            counts['packfile'] = counts['packfile'] + len(current.packfiles)
+
+        print('\n', file=file)
+        print('This scan consists of: {} groups,'.format(counts['group']), file=file)
+        print('                       {} projects,'.format(counts['project']), file=file)
+        print('                       {} subjects,'.format(counts['subject']), file=file)
+        print('                       {} sessions,'.format(counts['session']), file=file)
+        print('                       {} acquisitions,'.format(counts['acquisition']), file=file)
+        print('                       {} attachments, and'.format(counts['file']), file=file)
+        print('                       {} packfiles.'.format(counts['packfile']), file=file)
+
+    def verify(self):
+        """Verify the upload plan, returning any messages that should be logged, with severity.
+
+        Returns:
+            list: A list of tuples of severity, message to be logged
+        """
+        results = copy.copy(self.messages)
+
+        for _, container in self.container_factory.walk_containers():
+            if container.container_type in NO_FILE_CONTAINERS:
+                cname = container.label or container.id
+                for path in container.files:
+                    fname = fs.path.basename(path)
+                    msg = 'File {} cannot be uploaded to {} {} - files are not supported at this level'.format(fname, container.container_type, cname)
+                    results.append(('warn', msg))
+
+                for packfile_type, _ in container.packfiles:
+                    msg = '{} pack-file cannot be uploaded to {} {} - files are not supported at this level'.format(fname, container.container_type, cname)
+                    results.append(('warn', msg))
+
+        return results
 
     def discover(self, src_fs, follow_symlinks=False, context=None, template_idx=0, curdir='/'):
         """Performs discovery of containers to create and files to upload in the given folder.
@@ -165,9 +249,5 @@ class FolderImporter(object):
                 else:
                     container.files.extend(files)
             else:
-                # TODO: log
-                print('Ignoring files for folder {} because it represents an ambiguous node'.format(curdir))
-
-
-
+                self.messages.append(('warn', 'Ignoring files for folder {} because it represents an ambiguous node'.format(curdir)))
 

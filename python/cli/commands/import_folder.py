@@ -25,6 +25,7 @@ def add_command(subparsers):
     no_level_group.add_argument('--no-sessions', action='store_true', help='no session level (create a session for every subject)')
 
     parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
+    parser.add_argument('--root-dirs', type=int, default=0, help='The number of directories to discard before matching')
 
     parser.set_defaults(func=import_folder)
     parser.set_defaults(parser=parser)
@@ -44,16 +45,28 @@ def import_folder(args):
     else:
         fs_url = args.folder
 
-    print('Importing from: {}'.format(fs_url))
     src_fs = fs.open_fs(fs_url)
 
     importer.discover(src_fs, args.symlinks)
+
+    # Print summary
+    print('The following data hierarchy was found:\n')
+    importer.print_summary()
+
+    # Print warnings
+    print('\n')
+    for severity, msg in importer.verify():
+        print('{} - {}'.format(severity.upper(), msg))
+
 
 def build_folder_importer(args):
     resolver = None
 
     importer = FolderImporter(resolver, group=args.group, project=args.project, 
         de_id=args.de_id, merge_subject_and_session=(args.no_subjects or args.no_sessions))
+
+    for i in range(args.root_dirs):
+        importer.add_template_node()
 
     if not args.group:
         importer.add_template_node(metavar='group')

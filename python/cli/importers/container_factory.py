@@ -129,6 +129,14 @@ class ContainerFactory(object):
 
             yield parent, current
 
+    def get_groups(self):
+        """Get the top-level groups in the hierarchy
+
+        Returns:
+            list: The list of group nodes
+        """
+        return self.root.children
+
     def _resolve_child(self, parent, container_type, context, path):
         """Resolve a child by searching the parent, or creating a new node
         

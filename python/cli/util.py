@@ -61,3 +61,21 @@ def to_fs_url(path):
     # Default is OSFS pointing at directory
     return 'osfs://{}'.format(path)
 
+def confirmation_prompt(message):
+    """Continue prompting at the terminal for a yes/no repsonse
+    
+    Arguments:
+        message (str): The prompt message
+
+    Returns:
+        bool: True if the user responded yes, otherwise False
+    """
+    responses = { 'yes': True, 'y': True, 'no': False, 'n': False }
+    while True:
+        print('{} (yes/no): '.format(message), end='')
+        choice = input().lower()
+        if choice in responses:
+            return responses[choice]
+        print('Please respond with "yes" or "no".')
+
+

@@ -166,7 +166,7 @@ class ContainerFactory(object):
 
         # Create child
         child = ContainerNode(container_type, uid=uid, label=label)
-        child.context = copy.deepcopy(subcon)
+        child.context = copy.deepcopy(context)
 
         # Check if exists
         if self.resolver and parent.exists:

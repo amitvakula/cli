@@ -1,6 +1,7 @@
 import fs
-from ..importers import FolderImporter, ContainerFactory
-from ..util import to_fs_url
+from ..importers import FolderImporter, ContainerFactory, SynchronousUploadQueue
+from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
+from ..util import to_fs_url, confirmation_prompt
 
 def add_command(subparsers):
     parser = subparsers.add_parser('folder', help='Import a structured folder')
@@ -32,7 +33,7 @@ def import_folder(args):
     if args.project and not args.group:
         args.parser.error('Specifying project requires also specifying group')
 
-    importer = build_folder_importer(args)
+    resolver, importer = build_folder_importer(args)
     print('Template: {}'.format(importer.get_template_str()))
 
     src_fs = fs.open_fs(to_fs_url(args.folder))
@@ -44,13 +45,30 @@ def import_folder(args):
     importer.print_summary()
 
     # Print warnings
-    print('\n')
+    print('')
     for severity, msg in importer.verify():
         print('{} - {}'.format(severity.upper(), msg))
+    print('')
+
+    if not confirmation_prompt('Confirm upload?'):
+        return
+
+    # Create containers
+    importer.container_factory.create_containers()
+
+    # Walk the hierarchy, uploading files
+    upload_queue = SynchronousUploadQueue(resolver)
+    for _, container in importer.container_factory.walk_containers():
+        for path in container.files:
+            src = src_fs.open(path, 'rb')
+            file_name = fs.path.basename(path)
+
+            upload_queue.upload(container, file_name, src)
 
 
 def build_folder_importer(args):
-    resolver = None
+    fw = create_flywheel_client()
+    resolver = SdkUploadWrapper(fw)
 
     importer = FolderImporter(resolver, group=args.group, project=args.project, 
         de_id=args.de_id, merge_subject_and_session=(args.no_subjects or args.no_sessions))
@@ -76,5 +94,5 @@ def build_folder_importer(args):
         importer.add_template_node(metavar='acquisition')
         importer.add_template_node(name=args.dicom, packfile_type='dicom')
 
-    return importer
+    return resolver, importer
 

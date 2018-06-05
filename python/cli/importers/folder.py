@@ -152,8 +152,8 @@ class FolderImporter(object):
                 name = fs.path.basename(path)
                 write(level, fs.path.basename(path))
 
-            for packfile_type, files in current.packfiles:
-                write(level, '{} ({} files)'.format(packfile_type, len(files)))
+            for packfile_type, _, count in current.packfiles:
+                write(level, '{} ({} files)'.format(packfile_type, count))
 
             for child in sorted_container_nodes(current.children):
                 queue.appendleft((level, child))
@@ -188,7 +188,7 @@ class FolderImporter(object):
                     msg = 'File {} cannot be uploaded to {} {} - files are not supported at this level'.format(fname, container.container_type, cname)
                     results.append(('warn', msg))
 
-                for packfile_type, _ in container.packfiles:
+                for packfile_type, _, _ in container.packfiles:
                     msg = '{} pack-file cannot be uploaded to {} {} - files are not supported at this level'.format(fname, container.container_type, cname)
                     results.append(('warn', msg))
 
@@ -245,7 +245,7 @@ class FolderImporter(object):
         if files:
             if container:
                 if 'packfile' in context:
-                    container.packfiles.append((context['packfile'], files))
+                    container.packfiles.append((context['packfile'], curdir, len(files)))
                 else:
                     container.files.extend(files)
             else:

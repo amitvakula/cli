@@ -1,5 +1,6 @@
 import re
 import os
+import fs
 
 METADATA_ALIASES = {
     'group': 'group._id',
@@ -51,15 +52,27 @@ def to_fs_url(path):
 
     if not os.path.isdir(path):
         # Specialized path options for tar/zip files
-        if re.match('^.*(\.tar|\.tgz|\.tar\.gz|\.tar\.bz2)$', path, re.I):
+        if is_tar_file(path):
             return 'tar://{}'.format(path)
 
-        _, ext = os.path.splitext(path.lower())
-        if ext == '.zip':
+        if is_zip_file(path): 
             return 'zip://{}'.format(path)
         
     # Default is OSFS pointing at directory
     return 'osfs://{}'.format(path)
+
+def is_tar_file(path):
+    """Check if path appears to be a tar archive""" 
+    return bool(re.match('^.*(\.tar|\.tgz|\.tar\.gz|\.tar\.bz2)$', path, re.I))
+
+def is_zip_file(path):
+    """Check if path appears to be a zip archive""" 
+    _, ext = fs.path.splitext(path.lower())
+    return (ext == '.zip')
+
+def is_archive(path):
+    """Check if path appears to be a zip or tar archive"""
+    return is_zip_file(path) or is_tar_file(path)
 
 def confirmation_prompt(message):
     """Continue prompting at the terminal for a yes/no repsonse
@@ -77,5 +90,30 @@ def confirmation_prompt(message):
         if choice in responses:
             return responses[choice]
         print('Please respond with "yes" or "no".')
+
+def contains_dicoms(src_fs):
+    """Check if the given filesystem contains dicoms"""
+    # If we encounter a single dicom, assume true
+    for path in src_fs.walk.files(filter=['*.dcm']):
+        return True
+    return False
+
+def open_archive_fs(src_fs, path):
+    """Open the given path as a sub fs
+
+    Arguments:
+        src_fs (fs): The source filesystem
+        path (str): The path to the file to open
+
+    Returns:
+        fs: Path opened as a sub filesystem
+    """
+    if is_tar_file(path):
+        import fs.tarfs
+        return fs.tarfs.TarFS(src_fs.open(path, 'rb'))
+    if is_zip_file(path):
+        import fs.zipfs
+        return fs.zipfs.ZipFS(src_fs.open(path, 'rb'))
+    return None
 
 

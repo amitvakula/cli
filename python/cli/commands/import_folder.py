@@ -1,7 +1,9 @@
+import copy
 import fs
-from ..importers import FolderImporter, ContainerFactory, SynchronousUploadQueue
+import io
+from ..importers import create_zip_packfile, FolderImporter, ContainerFactory, SynchronousUploadQueue
 from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
-from ..util import to_fs_url, confirmation_prompt
+from .. import util
 
 def add_command(subparsers):
     parser = subparsers.add_parser('folder', help='Import a structured folder')
@@ -14,7 +16,7 @@ def add_command(subparsers):
     acq_group.add_argument('--dicom', default='dicom', metavar='name', help='The name of dicom subfolders to be zipped prior to upload')
     acq_group.add_argument('--pack-acquisitions', metavar='type', help='Acquisition folders only contain acquisitions of <type> and are zipped prior to upload')
     
-    parser.add_argument('--de-id', action='store_true', help='De-identify DICOM files, e-files and p-files prior to upload')
+    parser.add_argument('--de-identify', action='store_true', help='De-identify DICOM files, e-files and p-files prior to upload')
 
     no_level_group = parser.add_mutually_exclusive_group()
     no_level_group.add_argument('--no-subjects', action='store_true', help='no subject level (create a subject for every session)')
@@ -28,7 +30,7 @@ def add_command(subparsers):
 
     return parser
 
-def import_folder(args):
+def import_folder(args, repackage_archives=True):
     # Validate that if project is set, then group is set
     if args.project and not args.group:
         args.parser.error('Specifying project requires also specifying group')
@@ -36,34 +38,64 @@ def import_folder(args):
     resolver, importer = build_folder_importer(args)
     print('Template: {}'.format(importer.get_template_str()))
 
-    src_fs = fs.open_fs(to_fs_url(args.folder))
+    with fs.open_fs(util.to_fs_url(args.folder)) as src_fs:
 
-    importer.discover(src_fs, args.symlinks)
+        importer.discover(src_fs, args.symlinks)
 
-    # Print summary
-    print('The following data hierarchy was found:\n')
-    importer.print_summary()
+        # Print summary
+        print('The following data hierarchy was found:\n')
+        importer.print_summary()
 
-    # Print warnings
-    print('')
-    for severity, msg in importer.verify():
-        print('{} - {}'.format(severity.upper(), msg))
-    print('')
+        # Print warnings
+        print('')
+        for severity, msg in importer.verify():
+            print('{} - {}'.format(severity.upper(), msg))
+        print('')
 
-    if not confirmation_prompt('Confirm upload?'):
-        return
+        if not util.confirmation_prompt('Confirm upload?'):
+            return
 
-    # Create containers
-    importer.container_factory.create_containers()
+        # Create containers
+        importer.container_factory.create_containers()
 
-    # Walk the hierarchy, uploading files
-    upload_queue = SynchronousUploadQueue(resolver)
-    for _, container in importer.container_factory.walk_containers():
-        for path in container.files:
-            src = src_fs.open(path, 'rb')
-            file_name = fs.path.basename(path)
+        # Packfile args
+        packfile_args = {
+            'de_id': args.de_identify
+        }
 
-            upload_queue.upload(container, file_name, src)
+        # Walk the hierarchy, uploading files
+        upload_queue = SynchronousUploadQueue(resolver)
+        for _, container in importer.container_factory.walk_containers():
+            cname = container.label or container.id
+            packfiles = copy.copy(container.packfiles)
+
+            for path in container.files:
+                file_name = fs.path.basename(path)
+
+                if repackage_archives and util.is_archive(path):
+                    # TODO: Can we templatize or generalize this a bit?
+                    with util.open_archive_fs(src_fs, path) as archive_fs:
+                        if archive_fs and util.contains_dicoms(archive_fs):
+                            # Do archive upload
+                            packfile_data = io.BytesIO()
+                            packfile = create_zip_packfile(packfile_data, archive_fs, 'dicom', **packfile_args)
+                            upload_queue.upload(container, file_name, packfile_data)
+                            continue
+
+                # Normal upload
+                src = src_fs.open(path, 'rb')
+                upload_queue.upload(container, file_name, src)
+
+            # packfiles
+            for packfile_type, path, _ in container.packfiles:
+                file_name = '{}.{}.zip'.format(cname, packfile_type)
+                
+                packfile_data = io.BytesIO()
+                packfile_src_fs = src_fs.opendir(path)
+                packfile = create_zip_packfile(packfile_data, packfile_src_fs, packfile_type, **packfile_args)
+                upload_queue.upload(container, file_name, packfile_data)
+
+        upload_queue.finish()
 
 
 def build_folder_importer(args):
@@ -71,7 +103,7 @@ def build_folder_importer(args):
     resolver = SdkUploadWrapper(fw)
 
     importer = FolderImporter(resolver, group=args.group, project=args.project, 
-        de_id=args.de_id, merge_subject_and_session=(args.no_subjects or args.no_sessions))
+        de_id=args.de_identify, merge_subject_and_session=(args.no_subjects or args.no_sessions))
 
     for i in range(args.root_dirs):
         importer.add_template_node()

@@ -28,11 +28,11 @@ def create_packfile(src_fs, dst_fs, process=None):
         for path in src_fs.walk.files():
             with src_fs.open(path, 'rb') as src_file, io.BytesIO() as dst_file:
                 write_file, dst_path = process(path, src_file, dst_file)
-                if not write_file:
-                    continue
-                dst_data = dst_file.getvalue()
-                log.debug('Saving {} to {} ({} bytes)'.format(path, dst_path, len(dst_data)))
-                dst_fs.setbytes(dst_path, dst_data)
+                if write_file == 'copy':
+                    fs.copy.copy_file(src_fs, path, dst_fs, dst_path)
+                elif write_file:
+                    dst_data = dst_file.getvalue()
+                    dst_fs.setbytes(dst_path, dst_data)
     else:
         # fs copy
         fs.copy.copy_fs(src_fs, dst_fs)

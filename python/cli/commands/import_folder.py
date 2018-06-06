@@ -1,7 +1,15 @@
 import copy
 import fs
 import io
-from ..importers import create_zip_packfile, FolderImporter, ContainerFactory, SynchronousUploadQueue
+from ..importers import (
+        create_zip_packfile, 
+        FolderImporter, 
+        ContainerFactory, 
+        SynchronousUploadQueue,
+        StringMatchNode,
+        PackfileNode
+    )
+
 from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 from .. import util
 
@@ -36,7 +44,6 @@ def import_folder(args, repackage_archives=True):
         args.parser.error('Specifying project requires also specifying group')
 
     resolver, importer = build_folder_importer(args)
-    print('Template: {}'.format(importer.get_template_str()))
 
     with fs.open_fs(util.to_fs_url(args.folder)) as src_fs:
 
@@ -98,6 +105,17 @@ def import_folder(args, repackage_archives=True):
         upload_queue.finish()
 
 
+def add_node(importer, current, next_node):
+    if importer.root_node is None:
+        importer.root_node = next_node
+        return next_node
+    
+    if hasattr(current, 'set_next'):
+        current.set_next(next_node)
+        return next_node
+
+    raise ValueError('Cannot add node - invalid node type: {}'.format(type(current)))
+
 def build_folder_importer(args):
     fw = create_flywheel_client()
     resolver = SdkUploadWrapper(fw)
@@ -105,26 +123,28 @@ def build_folder_importer(args):
     importer = FolderImporter(resolver, group=args.group, project=args.project, 
         de_id=args.de_identify, merge_subject_and_session=(args.no_subjects or args.no_sessions))
 
+    current = None
     for i in range(args.root_dirs):
+        current = add_node(importer, current, StringMatchNode(re.compile('.*'))) 
         importer.add_template_node()
 
     if not args.group:
-        importer.add_template_node(metavar='group')
+        current = add_node(importer, current, StringMatchNode('group'))
 
     if not args.project:
-        importer.add_template_node(metavar='project')
+        current = add_node(importer, current, StringMatchNode('project'))
 
     if not args.no_subjects:
-        importer.add_template_node(metavar='subject')
+        current = add_node(importer, current, StringMatchNode('subject'))
 
     if not args.no_sessions:
-        importer.add_template_node(metavar='session')
+        current = add_node(importer, current, StringMatchNode('session'))
 
     if args.pack_acquisitions:
-        importer.add_template_node(metavar='acquisition', packfile_type=args.pack_acquisitions)
+        current = add_node(importer, current, StringMatchNode('acquisition', packfile_type=args.pack_acquisitions))
     else:
-        importer.add_template_node(metavar='acquisition')
-        importer.add_template_node(name=args.dicom, packfile_type='dicom')
+        current = add_node(importer, current, StringMatchNode('acquisition'))
+        current = add_node(importer, current, PackfileNode(name=args.dicom, packfile_type='dicom'))
 
     return resolver, importer
 

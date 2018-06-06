@@ -49,7 +49,9 @@ class DicomProcessor(object):
             path = '{}.{}.dcm'.format(modality, sop_uid)
 
         # Write dicom to destination
-        dcm.save(dst_file)
+        if self.de_identify:
+            dcm.save(dst_file)
+            return True, path
 
-        return True, path
+        return 'copy', path
 

@@ -36,7 +36,7 @@ class DicomFile(object):
         try:
             self.raw = dcm = pydicom.dcmread(filepath, stop_before_pixels=(not de_identify))
             dcm.decode()
-        except (dicom.errors.InvalidDicomError, ValueError) as ex:
+        except (pydicom.errors.InvalidDicomError, ValueError) as ex:
             raise DicomFileError(ex)
 
         sort_info = dcm.get(map_key, '') if map_key else ''

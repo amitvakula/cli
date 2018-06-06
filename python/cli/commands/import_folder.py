@@ -60,7 +60,7 @@ def import_folder(args, repackage_archives=True):
 
         # Packfile args
         packfile_args = {
-            'de_id': args.de_identify
+            'de_identify': args.de_identify
         }
 
         # Walk the hierarchy, uploading files

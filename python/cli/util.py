@@ -1,6 +1,9 @@
+import datetime
 import re
 import os
+
 import fs
+import tzlocal
 
 METADATA_ALIASES = {
     'group': 'group._id',
@@ -11,6 +14,8 @@ METADATA_ALIASES = {
 }
 
 NO_FILE_CONTAINERS = [ 'group', 'subject' ]
+
+DEFAULT_TZ = tzlocal.get_localzone()
 
 def set_nested_attr(obj, key, value):
     """Set a nested attribute in dictionary, creating sub dictionaries as necessary.
@@ -116,4 +121,8 @@ def open_archive_fs(src_fs, path):
         return fs.zipfs.ZipFS(src_fs.open(path, 'rb'))
     return None
 
+def localize_timestamp(timestamp, timezone=None):
+    # pylint: disable=missing-docstring
+    timezone = DEFAULT_TZ if timezone is None else timezone
+    return timezone.localize(timestamp)
 

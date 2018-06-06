@@ -1,0 +1,4 @@
+flywheel-sdk~=2.2.0
+pydicom~=1.0.2
+tzlocal~=1.5.1
+fs~=2.0.23

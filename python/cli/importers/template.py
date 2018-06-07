@@ -1,3 +1,5 @@
+import copy
+
 from abc import ABC, abstractmethod
 from typing.re import Pattern
 from ..util import set_nested_attr, METADATA_ALIASES
@@ -78,9 +80,12 @@ class PackfileNode(ImportTemplateNode):
         return TERMINAL_NODE 
 
 class CompositeNode(ImportTemplateNode):
-    def __init__(self):
+    def __init__(self, children=None):
         """Returns the first node that matches out of children."""
-        self.children = []
+        if children:
+            self.children = copy.copy(children)
+        else:
+            self.children = []
 
     def add_child(self, child):
         """Add a child to the composite node

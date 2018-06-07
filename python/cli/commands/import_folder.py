@@ -105,17 +105,6 @@ def import_folder(args, repackage_archives=True):
         upload_queue.finish()
 
 
-def add_node(importer, current, next_node):
-    if importer.root_node is None:
-        importer.root_node = next_node
-        return next_node
-    
-    if hasattr(current, 'set_next'):
-        current.set_next(next_node)
-        return next_node
-
-    raise ValueError('Cannot add node - invalid node type: {}'.format(type(current)))
-
 def build_folder_importer(args):
     fw = create_flywheel_client()
     resolver = SdkUploadWrapper(fw)
@@ -125,26 +114,25 @@ def build_folder_importer(args):
 
     current = None
     for i in range(args.root_dirs):
-        current = add_node(importer, current, StringMatchNode(re.compile('.*'))) 
-        importer.add_template_node()
+        importer.add_template_node(StringMatchNode(re.compile('.*'))) 
 
     if not args.group:
-        current = add_node(importer, current, StringMatchNode('group'))
+        importer.add_template_node(StringMatchNode('group'))
 
     if not args.project:
-        current = add_node(importer, current, StringMatchNode('project'))
+        importer.add_template_node(StringMatchNode('project'))
 
     if not args.no_subjects:
-        current = add_node(importer, current, StringMatchNode('subject'))
+        importer.add_template_node(StringMatchNode('subject'))
 
     if not args.no_sessions:
-        current = add_node(importer, current, StringMatchNode('session'))
+        importer.add_template_node(StringMatchNode('session'))
 
     if args.pack_acquisitions:
-        current = add_node(importer, current, StringMatchNode('acquisition', packfile_type=args.pack_acquisitions))
+        importer.add_template_node(StringMatchNode('acquisition', packfile_type=args.pack_acquisitions))
     else:
-        current = add_node(importer, current, StringMatchNode('acquisition'))
-        current = add_node(importer, current, PackfileNode(name=args.dicom, packfile_type='dicom'))
+        importer.add_template_node(StringMatchNode('acquisition'))
+        importer.add_template_node(PackfileNode(name=args.dicom, packfile_type='dicom'))
 
     return resolver, importer
 

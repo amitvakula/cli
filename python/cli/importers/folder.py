@@ -19,12 +19,40 @@ class FolderImporter(object):
             merge_subject_and_session (bool): Whether or not subject or session layer is missing. Default is False.
         """
         self.root_node = None
+        self._last_added_node = None
         self.container_factory = ContainerFactory(resolver)
         self.group = group
         self.project = project
         self.de_id = de_id
         self.merge_subject_and_session = merge_subject_and_session
         self.messages = []
+
+    def add_template_node(self, next_node):
+        """Append next_node to the last node that was added (or set the root node)
+
+        Arguments:
+            next_node (ImportTemplateNode): The node to append
+        """
+        last = self._last_added_node
+        if last:
+            if not hasattr(last, 'set_next'):
+                raise ValueError('Cannot add node - invalid node type: {}'.format(type(last)))
+
+            last.set_next(next_node)
+        else:
+            self.root_node = next_node
+            
+        self._last_added_node = next_node
+
+    def add_composite_template_node(self, nodes):
+        """Append a composite node to the last node that was added.
+
+        Arguments:
+            nodes (list): The list of nodes to append
+        """
+        composite = CompositeNode(nodes)
+        self.append_template_node(composite)
+        self._last_added_node = nodes[-1]
 
     def initial_context(self):
         """Creates the initial context for folder import.
@@ -168,6 +196,7 @@ class FolderImporter(object):
                     if template_node is None:
                         # Treat as packfile
                         context_copy['packfile'] = name
+                        next_node = None
                     else:
                         next_node = template_node.extract_metadata(name, context_copy, subdir)
 

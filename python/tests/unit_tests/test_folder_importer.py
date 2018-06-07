@@ -2,7 +2,7 @@ import collections
 import fs
 import pytest
 
-from cli.importers import FolderImporter
+from cli.importers import FolderImporter, StringMatchNode
 from .test_container_factory import MockContainerResolver
 
 def mock_fs(structure):
@@ -21,18 +21,18 @@ def make_importer(resolver, group=None, project=None, no_subjects=False, no_sess
         merge_subject_and_session=(no_subjects or no_sessions))
 
     if not group:
-        importer.add_template_node(metavar='group')
+        importer.add_template_node(StringMatchNode('group'))
 
     if not project:
-        importer.add_template_node(metavar='project')
+        importer.add_template_node(StringMatchNode('project'))
 
     if not no_subjects:
-        importer.add_template_node(metavar='subject')
+        importer.add_template_node(StringMatchNode('subject'))
 
     if not no_sessions:
-        importer.add_template_node(metavar='session')
+        importer.add_template_node(StringMatchNode('session'))
 
-    importer.add_template_node(metavar='acquisition')
+    importer.add_template_node(StringMatchNode('acquisition'))
     return importer
 
 def test_folder_resolver_default():
@@ -94,12 +94,10 @@ def test_folder_resolver_default():
     assert child.label == 'fMRI_Ret_knk'
     assert len(child.files) == 0
     assert len(child.packfiles) == 1
-    packfile_type, files = child.packfiles[0]
+    packfile_type, folder, count = child.packfiles[0]
     assert packfile_type == 'dicom'
-    assert len(files) == 3
-    assert '/scitran/Anxiety Study/anx_s1/ses1/fMRI_Ret_knk/dicom/001.dcm' in files
-    assert '/scitran/Anxiety Study/anx_s1/ses1/fMRI_Ret_knk/dicom/002.dcm' in files
-    assert '/scitran/Anxiety Study/anx_s1/ses1/fMRI_Ret_knk/dicom/003.dcm' in files
+    assert folder == '/scitran/Anxiety Study/anx_s1/ses1/fMRI_Ret_knk/dicom'
+    assert count == 3
 
     try:
         next(itr)

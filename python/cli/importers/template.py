@@ -1,8 +1,15 @@
 import copy
+import re
 
 from abc import ABC, abstractmethod
 from typing.re import Pattern
-from ..util import set_nested_attr, METADATA_ALIASES
+from ..util import (
+    METADATA_ALIASES,
+    python_id_to_str,
+    regex_for_property, 
+    set_nested_attr, 
+    str_to_python_id
+)
 
 class ImportTemplateNode(ABC):
     @abstractmethod
@@ -31,11 +38,12 @@ class StringMatchNode(ImportTemplateNode):
         """Create a new container-level node.
 
         Arguments:
-            template (str|re): The metavar or regular expression
+            template (str|Pattern): The metavar or regular expression
             packfile_type (str): The optional packfile type if this is a packfile folder
         """
         self.template = template
         self.next_node = None
+        self.packfile_type = packfile_type
 
     def set_next(self, next_node):
         """Set the next node"""
@@ -54,30 +62,18 @@ class StringMatchNode(ImportTemplateNode):
 
         for key, value in groups.items():
             if value:
+                key = python_id_to_str(key)
+
                 if key in METADATA_ALIASES:
                     key = METADATA_ALIASES[key]
 
                 set_nested_attr(context, key, value)
 
+        if self.packfile_type:
+            context['packfile'] = self.packfile_type
+            return TERMINAL_NODE
+
         return self.next_node
-
-class PackfileNode(ImportTemplateNode):
-    def __init__(self, name=None, packfile_type=None):
-        """Create a new packfile node that matches name.
-
-        Arguments:
-            name (str): The optional name to match
-            packfile_type (str): The packfile type. If not specified, name will be used
-        """
-        self.name = name
-        self.packfile_type = packfile_type
-
-    def extract_metadata(self, name, context, current_fs=None):
-        if self.name and self.name != name:
-            return None
-        
-        context['packfile'] = self.packfile_type or name
-        return TERMINAL_NODE 
 
 class CompositeNode(ImportTemplateNode):
     def __init__(self, children=None):
@@ -101,4 +97,98 @@ class CompositeNode(ImportTemplateNode):
             if next_node:
                 return next_node
         return None
+
+def parse_template_string(value):
+    """Parses a template string, creating an ImportTemplateNode tree.
+
+    Arguments:
+        value (str): The template string
+
+    Returns:
+        The created ImportTemplateNode tree
+    """
+    root = None
+    last = None
+    sections = re.split(r'(?<!\\):', value)
+    for section in sections:
+        parts = re.split(r'(?<!\\),', section, maxsplit=1)
+        if len(parts) == 1:
+            match = parts[0]
+            optstr = ''
+        else:
+            match, optstr = parts
+
+        # Compile the match string into a regular expression
+        match = compile_regex(match)
+
+        # Parse the options
+        opts = _parse_optstr(optstr)
+
+        # Create the next node
+        node = StringMatchNode(template=match, **opts)
+        if root is None:
+            root = last = node
+        else:
+            last.set_next(node)
+            last = node
+
+    return root
+
+
+IS_PROPERTY_RE = re.compile(r'^[a-z]([-_a-zA-Z0-9\.]+)([a-zA-Z0-9])$')
+
+def compile_regex(value):
+    """Compile a regular expression from a template string
+    
+    Arguments:
+        value (str): The value to compile
+
+    Returns:
+        Pattern: The compiled regular expression
+    """
+    regex = ''
+    escape = False
+    repl = ''
+    in_repl = False
+    for c in value:
+        if escape:
+            regex = regex + '\\' + c
+            escape = False
+        else:
+            if c == '\\':
+                escape = True
+            elif c == '{':
+                in_repl = True
+            elif c == '}':
+                in_repl = False
+                if IS_PROPERTY_RE.match(repl):
+                    # Replace value
+                    regex = regex + '(?P<{}>{})'.format(repl, regex_for_property(repl))
+                else:
+                    regex = regex + '{' + repl + '}'
+                repl = ''
+            elif in_repl:
+                repl = repl + c
+            else:
+                regex = regex + c
+
+    # Finally, replace group ids with valid strings
+    regex = re.sub(r'(?<!\\)\(\?P<([^>]+)>', _group_str_to_id, regex)
+    return re.compile(regex)
+
+def _group_str_to_id(m):
+    return '(?P<{}>'.format( str_to_python_id(m.group(1)) )
+
+def _parse_optstr(val):
+    result = {}
+
+    pairs = val.split(',')
+    for pair in pairs:
+        pair = pair.strip()
+        if pair:
+            key, _, value = pair.partition('=')
+            result[key.strip()] = value.strip()
+
+    return result
+
 

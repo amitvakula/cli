@@ -1,4 +1,5 @@
 from . import import_folder
+from . import import_template
 
 def set_subparser_print_help(parser):
     def print_help(args):
@@ -31,6 +32,9 @@ def add_commands(parser, legacy_commands):
 
     # import folder
     parsers['import folder'] = import_folder.add_command(import_subparsers)
+
+    # import folder
+    parsers['import template'] = import_template.add_command(import_subparsers)
 
     # cli subcommands (stubs)
     for cmd, desc in legacy_commands.items():

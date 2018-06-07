@@ -8,7 +8,7 @@ from ..util import set_nested_attr, sorted_container_nodes, METADATA_ALIASES, NO
 from .container_factory import ContainerFactory
 
 class FolderImporter(object):
-    def __init__(self, resolver, group=None, project=None, de_id=False, merge_subject_and_session=False):
+    def __init__(self, resolver, group=None, project=None, de_id=False, merge_subject_and_session=False, context=None):
         """Class that handles state for folder import.
 
         Arguments:
@@ -26,6 +26,7 @@ class FolderImporter(object):
         self.de_id = de_id
         self.merge_subject_and_session = merge_subject_and_session
         self.messages = []
+        self.context = context
 
     def add_template_node(self, next_node):
         """Append next_node to the last node that was added (or set the root node)
@@ -61,7 +62,11 @@ class FolderImporter(object):
             dict: The initial context
         """
         context = {}
-        
+       
+        if self.context:
+            for key, value in self.context.items():
+                set_nested_attr(context, key, value)
+
         if self.group:
             set_nested_attr(context, 'group._id', self.group)
 

@@ -1,6 +1,8 @@
+import argparse
 import datetime
 import re
 import os
+import string
 
 import fs
 import tzlocal
@@ -12,6 +14,17 @@ METADATA_ALIASES = {
     'subject': 'subject.label',
     'acquisition': 'acquisition.label'
 }
+
+METADATA_TYPES = {
+    'group': 'string-id',
+    'group._id': 'string-id'
+}
+
+METADATA_EXPR = {
+    'string-id': r'[0-9a-z][0-9a-z.@_-]{0,30}[0-9a-z]',
+    'default': r'.+'
+}
+
 
 NO_FILE_CONTAINERS = [ 'group', 'subject' ]
 
@@ -125,4 +138,68 @@ def localize_timestamp(timestamp, timezone=None):
     # pylint: disable=missing-docstring
     timezone = DEFAULT_TZ if timezone is None else timezone
     return timezone.localize(timestamp)
+
+def split_key_value_argument(val):
+    """Split value into a key, value tuple. 
+
+    Raises ArgumentTypeError if val is not in key=value form
+
+    Arguments:
+        val (str): The key value pair
+
+    Returns:
+        tuple: The split key-value pair
+    """
+    key, delim, value = val.partition('=')
+
+    if not delim:
+        raise argparse.ArgumentTypeError('Expected key value pair in the form of: key=value')
+
+    return (key.strip(), value.strip())
+
+def regex_for_property(name):
+    """Get the regular expression match template for property name
+
+    Arguments:
+        name (str): The property name
+
+    Returns:
+        str: The regular expression for that property name
+    """
+    property_type = METADATA_TYPES.get(name, 'default')
+    if property_type in METADATA_EXPR:
+        return METADATA_EXPR[property_type]
+    return METADATA_EXPR['default']
+    
+def str_to_python_id(val):
+    """Convert a string to a valid python id in a reversible way
+
+    Arguments: 
+        val (str): The value to convert
+    
+    Returns:
+        str: The valid python id
+    """
+    result = '' 
+    for c in val:
+        if c in string.ascii_letters or c == '_':
+            result = result + c
+        else:
+            result = result + '__{0:02x}__'.format(ord(c))
+    return result
+
+def python_id_to_str(val):
+    """Convert a python id string to a normal string
+
+    Arguments:
+        val (str): The value to convert
+
+    Returns:
+        str: The converted value
+    """
+    return re.sub('__([a-f0-9]{2})__', _repl_hex, val)
+
+def _repl_hex(m):
+    return chr(int(m.group(1), 16))
+
 

@@ -1,10 +1,8 @@
 import argparse
 
 from ..importers import parse_template_string, FolderImporter
-from .. import util
+from ..util import split_key_value_argument
 from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
-
-from .import_folder import perform_folder_import
 
 def add_command(subparsers):
     parser = subparsers.add_parser('template', help='Import a folder, using a template')
@@ -20,7 +18,7 @@ def add_command(subparsers):
     no_level_group.add_argument('--no-sessions', action='store_true', help='no session level (create a session for every subject)')
 
     parser.add_argument('--set-var', '-s', metavar='key=value', action='append', default=[], 
-        type=util.split_key_value_argument, help='Set arbitrary key-value pairs')
+        type=split_key_value_argument, help='Set arbitrary key-value pairs')
     
     parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
 
@@ -36,8 +34,8 @@ def import_folder_with_template(args):
 
     # Build the importer instance
     importer = FolderImporter(resolver, group=args.group, project=args.project, 
-        de_id=args.de_identify, merge_subject_and_session=(args.no_subjects or args.no_sessions),
-        context=dict(args.set_var))
+        de_identify=args.de_identify, follow_symlinks=args.symlinks, repackage_archives=args.repack, 
+        merge_subject_and_session=(args.no_subjects or args.no_sessions), context=dict(args.set_var))
 
     # Build the template string
     try:
@@ -46,5 +44,5 @@ def import_folder_with_template(args):
         raise argparse.ArgumentError('Invalid template: {}'.format(e))
 
     # Perform the import
-    perform_folder_import(resolver, importer, args)
+    importer.interactive_import(args.folder, resolver)
 

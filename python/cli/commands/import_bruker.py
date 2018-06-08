@@ -1,10 +1,4 @@
-import copy
-import io
 import re
-
-import fs
-
-from .import_folder import perform_folder_import
 
 from ..importers import FolderImporter, StringMatchNode
 from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
@@ -27,7 +21,7 @@ def import_bruker_folder(args):
     resolver = SdkUploadWrapper(fw)
 
     # Build the importer instance
-    importer = FolderImporter(resolver, group=args.group, project=args.project)
+    importer = FolderImporter(resolver, group=args.group, project=args.project, follow_symlinks=args.symlinks)
 
     importer.add_template_node(
         StringMatchNode(re.compile(r'(?P<session>[-\w]+)-\d+-(?P<subject>\d+)\..*'))
@@ -39,5 +33,5 @@ def import_bruker_folder(args):
     ])
 
     # Perform the import
-    perform_folder_import(resolver, importer, args)
+    importer.interactive_import(args.folder, resolver)
 

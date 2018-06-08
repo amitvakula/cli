@@ -198,7 +198,7 @@ class AbstractImporter(ABC):
                             if archive_fs and util.contains_dicoms(archive_fs):
                                 # Do archive upload
                                 packfile_data = io.BytesIO()
-                                packfile = create_zip_packfile(packfile_data, archive_fs, packfile_type='dicom', symlinks=self.follow_symlinks, **packfile_args)
+                                create_zip_packfile(packfile_data, archive_fs, packfile_type='dicom', symlinks=self.follow_symlinks, **packfile_args)
                                 upload_queue.upload(container, file_name, packfile_data)
                                 continue
 
@@ -215,11 +215,16 @@ class AbstractImporter(ABC):
                         file_name = '{}.{}.zip'.format(cname, packfile_type)
                     
                     packfile_data = io.BytesIO()
-                    packfile_src_fs = src_fs.opendir(path)
-                    packfile = create_zip_packfile(packfile_data, packfile_src_fs, packfile_type=packfile_type, symlinks=self.follow_symlinks, **packfile_args)
+                    if isinstance(path, str):
+                        packfile_src_fs = src_fs.opendir(path)
+                        create_zip_packfile(packfile_data, packfile_src_fs, packfile_type=packfile_type, symlinks=self.follow_symlinks, **packfile_args)
+                    else:
+                        create_zip_packfile(packfile_data, src_fs, packfile_type=packfile_type, paths=path, **packfile_args)
+
                     upload_queue.upload(container, file_name, packfile_data)
 
             upload_queue.finish()
 
+    
 
 

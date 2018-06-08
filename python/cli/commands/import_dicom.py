@@ -1,37 +1,30 @@
 import re
 
-from ..importers import FolderImporter, StringMatchNode
+from ..importers import DicomScanner
 from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
 def add_command(subparsers):
-    parser = subparsers.add_parser('bruker', help='Import structured bruker data')
+    parser = subparsers.add_parser('dicom', help='Import a folder of dicom files')
     parser.add_argument('folder', help='The path to the folder to import')
     parser.add_argument('group', metavar='<id>', help='The id of the group')
     parser.add_argument('project', metavar='<label>', help='The label of the project')
 
+    parser.add_argument('--de-identify', action='store_true', help='De-identify DICOM files, e-files and p-files prior to upload')
     parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
 
-    parser.set_defaults(func=import_bruker_folder)
+    parser.set_defaults(func=import_dicoms)
     parser.set_defaults(parser=parser)
 
     return parser
 
-def import_bruker_folder(args):
+def import_dicoms(args):
     fw = create_flywheel_client()
     resolver = SdkUploadWrapper(fw)
 
     # Build the importer instance
-    importer = FolderImporter(resolver, group=args.group, project=args.project, follow_symlinks=args.symlinks)
-
-    importer.add_template_node(
-        StringMatchNode(re.compile(r'(?P<session>[-\w]+)-\d+-(?P<subject>\d+)\..*'))
-    )
-
-    importer.add_composite_template_node([
-        StringMatchNode(re.compile('AdjResult'), packfile_type='zip'),
-        StringMatchNode('acquisition', packfile_type='pv5')
-    ])
+    importer = DicomScanner(resolver, group=args.group, project=args.project, de_identify=args.de_identify, follow_symlinks=args.symlinks)
 
     # Perform the import
     importer.interactive_import(args.folder, resolver)
+
 

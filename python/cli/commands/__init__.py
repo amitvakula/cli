@@ -1,6 +1,7 @@
 from . import import_folder
 from . import import_template
 from . import import_bruker
+from . import import_dicom
 
 def set_subparser_print_help(parser):
     def print_help(args):
@@ -34,11 +35,15 @@ def add_commands(parser, legacy_commands):
     # import folder
     parsers['import folder'] = import_folder.add_command(import_subparsers)
 
-    # import template
-    parsers['import template'] = import_template.add_command(import_subparsers)
+    # import dicom 
+    parsers['import dicom'] = import_dicom.add_command(import_subparsers)
 
     # import bruker
     parsers['import bruker'] = import_bruker.add_command(import_subparsers)
+
+    # import template
+    parsers['import template'] = import_template.add_command(import_subparsers)
+
 
 
     # cli subcommands (stubs)

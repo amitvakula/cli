@@ -157,6 +157,26 @@ def split_key_value_argument(val):
 
     return (key.strip(), value.strip())
 
+def fs_files_equal(src_fs, path1, path2):
+    chunk_size = 8192
+
+    info1 = src_fs.getinfo(path1, namespaces=['details'])
+    info2 = src_fs.getinfo(path2, namespaces=['details'])
+    if info1.size != info2.size:
+        return False
+
+    with src_fs.open(path1, 'rb') as f1, src_fs.open(path2, 'rb') as f2:
+        while True:
+            chunk1 = f1.read(chunk_size)
+            chunk2 = f2.read(chunk_size)
+
+            if chunk1 != chunk2:
+                return False
+            
+            if not chunk1:
+                return True
+
+
 def regex_for_property(name):
     """Get the regular expression match template for property name
 
@@ -201,5 +221,4 @@ def python_id_to_str(val):
 
 def _repl_hex(m):
     return chr(int(m.group(1), 16))
-
 

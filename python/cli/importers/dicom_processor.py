@@ -24,7 +24,7 @@ class DicomProcessor(object):
             bool, str: True to write the file, otherwise false, and the destination path.
         """
         # Open the dicom file and parse common headers. Possibly de-identify as well.
-        dcm = DicomFile(src_file, parse=True, de_identify=self.de_identify)
+        dcm = DicomFile(src_file, parse=True, de_identify=self.de_identify, decode=False)
         if self.series_uid is not None:
             # Validate SeriesInstanceUID
             if dcm.series_uid != self.series_uid:

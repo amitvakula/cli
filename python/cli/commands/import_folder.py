@@ -27,6 +27,7 @@ def add_command(subparsers):
     acq_group.add_argument('--pack-acquisitions', metavar='type', help='Acquisition folders only contain acquisitions of <type> and are zipped prior to upload')
     
     parser.add_argument('--de-identify', action='store_true', help='De-identify DICOM files, e-files and p-files prior to upload')
+    parser.add_argument('--repack', action='store_true', help='Whether or not to validate, de-identify and repackage zipped packfiles')
 
     no_level_group = parser.add_mutually_exclusive_group()
     no_level_group.add_argument('--no-subjects', action='store_true', help='no subject level (create a subject for every session)')
@@ -74,66 +75,74 @@ def import_folder(args):
         importer.add_template_node(StringMatchNode(re.compile(args.dicom), packfile_type='dicom'))
 
     # Perform the import
+    perform_folder_import(resolver, importer, args)
+
+def perform_folder_import(resolver, importer, args):
+    symlinks = getattr(args, 'symlinks', False)
+    repackage_archives = getattr(args, 'repack', False)
+    de_identify = getattr(args, 'de_identify', False)
+
     with fs.open_fs(util.to_fs_url(args.folder)) as src_fs:
-        perform_folder_import(resolver, importer, src_fs, args.symlinks, args.de_identify)
+        # Perform discovery on target filesystem
+        importer.discover(src_fs, symlinks)
 
-def perform_folder_import(resolver, importer, src_fs, symlinks, de_identify, repackage_archives=False):
-    # Perform discovery on target filesystem
-    importer.discover(src_fs, symlinks)
+        # Print summary
+        print('The following data hierarchy was found:\n')
+        importer.print_summary()
 
-    # Print summary
-    print('The following data hierarchy was found:\n')
-    importer.print_summary()
+        # Print warnings
+        print('')
+        for severity, msg in importer.verify():
+            print('{} - {}'.format(severity.upper(), msg))
+        print('')
 
-    # Print warnings
-    print('')
-    for severity, msg in importer.verify():
-        print('{} - {}'.format(severity.upper(), msg))
-    print('')
+        if not util.confirmation_prompt('Confirm upload?'):
+            return
 
-    if not util.confirmation_prompt('Confirm upload?'):
-        return
+        # Create containers
+        importer.container_factory.create_containers()
 
-    # Create containers
-    importer.container_factory.create_containers()
+        # Packfile args
+        packfile_args = {
+            'de_identify': de_identify
+        }
 
-    # Packfile args
-    packfile_args = {
-        'de_identify': de_identify
-    }
+        # Walk the hierarchy, uploading files
+        upload_queue = SynchronousUploadQueue(resolver)
+        for _, container in importer.container_factory.walk_containers():
+            cname = container.label or container.id
+            packfiles = copy.copy(container.packfiles)
 
-    # Walk the hierarchy, uploading files
-    upload_queue = SynchronousUploadQueue(resolver)
-    for _, container in importer.container_factory.walk_containers():
-        cname = container.label or container.id
-        packfiles = copy.copy(container.packfiles)
+            for path in container.files:
+                file_name = fs.path.basename(path)
 
-        for path in container.files:
-            file_name = fs.path.basename(path)
+                if repackage_archives and util.is_archive(path):
+                    # TODO: Can we templatize or generalize this a bit?
+                    with util.open_archive_fs(src_fs, path) as archive_fs:
+                        if archive_fs and util.contains_dicoms(archive_fs):
+                            # Do archive upload
+                            packfile_data = io.BytesIO()
+                            packfile = create_zip_packfile(packfile_data, archive_fs, packfile_type='dicom', symlinks=symlinks, **packfile_args)
+                            upload_queue.upload(container, file_name, packfile_data)
+                            continue
 
-            if repackage_archives and util.is_archive(path):
-                # TODO: Can we templatize or generalize this a bit?
-                with util.open_archive_fs(src_fs, path) as archive_fs:
-                    if archive_fs and util.contains_dicoms(archive_fs):
-                        # Do archive upload
-                        packfile_data = io.BytesIO()
-                        packfile = create_zip_packfile(packfile_data, archive_fs, 'dicom', **packfile_args)
-                        upload_queue.upload(container, file_name, packfile_data)
-                        continue
+                # Normal upload
+                src = src_fs.open(path, 'rb')
+                upload_queue.upload(container, file_name, src)
 
-            # Normal upload
-            src = src_fs.open(path, 'rb')
-            upload_queue.upload(container, file_name, src)
+            # packfiles
+            for packfile_type, path, _ in container.packfiles:
+                # Don't call things foo.zip.zip
+                if packfile_type == 'zip':
+                    file_name = '{}.zip'.format(cname)
+                else:
+                    file_name = '{}.{}.zip'.format(cname, packfile_type)
+                
+                packfile_data = io.BytesIO()
+                packfile_src_fs = src_fs.opendir(path)
+                packfile = create_zip_packfile(packfile_data, packfile_src_fs, packfile_type=packfile_type, symlinks=symlinks, **packfile_args)
+                upload_queue.upload(container, file_name, packfile_data)
 
-        # packfiles
-        for packfile_type, path, _ in container.packfiles:
-            file_name = '{}.{}.zip'.format(cname, packfile_type)
-            
-            packfile_data = io.BytesIO()
-            packfile_src_fs = src_fs.opendir(path)
-            packfile = create_zip_packfile(packfile_data, packfile_src_fs, packfile_type, **packfile_args)
-            upload_queue.upload(container, file_name, packfile_data)
-
-    upload_queue.finish()
+        upload_queue.finish()
 
 

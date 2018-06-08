@@ -1,4 +1,6 @@
 import collections
+import re
+
 import fs
 import pytest
 
@@ -150,5 +152,141 @@ def test_folder_resolver_group_and_project():
         pytest.fail('Unexpected container found')
     except StopIteration:
         pass
+
+def test_composite_packfiles():
+    mockfs = mock_fs(collections.OrderedDict({
+        'subject/session/pv5': [
+            'file1.txt',
+            'file2.txt'
+        ],
+        'subject/session/acquisition': [
+            'file3.txt'
+        ]
+    }))
+
+    resolver = MockContainerResolver()
+    importer = FolderImporter(resolver, group='group', project='project')
+    importer.add_template_node(StringMatchNode('subject'))
+    importer.add_template_node(StringMatchNode('session'))
+
+    importer.add_composite_template_node([
+        StringMatchNode(re.compile('pv5'), packfile_type='pv5'),
+        StringMatchNode('acquisition')
+    ])
+
+    importer.discover(mockfs)
+
+    itr = iter(importer.container_factory.walk_containers())
+
+    _, child = next(itr)
+    assert child.container_type == 'group'
+    assert child.id == 'group'
+
+    _, child = next(itr)
+    assert child.container_type == 'project'
+    assert child.label == 'project' 
+
+    _, child = next(itr)
+    assert child.container_type == 'subject'
+    assert child.label == 'subject'
+
+    _, child = next(itr)
+    assert child.container_type == 'session'
+    assert child.label == 'session'
+
+    assert len(child.packfiles) == 1
+    packfile_type, folder, count = child.packfiles[0]
+    assert packfile_type == 'pv5'
+    assert folder == '/subject/session/pv5'
+    assert count == 2
+
+    _, child = next(itr)
+    assert child.container_type == 'acquisition'
+    assert child.label == 'acquisition'
+    assert child.files == ['/subject/session/acquisition/file3.txt']
+
+    try:
+        next(itr)
+        pytest.fail('Unexpected container found')
+    except StopIteration:
+        pass
+
+def test_nested_packfiles():
+    mockfs = mock_fs(collections.OrderedDict({
+        'subject/session/pv5': [
+            'file1.txt',
+            'file2.txt'
+        ],
+        'subject/session/pv5/subdir': [
+            'file3.txt',
+            'file4.txt'
+        ],
+        'subject/session/acquisition': [
+            'file5.txt'
+        ],
+        'subject/session/acquisition/dicom': [
+            'file6.txt',
+            'file7.txt'
+        ],
+        'subject/session/acquisition/dicom/subdir2': [
+            'file8.txt'
+        ]
+    }))
+
+    resolver = MockContainerResolver()
+    importer = FolderImporter(resolver, group='group', project='project')
+    importer.add_template_node(StringMatchNode('subject'))
+    importer.add_template_node(StringMatchNode('session'))
+
+    importer.add_composite_template_node([
+        StringMatchNode(re.compile('pv5'), packfile_type='pv5'),
+        StringMatchNode('acquisition')
+    ])
+
+    importer.discover(mockfs)
+
+    itr = iter(importer.container_factory.walk_containers())
+
+    _, child = next(itr)
+    assert child.container_type == 'group'
+    assert child.id == 'group'
+
+    _, child = next(itr)
+    assert child.container_type == 'project'
+    assert child.label == 'project' 
+
+    _, child = next(itr)
+    assert child.container_type == 'subject'
+    assert child.label == 'subject'
+
+    _, child = next(itr)
+    assert child.container_type == 'session'
+    assert child.label == 'session'
+
+    assert len(child.packfiles) == 1
+    packfile_type, folder, count = child.packfiles[0]
+    assert packfile_type == 'pv5'
+    assert folder == '/subject/session/pv5'
+    assert count == 4
+
+    _, child = next(itr)
+    assert child.container_type == 'acquisition'
+    assert child.label == 'acquisition'
+    assert child.files == ['/subject/session/acquisition/file5.txt']
+
+    assert len(child.packfiles) == 1
+    packfile_type, folder, count = child.packfiles[0]
+    assert packfile_type == 'dicom'
+    assert folder == '/subject/session/acquisition/dicom'
+    assert count == 3
+
+    try:
+        next(itr)
+        pytest.fail('Unexpected container found')
+    except StopIteration:
+        pass
+
+
+
 
 

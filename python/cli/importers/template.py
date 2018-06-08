@@ -92,7 +92,7 @@ class CompositeNode(ImportTemplateNode):
         self.children.append(child)
 
     def extract_metadata(self, name, context, current_fs=None):
-        for child in children:
+        for child in self.children:
             next_node = child.extract_metadata(name, context, current_fs)
             if next_node:
                 return next_node

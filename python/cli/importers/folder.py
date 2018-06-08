@@ -6,6 +6,7 @@ import sys
 
 from ..util import set_nested_attr, sorted_container_nodes, METADATA_ALIASES, NO_FILE_CONTAINERS
 from .container_factory import ContainerFactory
+from .template import CompositeNode
 
 class FolderImporter(object):
     def __init__(self, resolver, group=None, project=None, de_id=False, merge_subject_and_session=False, context=None):
@@ -52,7 +53,7 @@ class FolderImporter(object):
             nodes (list): The list of nodes to append
         """
         composite = CompositeNode(nodes)
-        self.append_template_node(composite)
+        self.add_template_node(composite)
         self._last_added_node = nodes[-1]
 
     def initial_context(self):
@@ -166,7 +167,7 @@ class FolderImporter(object):
         context = self.initial_context()
         self.recursive_discover(src_fs, follow_symlinks, context, self.root_node, '/')
 
-    def recursive_discover(self, src_fs, follow_symlinks, context, template_node, curdir):
+    def recursive_discover(self, src_fs, follow_symlinks, context, template_node, curdir, resolve=True):
         """Performs recursive discovery of containers to create and files to upload in the given folder.
 
         Arguments:
@@ -175,51 +176,57 @@ class FolderImporter(object):
             context (dict): The context object, if this is a recursive call.
             template_node (ImportTemplateNode): The current template node
             curdir (str): The current absolute path (from fs root)
+            resolve (bool): Whether or not to resolve the container after discovery. Default is True.
         """
         if not context:
             context = self.initial_context()
 
-        # We only need to query for symlink if we're NOT following them
         info_ns = ['basic']
         if not follow_symlinks:
             info_ns.append('link')
 
+        # We only need to query for symlink if we're NOT following them
         for name in src_fs.listdir('/'):
             if name.startswith('.'):
                 continue
 
             info = src_fs.getinfo(name, info_ns) 
-            if not follow_symlinks and info.has_namespace('link') and info.is_link:
+            if not follow_symlinks and info.has_namespace('link') and info.target:
                 continue
 
             path = fs.path.combine(curdir, name)
+
             if info.is_dir:
-                context_copy = context.copy()
-                context_copy.pop('files', None)
-
+                next_node = None
                 with src_fs.opendir(name) as subdir:
-                    if template_node is None:
-                        # Treat as packfile
-                        context_copy['packfile'] = name
-                        next_node = None
+                    if 'packfile' in context:
+                        child_context = context
                     else:
-                        next_node = template_node.extract_metadata(name, context_copy, subdir)
+                        child_context = context.copy()
+                        child_context.pop('files', None)
 
-                    self.recursive_discover(subdir, follow_symlinks, context_copy, next_node, path)
+                        if template_node is None:
+                            # Treat as packfile
+                            child_context['packfile'] = name
+                        else:
+                            next_node = template_node.extract_metadata(name, child_context, subdir)
+
+                    resolve_child = 'packfile' not in context
+                    self.recursive_discover(subdir, follow_symlinks, child_context, next_node, path, resolve=resolve_child)
             else:
-                context.setdefault('files', [])
-                context['files'].append(path)
+                context.setdefault('files', []).append(path)
 
         # Resolve the container
-        container = self.container_factory.resolve(context)
+        if resolve:
+            container = self.container_factory.resolve(context)
 
-        files = context.get('files', None)
-        if files:
-            if container:
-                if 'packfile' in context:
-                    container.packfiles.append((context['packfile'], curdir, len(files)))
+            files = context.get('files', None)
+            if files:
+                if container:
+                    if 'packfile' in context:
+                        container.packfiles.append((context['packfile'], curdir, len(files)))
+                    else:
+                        container.files.extend(files)
                 else:
-                    container.files.extend(files)
-            else:
-                self.messages.append(('warn', 'Ignoring files for folder {} because it represents an ambiguous node'.format(curdir)))
+                    self.messages.append(('warn', 'Ignoring files for folder {} because it represents an ambiguous node'.format(curdir)))
 

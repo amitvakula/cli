@@ -1,5 +1,4 @@
 import argparse
-import fs
 
 from ..importers import parse_template_string, FolderImporter
 from .. import util
@@ -14,6 +13,7 @@ def add_command(subparsers):
     parser.add_argument('--project', '-p', metavar='<label>', help='The label of the project, if not in folder structure')
 
     parser.add_argument('--de-identify', action='store_true', help='De-identify DICOM files, e-files and p-files prior to upload')
+    parser.add_argument('--repack', action='store_true', help='Whether or not to validate, de-identify and repackage zipped packfiles')
 
     no_level_group = parser.add_mutually_exclusive_group()
     no_level_group.add_argument('--no-subjects', action='store_true', help='no subject level (create a subject for every session)')
@@ -46,6 +46,5 @@ def import_folder_with_template(args):
         raise argparse.ArgumentError('Invalid template: {}'.format(e))
 
     # Perform the import
-    with fs.open_fs(util.to_fs_url(args.folder)) as src_fs:
-        perform_folder_import(resolver, importer, src_fs, args.symlinks, args.de_identify)
+    perform_folder_import(resolver, importer, args)
 

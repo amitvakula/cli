@@ -7,7 +7,8 @@ from cli import legacy
 from cli.commands import add_commands
 
 OVERRIDE_COMMANDS = [
-    'import'
+    'import',
+    'export'
 ]
 
 if __name__ == '__main__':

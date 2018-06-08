@@ -2,6 +2,9 @@ from . import import_folder
 from . import import_template
 from . import import_bruker
 from . import import_dicom
+from . import import_bids
+
+from . import export_bids
 
 def set_subparser_print_help(parser):
     def print_help(args):
@@ -25,7 +28,9 @@ def add_commands(parser, legacy_commands):
     # Create subparsers
     subparsers = parser.add_subparsers(title='Available commands', metavar='')
 
+    # =====
     # import
+    # =====
     parser_import = subparsers.add_parser('import', help='Import data into Flywheel')
     parsers['import'] = parser_import
 
@@ -34,6 +39,9 @@ def add_commands(parser, legacy_commands):
 
     # import folder
     parsers['import folder'] = import_folder.add_command(import_subparsers)
+
+    # import bids
+    parsers['import bids'] = import_bids.add_command(import_subparsers)
 
     # import dicom 
     parsers['import dicom'] = import_dicom.add_command(import_subparsers)
@@ -44,13 +52,26 @@ def add_commands(parser, legacy_commands):
     # import template
     parsers['import template'] = import_template.add_command(import_subparsers)
 
+    # =====
+    # export
+    # =====
+    parser_export = subparsers.add_parser('export', help='Export data from Flywheel')
+    parsers['export'] = parser_export
 
+    export_subparsers = parser_export.add_subparsers(title='Available export commands', metavar='')
+    set_subparser_print_help(parser_export)
 
+    parsers['export bids'] = export_bids.add_command(export_subparsers)
+
+    # =====
     # cli subcommands (stubs)
+    # =====
     for cmd, desc in legacy_commands.items():
         subparsers.add_parser(cmd, help=desc)
 
+    # =====
     # help commands
+    # =====
     parser_help = subparsers.add_parser('help')
     parser_help.add_argument('subcommands', nargs='*')
     parser_help.set_defaults(func=print_help(parser, parsers))

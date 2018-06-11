@@ -1,6 +1,5 @@
-import re
 
-from ..importers import FolderImporter, StringMatchNode
+from ..importers.bruker_scan import create_bruker_scanner
 from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
 def add_command(subparsers):
@@ -21,16 +20,7 @@ def import_bruker_folder(args):
     resolver = SdkUploadWrapper(fw)
 
     # Build the importer instance
-    importer = FolderImporter(resolver, group=args.group, project=args.project, follow_symlinks=args.symlinks)
-
-    importer.add_template_node(
-        StringMatchNode(re.compile(r'(?P<session>[-\w]+)-\d+-(?P<subject>\d+)\..*'))
-    )
-
-    importer.add_composite_template_node([
-        StringMatchNode(re.compile('AdjResult'), packfile_type='zip'),
-        StringMatchNode('acquisition', packfile_type='pv5')
-    ])
+    importer = create_bruker_scanner(resolver, args.group, args.project, args.symlinks)
 
     # Perform the import
     importer.interactive_import(args.folder, resolver)

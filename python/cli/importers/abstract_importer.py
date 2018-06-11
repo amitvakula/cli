@@ -209,10 +209,11 @@ class AbstractImporter(ABC):
                 # packfiles
                 for packfile_type, path, _ in container.packfiles:
                     # Don't call things foo.zip.zip
+                    packfile_name = util.str_to_filename(cname)
                     if packfile_type == 'zip':
-                        file_name = '{}.zip'.format(cname)
+                        file_name = '{}.zip'.format(packfile_name)
                     else:
-                        file_name = '{}.{}.zip'.format(cname, packfile_type)
+                        file_name = '{}.{}.zip'.format(packfile_name, packfile_type)
                     
                     packfile_data = io.BytesIO()
                     if isinstance(path, str):

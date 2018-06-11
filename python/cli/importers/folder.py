@@ -108,7 +108,7 @@ class FolderImporter(AbstractImporter):
                             # Treat as packfile
                             child_context['packfile'] = name
                         else:
-                            next_node = template_node.extract_metadata(name, child_context, subdir)
+                            next_node = template_node.extract_metadata(name, child_context, src_fs)
 
                     resolve_child = 'packfile' not in context
                     self.recursive_discover(subdir, child_context, next_node, path, resolve=resolve_child)

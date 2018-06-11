@@ -13,13 +13,13 @@ from ..util import (
 
 class ImportTemplateNode(ABC):
     @abstractmethod
-    def extract_metadata(self, name, context, current_fs=None):
+    def extract_metadata(self, name, context, parent_fs=None):
         """Extract metadata from a folder-level node
         
         Arguments:
             name (str): The current folder name
             context (dict): The context object to update
-            current_fs (fs): The current fs object, if available
+            parent_fs (fs): The parent fs object, if available
         
         Returns:
             ImportTemplateNode: The next node in the tree if match succeeded, otherwise None
@@ -28,28 +28,30 @@ class ImportTemplateNode(ABC):
 
 class TerminalNode(ImportTemplateNode):
     """Terminal node"""
-    def extract_metadata(self, name, context, current_fs=None):
+    def extract_metadata(self, name, context, parent_fs=None):
         return None
 
 TERMINAL_NODE = TerminalNode()
 
 class StringMatchNode(ImportTemplateNode):
-    def __init__(self, template=None, packfile_type=None):
+    def __init__(self, template=None, packfile_type=None, metadata_fn=None):
         """Create a new container-level node.
 
         Arguments:
             template (str|Pattern): The metavar or regular expression
             packfile_type (str): The optional packfile type if this is a packfile folder
+            metadata_fn (function): Optional function to extract additional metadata
         """
         self.template = template
         self.next_node = None
         self.packfile_type = packfile_type
+        self.metadata_fn = metadata_fn
 
     def set_next(self, next_node):
         """Set the next node"""
         self.next_node = next_node
 
-    def extract_metadata(self, name, context, current_fs=None):
+    def extract_metadata(self, name, context, parent_fs=None):
         groups = {}
 
         if isinstance(self.template, Pattern):
@@ -68,6 +70,9 @@ class StringMatchNode(ImportTemplateNode):
                     key = METADATA_ALIASES[key]
 
                 set_nested_attr(context, key, value)
+
+        if callable(self.metadata_fn):
+            self.metadata_fn(name, context, parent_fs)
 
         if self.packfile_type:
             context['packfile'] = self.packfile_type
@@ -91,9 +96,9 @@ class CompositeNode(ImportTemplateNode):
         """
         self.children.append(child)
 
-    def extract_metadata(self, name, context, current_fs=None):
+    def extract_metadata(self, name, context, parent_fs=None):
         for child in self.children:
-            next_node = child.extract_metadata(name, context, current_fs)
+            next_node = child.extract_metadata(name, context, parent_fs)
             if next_node:
                 return next_node
         return None

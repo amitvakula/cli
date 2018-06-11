@@ -219,6 +219,18 @@ def python_id_to_str(val):
     """
     return re.sub('__([a-f0-9]{2})__', _repl_hex, val)
 
+def str_to_filename(val):
+    """Convert a string to a valid filename string
+
+    Arguments:
+        val (str): The value to convert
+    Returns:
+        str: The converted value
+    """
+    keepcharacters = (' ', '.', '_', '-')
+    result = ''.join([c if (c.isalnum() or c in keepcharacters) else '_' for c in val])
+    return re.sub('_{2,}', '_', result).strip('_ ')
+
 def _repl_hex(m):
     return chr(int(m.group(1), 16))
 

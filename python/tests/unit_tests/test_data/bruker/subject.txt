@@ -1,0 +1,38 @@
+##TITLE=Parameter List
+##JCAMPDX=4.24
+##DATATYPE=Parameter Values
+##ORIGIN= Bruker Medizintechnik GMBH
+##OWNER=cbu
+$$ Thu Jan  4 12:36:06 2001 GMT (UT+0h)  cbu
+$$ /PV2.0.1/data/cbu/nmr/010005-m00.5X1/subject
+##$SUBJECT_id=( 11 )
+<010005-m00>
+##$SUBJECT_patient_instance_uid=( 65 )
+<2.16.756.5.5.51.2205113821.978611751.779956>
+##$SUBJECT_name_string=( 64 )
+<010005-m00>
+##$SUBJECT_name=(<>, <010005-m00>)
+##$SUBJECT_dbirth=( 12 )
+<04-01-2001>
+##$SUBJECT_type=Human
+##$SUBJECT_sex=( 8 )
+<female>
+##$SUBJECT_sex_human=Female
+##$SUBJECT_study_name=( 64 )
+<protocol 76>
+##$SUBJECT_study_nr=1
+##$SUBJECT_study_instance_uid=( 65 )
+<2.16.756.5.5.52.2205113821.978611751.780080>
+##$SUBJECT_series_instance_uid=( 65 )
+<2.16.756.5.5.53.2205113821.978611751.780151>
+##$SUBJECT_size=0.0010
+##$SUBJECT_weight=65
+##$SUBJECT_pos_valid=Yes
+##$SUBJECT_location=( 32 )
+<BRUKER>
+##$SUBJECT_entry=SUBJ_ENTRY_HeadFirst
+##$SUBJECT_position=SUBJ_POS_Supine
+##$SUBJECT_date=( 21 )
+<12:35:51  4 Jan 2001>
+##$SUBJECT_abs_date=978611751
+##END=

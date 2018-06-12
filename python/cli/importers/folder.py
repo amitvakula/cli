@@ -12,7 +12,7 @@ from .template import CompositeNode
 class FolderImporter(AbstractImporter):
     def __init__(self, resolver, group=None, project=None, de_identify=False, 
             follow_symlinks=False, repackage_archives=False,
-            merge_subject_and_session=False, context=None):
+            merge_subject_and_session=False, context=None, packfile_threads=1):
         """Class that handles state for folder import.
 
         Arguments:
@@ -23,8 +23,9 @@ class FolderImporter(AbstractImporter):
             follow_symlinks (bool): Whether or not to follow links (if supported by src_fs). Default is False.
             repackage_archives (bool): Whether or not to repackage (and validate and de-identify) zipped packfiles. Default is False.
             merge_subject_and_session (bool): Whether or not subject or session layer is missing. Default is False.
+            packfile_threads (int): The number of packfile threads
         """
-        super(FolderImporter, self).__init__(resolver, group, project, de_identify, follow_symlinks, repackage_archives, context)
+        super(FolderImporter, self).__init__(resolver, group, project, de_identify, follow_symlinks, repackage_archives, context, packfile_threads)
 
         self.root_node = None
         self._last_added_node = None

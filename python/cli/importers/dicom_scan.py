@@ -25,7 +25,7 @@ class DicomScanner(AbstractImporter):
     # The session label dicom header key
     session_label_key = 'StudyDescription'
 
-    def __init__(self, resolver, group, project, de_identify=False, follow_symlinks=False, context=None):
+    def __init__(self, resolver, group, project, de_identify=False, follow_symlinks=False, context=None, packfile_threads=1):
         """Class that handles state for dicom scanning import.
 
         Arguments:
@@ -34,8 +34,9 @@ class DicomScanner(AbstractImporter):
             project (str): The optional project label or id in the format <id:xyz>
             de_identify (bool): Whether or not to de-identify DICOM, e-file, or p-file data before import. Default is False.
             follow_symlinks (bool): Whether or not to follow links (if supported by src_fs). Default is False.
+            packfile_threads (int): The number of packfile threads
         """
-        super(DicomScanner, self).__init__(resolver, group, project, de_identify, follow_symlinks, False, context)
+        super(DicomScanner, self).__init__(resolver, group, project, de_identify, follow_symlinks, False, context, packfile_threads)
         # Extract the following fields from dicoms:
 
         # session label

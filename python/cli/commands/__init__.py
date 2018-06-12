@@ -1,3 +1,5 @@
+import math
+
 from . import import_folder
 from . import import_template
 from . import import_bruker
@@ -26,6 +28,10 @@ def config_import(args):
     import zlib
     zlib.Z_DEFAULT_COMPRESSION = args.compression_level
 
+    if args.jobs == -1:
+        import multiprocessing
+        args.jobs = max(1, math.floor(multiprocessing.cpu_count() / 2))
+
 def add_commands(parser, legacy_commands):
     # map commands for help function
     parsers = {}
@@ -38,6 +44,7 @@ def add_commands(parser, legacy_commands):
     # =====
     parser_import = subparsers.add_parser('import', help='Import data into Flywheel')
     compression_levels = [-1] + list(range(9))
+    parser_import.add_argument('--jobs', '-j', default=-1, type=int, help='The number of concurrent jobs to run (e.g. compression jobs)')
     parser_import.add_argument('--compression-level', default=1, type=int, choices=compression_levels, 
             help='The compression level to use for packfiles')
     parser_import.set_defaults(config=config_import)

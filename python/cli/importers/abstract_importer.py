@@ -9,11 +9,11 @@ import sys
 from .. import util
 from .container_factory import ContainerFactory
 from .template import CompositeNode
-from .upload_queue import SynchronousUploadQueue
+from .upload_queue import UploadQueue
 from .packfile import create_zip_packfile
 
 class AbstractImporter(ABC):
-    def __init__(self, resolver, group, project, de_identify, follow_symlinks, repackage_archives, context):
+    def __init__(self, resolver, group, project, de_identify, follow_symlinks, repackage_archives, context, packfile_threads):
         """Abstract class that handles state for flywheel imports
 
         Arguments:
@@ -24,6 +24,7 @@ class AbstractImporter(ABC):
             follow_symlinks (bool): Whether or not to follow links (if supported by src_fs). Default is False.
             repackage_archives (bool): Whether or not to repackage (and validate and de-identify) zipped packfiles. Default is False.
             context (dict): The optional additional context fields
+            packfile_threads (int): The number of packfile threads
         """
         self.container_factory = ContainerFactory(resolver)
 
@@ -34,6 +35,7 @@ class AbstractImporter(ABC):
         self.context = context
         self.follow_symlinks = follow_symlinks 
         self.repackage_archives = repackage_archives
+        self.packfile_threads = packfile_threads
 
     def initial_context(self):
         """Creates the initial context for folder import.
@@ -114,6 +116,8 @@ class AbstractImporter(ABC):
         print('                       {} attachments, and'.format(counts['file']), file=file)
         print('                       {} packfiles.'.format(counts['packfile']), file=file)
 
+        return counts
+
     def verify(self):
         """Verify the upload plan, returning any messages that should be logged, with severity.
 
@@ -164,7 +168,7 @@ class AbstractImporter(ABC):
 
             # Print summary
             print('The following data hierarchy was found:\n')
-            self.print_summary()
+            counts = self.print_summary()
 
             # Print warnings
             print('')
@@ -184,7 +188,10 @@ class AbstractImporter(ABC):
             }
 
             # Walk the hierarchy, uploading files
-            upload_queue = SynchronousUploadQueue(uploader)
+            upload_queue = UploadQueue(uploader, upload_threads=1, packfile_threads=self.packfile_threads, 
+                upload_count=counts['file'], packfile_count=counts['packfile'])
+            upload_queue.start()
+
             for _, container in self.container_factory.walk_containers():
                 cname = container.label or container.id
                 packfiles = copy.copy(container.packfiles)
@@ -193,14 +200,14 @@ class AbstractImporter(ABC):
                     file_name = fs.path.basename(path)
 
                     if self.repackage_archives and util.is_archive(path):
-                        # TODO: Can we templatize or generalize this a bit?
-                        with util.open_archive_fs(src_fs, path) as archive_fs:
-                            if archive_fs and util.contains_dicoms(archive_fs):
-                                # Do archive upload
-                                packfile_data = io.BytesIO()
-                                create_zip_packfile(packfile_data, archive_fs, packfile_type='dicom', symlinks=self.follow_symlinks, **packfile_args)
-                                upload_queue.upload(container, file_name, packfile_data)
+                        archive_fs = util.open_archive_fs(src_fs, path)
+                        if archive_fs:
+                            if util.contains_dicoms(archive_fs):
+                                # Repackage upload
+                                upload_queue.upload_packfile(archive_fs, 'dicom', packfile_args, self.follow_symlinks, container, file_name)
                                 continue
+                            else:
+                                archive_fs.close()
 
                     # Normal upload
                     src = src_fs.open(path, 'rb')
@@ -215,14 +222,12 @@ class AbstractImporter(ABC):
                     else:
                         file_name = '{}.{}.zip'.format(packfile_name, packfile_type)
                     
-                    packfile_data = io.BytesIO()
                     if isinstance(path, str):
                         packfile_src_fs = src_fs.opendir(path)
-                        create_zip_packfile(packfile_data, packfile_src_fs, packfile_type=packfile_type, symlinks=self.follow_symlinks, **packfile_args)
+                        upload_queue.upload_packfile(packfile_src_fs, packfile_type, packfile_args, self.follow_symlinks, container, file_name)
                     else:
-                        create_zip_packfile(packfile_data, src_fs, packfile_type=packfile_type, paths=path, **packfile_args)
-
-                    upload_queue.upload(container, file_name, packfile_data)
+                        packfile_src_fs = src_fs.opendir('/')
+                        upload_queue.upload_packfile(src_fs, packfile_type, packfile_args, self.follow_symlinks, container, file_name, paths=path)
 
             upload_queue.finish()
 

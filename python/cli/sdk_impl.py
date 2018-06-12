@@ -96,8 +96,6 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
             print('Skipping unsupported upload to container: {}'.format(container.container_type))
             return
 
-        cname = container.label or container.id
-        print('Uploading {} to {}: {}'.format(name, container.container_type, cname))
         upload_fn(container.id, flywheel.FileSpec(name, fileobj))
         
 

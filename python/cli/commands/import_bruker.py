@@ -8,8 +8,6 @@ def add_command(subparsers):
     parser.add_argument('group', metavar='<id>', help='The id of the group')
     parser.add_argument('project', metavar='<label>', help='The label of the project')
 
-    parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
-
     parser.set_defaults(func=import_bruker_folder)
     parser.set_defaults(parser=parser)
 
@@ -20,7 +18,7 @@ def import_bruker_folder(args):
     resolver = SdkUploadWrapper(fw)
 
     # Build the importer instance
-    importer = create_bruker_scanner(resolver, args.group, args.project, args.symlinks)
+    importer = create_bruker_scanner(resolver, args.group, args.project, args.symlinks, args.config)
 
     # Perform the import
     importer.interactive_import(args.folder, resolver)

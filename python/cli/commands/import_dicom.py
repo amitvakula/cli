@@ -10,7 +10,6 @@ def add_command(subparsers):
     parser.add_argument('project', metavar='<label>', help='The label of the project')
 
     parser.add_argument('--de-identify', action='store_true', help='De-identify DICOM files, e-files and p-files prior to upload')
-    parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
 
     parser.set_defaults(func=import_dicoms)
     parser.set_defaults(parser=parser)
@@ -22,7 +21,8 @@ def import_dicoms(args):
     resolver = SdkUploadWrapper(fw)
 
     # Build the importer instance
-    importer = DicomScanner(resolver, group=args.group, project=args.project, de_identify=args.de_identify, follow_symlinks=args.symlinks)
+    importer = DicomScanner(resolver, group=args.group, project=args.project, de_identify=args.de_identify, 
+            config=args.config)
 
     # Perform the import
     importer.interactive_import(args.folder, resolver)

@@ -21,7 +21,6 @@ def add_command(subparsers):
     no_level_group.add_argument('--no-subjects', action='store_true', help='no subject level (create a subject for every session)')
     no_level_group.add_argument('--no-sessions', action='store_true', help='no session level (create a session for every subject)')
 
-    parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
     parser.add_argument('--root-dirs', type=int, default=0, help='The number of directories to discard before matching')
 
     parser.set_defaults(func=import_folder)
@@ -39,8 +38,8 @@ def import_folder(args):
 
     # Build the importer instance
     importer = FolderImporter(resolver, group=args.group, project=args.project, 
-        de_identify=args.de_identify, follow_symlinks=args.symlinks, repackage_archives=args.repack, 
-        merge_subject_and_session=(args.no_subjects or args.no_sessions))
+        de_identify=args.de_identify, repackage_archives=args.repack, 
+        merge_subject_and_session=(args.no_subjects or args.no_sessions), config=args.config)
 
     for i in range(args.root_dirs):
         importer.add_template_node(StringMatchNode(re.compile('.*'))) 

@@ -73,7 +73,7 @@ class UploadTask(Task):
         return 'Upload {}'.format(self.filename)
 
 class PackfileTask(Task):
-    def __init__(self, uploader, archive_fs, packfile_type, packfile_args, follow_symlinks, container, filename, paths=None):
+    def __init__(self, uploader, archive_fs, packfile_type, packfile_args, follow_symlinks, container, filename, paths=None, compression=None):
         super(PackfileTask, self).__init__('packfile')
 
         self.uploader = uploader
@@ -85,12 +85,16 @@ class PackfileTask(Task):
         self.container = container
         self.filename = filename
         self.paths = paths
+        self.compression = compression
+
+        self._bytes_processed = None
 
     def execute(self):
         tmpfile = tempfile.TemporaryFile()
 
         create_zip_packfile(tmpfile, self.archive_fs, packfile_type=self.packfile_type, 
-            symlinks=self.follow_symlinks, paths=self.paths, **self.packfile_args)
+            symlinks=self.follow_symlinks, paths=self.paths, compression=self.compression, 
+            progress_callback=self.update_bytes_processed, **self.packfile_args)
 
         #Rewind
         tmpfile.seek(0)
@@ -105,20 +109,26 @@ class PackfileTask(Task):
         return UploadTask(self.uploader, self.container, self.filename, tmpfile)
 
     def get_bytes_processed(self):
-        return 0
+        return self._bytes_processed
 
     def get_desc(self):
         return 'Pack {}'.format(self.filename)
 
+    def update_bytes_processed(self, bytes_processed):
+        self._bytes_processed = bytes_processed
+
 
 class UploadQueue(WorkQueue):
-    def __init__(self, uploader, packfile_threads=1, upload_threads=1, packfile_count=0, upload_count=0, show_progress=True):
+    def __init__(self, uploader, config, packfile_count=0, upload_count=0, show_progress=True):
+        # TODO: Detect signed-url upload and start multiple upload threads
         super(UploadQueue, self).__init__({
-            'upload': upload_threads,
-            'packfile': packfile_threads
+            'upload': 1,
+            'packfile': config.cpu_count 
         })
 
         self.uploader = uploader
+        self.compression = config.get_compression_type()
+        self.follow_symlinks = config.follow_symlinks
 
         self._progress_thread = None
         if show_progress:
@@ -145,6 +155,7 @@ class UploadQueue(WorkQueue):
     def upload(self, container, filename, fileobj):
         self.enqueue(UploadTask(self.uploader, container, filename, fileobj))
 
-    def upload_packfile(self, archive_fs, packfile_type, packfile_args, follow_symlinks, container, filename, paths=None):
-        self.enqueue(PackfileTask(self.uploader, archive_fs, packfile_type, packfile_args, follow_symlinks, container, filename, paths=paths))
+    def upload_packfile(self, archive_fs, packfile_type, packfile_args, container, filename, paths=None):
+        self.enqueue(PackfileTask(self.uploader, archive_fs, packfile_type, packfile_args, self.follow_symlinks, container, 
+            filename, paths=paths, compression=self.compression))
 

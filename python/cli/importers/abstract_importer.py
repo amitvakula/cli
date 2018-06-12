@@ -13,7 +13,7 @@ from .upload_queue import UploadQueue
 from .packfile import create_zip_packfile
 
 class AbstractImporter(ABC):
-    def __init__(self, resolver, group, project, de_identify, follow_symlinks, repackage_archives, context, packfile_threads):
+    def __init__(self, resolver, group, project, de_identify, repackage_archives, context, config):
         """Abstract class that handles state for flywheel imports
 
         Arguments:
@@ -21,10 +21,9 @@ class AbstractImporter(ABC):
             group (str): The optional group id
             project (str): The optional project label or id in the format <id:xyz>
             de_identify (bool): Whether or not to de-identify DICOM, e-file, or p-file data before import. Default is False.
-            follow_symlinks (bool): Whether or not to follow links (if supported by src_fs). Default is False.
             repackage_archives (bool): Whether or not to repackage (and validate and de-identify) zipped packfiles. Default is False.
             context (dict): The optional additional context fields
-            packfile_threads (int): The number of packfile threads
+            config (Config): The config object
         """
         self.container_factory = ContainerFactory(resolver)
 
@@ -33,9 +32,8 @@ class AbstractImporter(ABC):
         self.de_identify = de_identify
         self.messages = []
         self.context = context
-        self.follow_symlinks = follow_symlinks 
+        self.config = config
         self.repackage_archives = repackage_archives
-        self.packfile_threads = packfile_threads
 
     def initial_context(self):
         """Creates the initial context for folder import.
@@ -188,8 +186,7 @@ class AbstractImporter(ABC):
             }
 
             # Walk the hierarchy, uploading files
-            upload_queue = UploadQueue(uploader, upload_threads=1, packfile_threads=self.packfile_threads, 
-                upload_count=counts['file'], packfile_count=counts['packfile'])
+            upload_queue = UploadQueue(uploader, self.config, upload_count=counts['file'], packfile_count=counts['packfile'])
             upload_queue.start()
 
             for _, container in self.container_factory.walk_containers():
@@ -204,7 +201,7 @@ class AbstractImporter(ABC):
                         if archive_fs:
                             if util.contains_dicoms(archive_fs):
                                 # Repackage upload
-                                upload_queue.upload_packfile(archive_fs, 'dicom', packfile_args, self.follow_symlinks, container, file_name)
+                                upload_queue.upload_packfile(archive_fs, 'dicom', packfile_args, container, file_name)
                                 continue
                             else:
                                 archive_fs.close()
@@ -224,10 +221,10 @@ class AbstractImporter(ABC):
                     
                     if isinstance(path, str):
                         packfile_src_fs = src_fs.opendir(path)
-                        upload_queue.upload_packfile(packfile_src_fs, packfile_type, packfile_args, self.follow_symlinks, container, file_name)
+                        upload_queue.upload_packfile(packfile_src_fs, packfile_type, packfile_args, container, file_name)
                     else:
                         packfile_src_fs = src_fs.opendir('/')
-                        upload_queue.upload_packfile(src_fs, packfile_type, packfile_args, self.follow_symlinks, container, file_name, paths=path)
+                        upload_queue.upload_packfile(src_fs, packfile_type, packfile_args, container, file_name, paths=path)
 
             upload_queue.finish()
 

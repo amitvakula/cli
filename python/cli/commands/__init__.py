@@ -1,5 +1,3 @@
-import math
-
 from . import import_folder
 from . import import_template
 from . import import_bruker
@@ -7,6 +5,8 @@ from . import import_dicom
 from . import import_bids
 
 from . import export_bids
+
+from ..config import Config
 
 def set_subparser_print_help(parser):
     def print_help(args):
@@ -23,14 +23,8 @@ def print_help(default_parser, parsers):
 
     return print_help_fn
 
-def config_import(args):
-    # Set the default compression (used by zipfile/ZipFS)
-    import zlib
-    zlib.Z_DEFAULT_COMPRESSION = args.compression_level
-
-    if args.jobs == -1:
-        import multiprocessing
-        args.jobs = max(1, math.floor(multiprocessing.cpu_count() / 2))
+def get_config(args):
+    args.config = Config(args)
 
 def add_commands(parser, legacy_commands):
     # map commands for help function
@@ -43,11 +37,7 @@ def add_commands(parser, legacy_commands):
     # import
     # =====
     parser_import = subparsers.add_parser('import', help='Import data into Flywheel')
-    compression_levels = [-1] + list(range(9))
-    parser_import.add_argument('--jobs', '-j', default=-1, type=int, help='The number of concurrent jobs to run (e.g. compression jobs)')
-    parser_import.add_argument('--compression-level', default=1, type=int, choices=compression_levels, 
-            help='The compression level to use for packfiles')
-    parser_import.set_defaults(config=config_import)
+    parser_import.set_defaults(config=get_config)
 
     parsers['import'] = parser_import
 
@@ -56,18 +46,22 @@ def add_commands(parser, legacy_commands):
 
     # import folder
     parsers['import folder'] = import_folder.add_command(import_subparsers)
+    Config.add_config_args(parsers['import folder'])
 
     # import bids
     parsers['import bids'] = import_bids.add_command(import_subparsers)
 
     # import dicom 
     parsers['import dicom'] = import_dicom.add_command(import_subparsers)
+    Config.add_config_args(parsers['import dicom'])
 
     # import bruker
     parsers['import bruker'] = import_bruker.add_command(import_subparsers)
+    Config.add_config_args(parsers['import bruker'])
 
     # import template
     parsers['import template'] = import_template.add_command(import_subparsers)
+    Config.add_config_args(parsers['import template'])
 
     # =====
     # export

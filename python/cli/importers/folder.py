@@ -11,8 +11,7 @@ from .template import CompositeNode
 
 class FolderImporter(AbstractImporter):
     def __init__(self, resolver, group=None, project=None, de_identify=False, 
-            follow_symlinks=False, repackage_archives=False,
-            merge_subject_and_session=False, context=None, packfile_threads=1):
+            repackage_archives=False, merge_subject_and_session=False, context=None, config=None):
         """Class that handles state for folder import.
 
         Arguments:
@@ -20,12 +19,11 @@ class FolderImporter(AbstractImporter):
             group (str): The optional group id
             project (str): The optional project label or id in the format <id:xyz>
             de_identify (bool): Whether or not to de-identify DICOM, e-file, or p-file data before import. Default is False.
-            follow_symlinks (bool): Whether or not to follow links (if supported by src_fs). Default is False.
             repackage_archives (bool): Whether or not to repackage (and validate and de-identify) zipped packfiles. Default is False.
             merge_subject_and_session (bool): Whether or not subject or session layer is missing. Default is False.
-            packfile_threads (int): The number of packfile threads
+            config (Config): The config object
         """
-        super(FolderImporter, self).__init__(resolver, group, project, de_identify, follow_symlinks, repackage_archives, context, packfile_threads)
+        super(FolderImporter, self).__init__(resolver, group, project, de_identify, repackage_archives, context, config)
 
         self.root_node = None
         self._last_added_node = None
@@ -82,7 +80,7 @@ class FolderImporter(AbstractImporter):
             context = self.initial_context()
 
         info_ns = ['basic']
-        if not self.follow_symlinks:
+        if not self.config.follow_symlinks:
             info_ns.append('link')
 
         # We only need to query for symlink if we're NOT following them
@@ -91,7 +89,7 @@ class FolderImporter(AbstractImporter):
                 continue
 
             info = src_fs.getinfo(name, info_ns) 
-            if not self.follow_symlinks and info.has_namespace('link') and info.target:
+            if not self.config.follow_symlinks and info.has_namespace('link') and info.target:
                 continue
 
             path = fs.path.combine(curdir, name)

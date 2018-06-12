@@ -1,11 +1,15 @@
 import copy
 import logging
 import os
+import sys
 
 from .abstract_importer import AbstractImporter
 from .custom_walker import CustomWalker
 from ..dcm import DicomFileError, DicomFile
 from .. import util
+
+from pydicom.datadict import tag_for_keyword
+from pydicom.tag import Tag
 
 log = logging.getLogger(__name__)
 
@@ -21,22 +25,43 @@ class DicomAcquisition(object):
         self.context = context
         self.files = {}
 
+# Specifying just the list of tags we're interested in speeds up dicom scanning
+DICOM_TAGS = [
+    'Manufacturer',
+    'AcquisitionNumber',
+    'AcquisitionDate',
+    'AcquisitionTime',
+    'SeriesDate',
+    'SeriesTime',
+    'SeriesInstanceUID',
+    'ImageType',
+    'StudyDate',
+    'StudyTime',
+    'StudyInstanceUID',
+    'OperatorsName',
+    'PatientName',
+    'PatientID',
+    'StudyID',
+    'SeriesDescription',
+    'PatientBirthDate',
+    'SOPInstanceUID'
+]
+
 class DicomScanner(AbstractImporter):
     # The session label dicom header key
     session_label_key = 'StudyDescription'
 
-    def __init__(self, resolver, group, project, de_identify=False, follow_symlinks=False, context=None, packfile_threads=1):
+    def __init__(self, resolver, group, project, config, de_identify=False, context=None): 
         """Class that handles state for dicom scanning import.
 
         Arguments:
             resolver (ContainerResolver): The container resolver instance
             group (str): The optional group id
             project (str): The optional project label or id in the format <id:xyz>
+            config (Config): The config object
             de_identify (bool): Whether or not to de-identify DICOM, e-file, or p-file data before import. Default is False.
-            follow_symlinks (bool): Whether or not to follow links (if supported by src_fs). Default is False.
-            packfile_threads (int): The number of packfile threads
         """
-        super(DicomScanner, self).__init__(resolver, group, project, de_identify, follow_symlinks, False, context, packfile_threads)
+        super(DicomScanner, self).__init__(resolver, group, project, de_identify, False, context, config)
         # Extract the following fields from dicoms:
 
         # session label
@@ -56,13 +81,26 @@ class DicomScanner(AbstractImporter):
             src_fs (obj): The filesystem to query
             context (dict): The initial context
         """
+        tags = [ Tag(tag_for_keyword(keyword)) for keyword in DICOM_TAGS ]
+
         # First step is to walk and sort files
-        walker = CustomWalker(symlinks=self.follow_symlinks)
-        for path in walker.files(src_fs):
+        walker = CustomWalker(symlinks=self.config.follow_symlinks)
+        sys.stdout.write('Scanning directories...'.ljust(80) + '\r')
+        sys.stdout.flush()
+
+        files = list(walker.files(src_fs))
+        file_count = len(files)
+        files_scanned = 0
+        
+        for path in files:
+            sys.stdout.write('Scanning {}/{} files...'.format(files_scanned, file_count).ljust(80) + '\r')
+            sys.stdout.flush()
+            files_scanned = files_scanned+1
+            
             try:
-                with src_fs.open(path, 'rb') as f:
+                with src_fs.open(path, 'rb', buffering=1048576) as f:
                     # Don't decode while scanning
-                    dcm = DicomFile(f, parse=True, session_label_key=self.session_label_key, decode=False)
+                    dcm = DicomFile(f, parse=True, session_label_key=self.session_label_key, decode=False, specific_tags=tags)
                     acquisition = self.resolve_acquisition(dcm)
 
                     sop_uid = dcm.get('SOPInstanceUID')
@@ -78,6 +116,9 @@ class DicomScanner(AbstractImporter):
 
             except DicomFileError as e:
                 log.info('File {} is not a dicom: {}'.format(path, e))
+
+        sys.stdout.write(''.ljust(80) + '\n')
+        sys.stdout.flush()
 
         # Create context objects
         for session in self.sessions.values():

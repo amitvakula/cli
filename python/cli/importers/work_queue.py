@@ -51,7 +51,7 @@ class WorkQueue(object):
         self._finish_called = False
 
         self._lock = threading.RLock()
-        self._cond = threading.Condition(self._lock)
+        self._cond = { group: threading.Condition(self._lock) for group in groups.keys() }
         self._complete_cond = threading.Condition()
 
         self._work_threads = []
@@ -70,19 +70,21 @@ class WorkQueue(object):
                 self._work_threads.append(t)
 
     def enqueue(self, task):
-        with self._cond:
+        cond = self._cond[task.group]
+        with cond:
             self.waiting[task.group].append(task)
-            self._cond.notify()
+            cond.notify()
 
     def take(self, group):
         result = None
-        with self._cond:
+        cond = self._cond[group]
+        with cond:
             while self.running:
                 queue = self.waiting[group]
                 if queue:
                     result = queue.popleft()
                     break
-                self._cond.wait()
+                cond.wait()
             
             if not self.running:
                 return None
@@ -146,9 +148,10 @@ class WorkQueue(object):
     def shutdown(self):
         # Shutdown
         print('Shutting down...')
-        with self._cond:
-            self.running = False
-            self._cond.notify_all()
+        self.running = False
+        for cond in self._cond.values():
+            with cond:
+                cond.notify_all()
 
         # Wait for threads
         for t in self._work_threads:

@@ -20,13 +20,13 @@ def add_command(subparsers):
     parser.add_argument('--set-var', '-s', metavar='key=value', action='append', default=[], 
         type=split_key_value_argument, help='Set arbitrary key-value pairs')
     
-    parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
-
     parser.add_argument('template', help='The template string')
     parser.add_argument('folder', help='The path to the folder to import')
 
     parser.set_defaults(func=import_folder_with_template)
     parser.set_defaults(parser=parser)
+
+    return parser
 
 def import_folder_with_template(args):
     fw = create_flywheel_client()
@@ -34,8 +34,9 @@ def import_folder_with_template(args):
 
     # Build the importer instance
     importer = FolderImporter(resolver, group=args.group, project=args.project, 
-        de_identify=args.de_identify, follow_symlinks=args.symlinks, repackage_archives=args.repack, 
-        merge_subject_and_session=(args.no_subjects or args.no_sessions), context=dict(args.set_var))
+        de_identify=args.de_identify, repackage_archives=args.repack, 
+        merge_subject_and_session=(args.no_subjects or args.no_sessions), 
+        context=dict(args.set_var), config=args.config)
 
     # Build the template string
     try:

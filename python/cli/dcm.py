@@ -29,12 +29,12 @@ class DicomFile(object):
 
     # pylint: disable=too-few-public-methods
 
-    def __init__(self, filepath, map_key=None, subj_key=None, session_label_key=None, parse=False, de_identify=False, timezone=None, decode=True):
+    def __init__(self, filepath, map_key=None, subj_key=None, session_label_key=None, parse=False, de_identify=False, timezone=None, decode=True, **kwargs):
         map_key = map_key.split('_', 1)[1] if map_key and map_key.startswith('RETIRED_') else map_key
         subj_key = subj_key.split('_', 1)[1] if subj_key and subj_key.startswith('RETIRED_') else subj_key
         timezone = util.DEFAULT_TZ if timezone is None else timezone
         try:
-            self.raw = dcm = pydicom.dcmread(filepath, stop_before_pixels=(not de_identify))
+            self.raw = dcm = pydicom.dcmread(filepath, stop_before_pixels=(not de_identify), **kwargs)
             if decode:
                 dcm.decode()
         except (pydicom.errors.InvalidDicomError, ValueError) as ex:

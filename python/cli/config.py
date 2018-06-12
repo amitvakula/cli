@@ -16,7 +16,7 @@ class Config(object):
 
         self.follow_symlinks = getattr(args, 'symlinks', False)
 
-        self.buffer_size = 1048576
+        self.buffer_size = 65536
 
     def get_compression_type(self):
         if self.compression_level == 0:

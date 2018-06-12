@@ -46,6 +46,8 @@ DICOM_TAGS = [
     'PatientBirthDate',
     'SOPInstanceUID'
 ]
+def _at_stack_id(tag, VR, length):
+    return tag == (0x0020, 0x9056)
 
 class DicomScanner(AbstractImporter):
     # The session label dicom header key
@@ -98,9 +100,10 @@ class DicomScanner(AbstractImporter):
             files_scanned = files_scanned+1
             
             try:
-                with src_fs.open(path, 'rb', buffering=1048576) as f:
-                    # Don't decode while scanning
-                    dcm = DicomFile(f, parse=True, session_label_key=self.session_label_key, decode=False, specific_tags=tags)
+                with src_fs.open(path, 'rb', buffering=self.config.buffer_size) as f:
+                    # Don't decode while scanning, stop as early as possible
+                    dcm = DicomFile(f, parse=True, session_label_key=self.session_label_key, 
+                        decode=False, stop_when=_at_stack_id, specific_tags=tags)
                     acquisition = self.resolve_acquisition(dcm)
 
                     sop_uid = dcm.get('SOPInstanceUID')

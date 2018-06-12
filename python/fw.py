@@ -39,6 +39,12 @@ if __name__ == '__main__':
     
     # Parse arguments
     args = parser.parse_args()
+    
+    # Additional configuration
+    config_fn = getattr(args, 'config', None)
+    if callable(config_fn):
+        config_fn(args)
+
     func = getattr(args, 'func', None)
     if func is not None:
         # Invoke command

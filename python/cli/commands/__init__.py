@@ -21,6 +21,11 @@ def print_help(default_parser, parsers):
 
     return print_help_fn
 
+def config_import(args):
+    # Set the default compression (used by zipfile/ZipFS)
+    import zlib
+    zlib.Z_DEFAULT_COMPRESSION = args.compression_level
+
 def add_commands(parser, legacy_commands):
     # map commands for help function
     parsers = {}
@@ -32,6 +37,11 @@ def add_commands(parser, legacy_commands):
     # import
     # =====
     parser_import = subparsers.add_parser('import', help='Import data into Flywheel')
+    compression_levels = [-1] + list(range(9))
+    parser_import.add_argument('--compression-level', default=1, type=int, choices=compression_levels, 
+            help='The compression level to use for packfiles')
+    parser_import.set_defaults(config=config_import)
+
     parsers['import'] = parser_import
 
     import_subparsers = parser_import.add_subparsers(title='Available import commands', metavar='')

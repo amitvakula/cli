@@ -113,7 +113,7 @@ class DicomScanner(AbstractImporter):
                         if not util.fs_files_equal(src_fs, path, orig_path):
                             log.error('File "{}" and "{}" conflict!'.format(path, orig_path))
                             log.error('Both files have the same IDs, but contents differ!')
-                            exit(1)
+                            sys.exit(1)
                     else:
                         acquisition.files[sop_uid] = path
 

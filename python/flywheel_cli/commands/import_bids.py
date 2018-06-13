@@ -1,5 +1,3 @@
-import flywheel_bids.upload_bids
-
 from ..sdk_impl import create_flywheel_client
 
 def add_command(subparsers):
@@ -14,7 +12,8 @@ def add_command(subparsers):
     return parser
 
 def import_bids(args):
-    fw = create_flywheel_client()
+    import flywheel_bids.upload_bids
 
+    fw = create_flywheel_client()
     flywheel_bids.upload_bids.upload_bids(fw, args.folder, args.group, project_label=args.project, validate=False)
 

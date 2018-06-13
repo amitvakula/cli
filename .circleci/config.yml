@@ -1,5 +1,26 @@
 version: 2
 
+workflows:
+    version: 2
+    build-workflow:
+        jobs:
+            - build:
+                filters:
+                    tags:
+                        only: /.*/
+            - package-linux:
+                requires:
+                    - build
+                filters:
+                    tags:
+                        only: /.*/
+            - package-osx:
+                requires:
+                    - build
+                filters:
+                    tags:
+                        only: /.*/
+
 jobs:
     build:
         working_directory: "/workspace/src/flywheel.io/fw"
@@ -54,3 +75,79 @@ jobs:
             - store_artifacts:
                 path: "/workspace/bin"
                 destination: build
+
+            - persist_to_workspace:
+                root: "/workspace"
+                paths:
+                    - bin
+
+    package-linux:
+        working_directory: "/workspace/src/flywheel.io/fw"
+
+        docker:
+            - image: buildpack-deps:artful
+
+        environment:
+            - GOPATH: "/workspace/build"
+
+        steps:
+            - attach_workspace:
+                at: "/workspace/build"
+
+            - checkout
+
+            - run:
+                name: Install Apt Dependencies
+                command: apt-get -y update && apt-get install -y python3-pip upx zip
+
+            - run:
+                name: Install python dependencies
+                command: pip3 install -r python/requirements.txt
+
+            - run:
+                name: Build pyinstaller
+                command: cd /workspace/src/flywheel.io/fw/python; pyinstaller fw.spec
+
+            - run:
+                name: Zip Artifacts
+                command: mkdir /workspace/dist; cd /workspace/src/flywheel.io/fw/python/dist; zip -r /workspace/dist/fw-linux_amd64.zip fw
+
+            - store_artifacts:
+                path: "/workspace/dist"
+                destination: dist
+                
+    package-osx:
+        working_directory: "/workspace/src/flywheel.io/fw"
+
+        macos:
+            xcode: "9.3.0"
+
+        environment:
+            - GOPATH: "/workspace/build"
+
+        steps:
+            - attach_workspace:
+                at: "/workspace/build"
+
+            - checkout
+
+            - run:
+                name: Install Homebrew Dependencies
+                command: brew install python3 upx
+
+            - run:
+                name: Install python dependencies
+                command: pip3 install -r python/requirements.txt
+
+            - run:
+                name: Build pyinstaller
+                command: cd /workspace/src/flywheel.io/fw/python; pyinstaller fw.spec
+
+            - run:
+                name: Zip Artifacts
+                command: mkdir /workspace/dist; cd /workspace/src/flywheel.io/fw/python/dist; zip -r /workspace/dist/fw-darwin_amd64.zip fw
+
+            - store_artifacts:
+                path: "/workspace/dist"
+                destination: dist
+

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"C"
 	"os"
 
 	"flywheel.io/fw/command"
@@ -12,7 +11,6 @@ var Version = "5.1.1"
 var BuildHash = "dev"
 var BuildDate = "dev"
 
-//export InvokeCommand
 func InvokeCommand(args []string) int {
 	defer GracefulRecover()
 
@@ -32,14 +30,6 @@ func InvokeCommand(args []string) int {
 		return -1
 	}
 	return 0
-}
-
-//export GetCommands
-func GetCommands() *C.char {
-	cmd := command.BuildCommand(Version, BuildHash, BuildDate)
-	cmd.SetUsageTemplate(`{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
-{{.Name}}:{{.Short}}{{end}}{{end}}`)
-	return C.CString(cmd.UsageString())
 }
 
 func main() {

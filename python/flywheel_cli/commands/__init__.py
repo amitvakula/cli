@@ -26,7 +26,7 @@ def print_help(default_parser, parsers):
 def get_config(args):
     args.config = Config(args)
 
-def add_commands(parser, legacy_commands):
+def add_commands(parser):
     # map commands for help function
     parsers = {}
 
@@ -73,12 +73,6 @@ def add_commands(parser, legacy_commands):
     set_subparser_print_help(parser_export)
 
     parsers['export bids'] = export_bids.add_command(export_subparsers)
-
-    # =====
-    # cli subcommands (stubs)
-    # =====
-    for cmd, desc in legacy_commands.items():
-        subparsers.add_parser(cmd, help=desc)
 
     # =====
     # help commands

@@ -3,6 +3,7 @@ import copy
 import flywheel
 import json
 import os
+import sys
 
 from .importers import Uploader, ContainerResolver
 
@@ -25,7 +26,7 @@ def create_flywheel_client(require=True):
     if config is None or config.get('key') is None:
         if require:
             print('Not logged in, please login using `fw login` and your API key', file=sys.stderr)
-            exit(1)
+            sys.exit(1)
         return None
     return flywheel.Flywheel(config['key'])
 

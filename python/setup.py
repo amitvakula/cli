@@ -20,7 +20,6 @@ VERSION = "6.0.0"
 # http://pypi.python.org/pypi/setuptools
 
 REQUIRES = [
-    "flywheel-sdk~=2.2.0",
     "pydicom~=1.0.2",
     "tzlocal~=1.5.1",
     "fs~=2.0.23",
@@ -51,7 +50,7 @@ setup(
     },
     entry_points = {
         'console_scripts': [
-            'fw=flywheel_cli:main',
+            'fw=flywheel_cli.main:main',
         ]
     },
     cmdclass = {

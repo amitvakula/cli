@@ -157,7 +157,12 @@ func printTree(sessions map[string]Session, group_label string, project_label st
 
 func check_group_perms(client *api.Client, group_id string) (string, error) {
 	group, _, err := client.GetGroup(group_id)
-	return group.Name, err
+
+	if err == nil {
+		return group.Name, err
+	} else {
+		return "", err
+	}
 }
 
 // make the dicom date and time fields somewhat readable when used as the container label

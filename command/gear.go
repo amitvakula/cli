@@ -80,17 +80,19 @@ func (o *opts) gearModify() *cobra.Command {
 func (o *opts) gearUpload() *cobra.Command {
 	var category string
 	var file string
+	var project string
 
 	cmd := &cobra.Command{
 		Use:    "upload",
 		Short:  "Upload your local gear to Flywheel",
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {
-			gears.GearUpload(o.Client, gears.DockerOrBust(), category, file)
+			gears.GearUpload(o.Client, gears.DockerOrBust(), category, file, project)
 		},
 	}
 	cmd.Flags().StringVarP(&category, "category", "c", "converter", "Gear category: converter or analysis")
 	cmd.Flags().StringVarP(&file, "file", "f", "", "Write the result to a gzipped tarball instead of flywheel (-- for stdout)")
+	cmd.Flags().StringVarP(&project, "project", "p", "", "Limit visibility of the gear to a specific project")
 
 	return cmd
 }

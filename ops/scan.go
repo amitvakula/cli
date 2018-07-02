@@ -285,8 +285,8 @@ func (r *scanSubject) discover(folder string, path []string) {
 			resolveResult, _, _, _ := legacy.ResolvePath(c, path)
 			if resolveResult != nil {
 				for j := 0; j < len(resolveResult.Children); j++ {
-					child := resolveResult.Children[j].(*legacy.Session)
-					if child.GetSubjectCode() == r.Subject.Code && child.GetName() == session.Name {
+					child, ok := resolveResult.Children[j].(*legacy.Session)
+					if ok && child.GetSubjectCode() == r.Subject.Code && child.GetName() == session.Name {
 						s := Sprintf("<id:%s>", child.GetId())
 						newPath = append(path, s)
 						session.Exists = true

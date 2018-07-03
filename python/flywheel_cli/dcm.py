@@ -6,6 +6,7 @@ import datetime
 import string
 
 import pydicom
+import pydicom.filereader
 
 from . import util
 
@@ -36,7 +37,6 @@ class DicomFile(object):
         timezone = util.DEFAULT_TZ if timezone is None else timezone
         try:
             if stop_when is not None:
-                import pydicom.filereader
                 self.raw = dcm = pydicom.filereader.read_partial(filepath, stop_when, **kwargs)
             else:
                 self.raw = dcm = pydicom.dcmread(filepath, stop_before_pixels=(not de_identify), **kwargs)

@@ -22,6 +22,9 @@ func InvokeCommand(args []string) int {
 		args = append(tmp, args[3:]...)
 	}
 
+	// Will exit if the command is delegated
+	command.DelegateCommand(args)
+
 	cmd := command.BuildCommand(Version, BuildHash, BuildDate)
 	cmd.SetArgs(args[1:])
 

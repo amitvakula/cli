@@ -49,6 +49,21 @@ prepareJunitGenerator() {
 	fi
 }
 
+preparePkgData() {
+	test -x "$GOPATH/bin/go-bindata" || (
+		go get -v -u github.com/jteeuwen/go-bindata/...
+	)
+
+	# Prepare data files
+	mkdir -p pkgdata/
+	for platform in darwin linux windows
+	do
+		echo "Generating pkgdata_${platform}.go"
+		srcdir="python/dist/${platform}-x86_64/"
+		go-bindata -nocompress -pkg pkgdata -prefix "${srcdir}" -o pkgdata/pkgdata_${platform}.go ${srcdir}
+	done
+}
+
 prepareGo() {
 	# Configure gimme: get our desired Go version with reasonable logging, only binary downloads, and local state folder
 	export GIMME_GO_VERSION=$goV; export GIMME_SILENT_ENV=1; export GIMME_DEBUG=1
@@ -79,6 +94,8 @@ prepareGo() {
 	export PATH=$GOPATH/bin:$PATH
 
 	test -x "$GOPATH/bin/go-junit-report" || prepareJunitGenerator
+
+	preparePkgData
 }
 
 glideClean() {

@@ -13,6 +13,7 @@ import (
 	"runtime"
 
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/spf13/cobra"
 
 	"flywheel.io/fw/pkgdata"
 	"flywheel.io/fw/util"
@@ -35,8 +36,8 @@ type PythonPathInfo struct {
 }
 
 var DelegatedCommands = []CommandDesc{
-	CommandDesc{"import", "Import data into Flywheel"},
-	CommandDesc{"export", "Export data from Flywheel"},
+	{"import", "Import data into Flywheel"},
+	{"export", "Export data from Flywheel"},
 }
 
 var PythonCliCommand = []string{"-m", "flywheel_cli.main"}
@@ -45,6 +46,18 @@ const CachePath = "~/.cache/flywheel/"
 const LibcExec = "libc-exe"
 const SitePackagesName = "site-packages.zip"
 
+// Add python delegated commands to the command list
+func AddDelegatedCommands(cmd *cobra.Command) {
+	for _, desc := range DelegatedCommands {
+		cmd.AddCommand(&cobra.Command{
+			Use:   desc.Command,
+			Short: desc.Description,
+			Run:   func(cmd *cobra.Command, args []string) {},
+		})
+	}
+}
+
+// Check if the given command name should be delegated to python CLI
 func IsDelegatedCommand(command string) bool {
 	for _, cmd := range DelegatedCommands {
 		if command == cmd.Command {
@@ -55,7 +68,7 @@ func IsDelegatedCommand(command string) bool {
 }
 
 // Exits if the command is delegated
-func DelegateCommand(args []string) {
+func DelegateCommandToPython(args []string) {
 	// Determine if the command should be delegated
 	delegate := false
 
@@ -121,6 +134,7 @@ func DelegateCommand(args []string) {
 	os.Exit(0)
 }
 
+// Extract the python interpreter and site-packages.zip to the cache directory
 func PopulateCache(cacheDir string) (*PythonPathInfo, error) {
 	// Get version info
 	data, err := pkgdata.Asset("version.json")
@@ -150,7 +164,7 @@ func PopulateCache(cacheDir string) (*PythonPathInfo, error) {
 	}
 
 	// Copy site package, if out of date
-	buildTimePath := filepath.Join(cacheDir, fmt.Sprintf(".site-packages.buildtime", SitePackagesName))
+	buildTimePath := filepath.Join(cacheDir, ".site-packages.buildtime")
 	buildTime, err := ioutil.ReadFile(buildTimePath)
 	if err != nil || string(buildTime) != versionInfo.BuildTime {
 		// Extract site-packages.zip

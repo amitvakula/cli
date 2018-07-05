@@ -4,6 +4,7 @@ import sys
 import argparse
 
 from .commands import add_commands
+from . import monkey
 
 def main():
     # Create base parser and subparsers
@@ -34,4 +35,5 @@ def main():
 
 
 if __name__ == '__main__':
+    monkey.patch_fs()
     main()

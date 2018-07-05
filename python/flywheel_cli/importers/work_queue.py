@@ -147,7 +147,6 @@ class WorkQueue(object):
 
     def shutdown(self):
         # Shutdown
-        print('Shutting down...')
         self.running = False
         for cond in self._cond.values():
             with cond:
@@ -155,7 +154,6 @@ class WorkQueue(object):
 
         # Wait for threads
         for t in self._work_threads:
-            print('joining work thread...')
             t.join()
 
         self._work_threads = []

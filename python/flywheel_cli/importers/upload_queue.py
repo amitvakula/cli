@@ -148,6 +148,7 @@ class UploadQueue(WorkQueue):
         # Shutdown reporting thread
         if self._progress_thread:
             self._progress_thread.shutdown()
+            self._progress_thread.final_report()
 
         # Shutdown
         self.shutdown()

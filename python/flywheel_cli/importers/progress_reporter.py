@@ -37,6 +37,7 @@ class ProgressReporter(ABC):
         self._running = False
         self._thread = None
         self._shutdown_event = threading.Event()
+        self._start_time = datetime.now()
 
     def add_group(self, name, desc, total_count):
         self.groups[name] = GroupStats(desc, total_count)
@@ -94,7 +95,7 @@ class ProgressReporter(ABC):
 
                 group_stats.bytes_per_sec = (s2 - s1) / dt
 
-    def report(self):
+    def report(self, newline='\r'):
         messages = []
 
         for group in self.groups.values():
@@ -105,8 +106,20 @@ class ProgressReporter(ABC):
                     bps = fs.filesize.traditional(group.bytes_per_sec) + '/s'
                 messages.append('{} {}/{} - {}'.format(group.desc, group.completed, group.total_count, bps))
 
-        message = ', '.join(messages).ljust(self.columns) + '\r'
+        message = ', '.join(messages).ljust(self.columns) + newline
 
         sys.stdout.write(message)
         sys.stdout.flush()
+
+    def final_report(self):
+        elapsed = datetime.now() - self._start_time
+
+        # Take a final sample
+        self.sample()
+
+        # Write the report line a final time, with a newline
+        self.report(newline='\n')
+
+        # Then write a summary of time elapsed
+        print('Finished in {:.2g} seconds'.format(elapsed.total_seconds()))
 

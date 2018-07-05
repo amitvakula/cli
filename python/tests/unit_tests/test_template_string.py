@@ -1,5 +1,5 @@
-from cli.importers import compile_regex, parse_template_string, StringMatchNode
-from cli.util import METADATA_EXPR
+from flywheel_cli.importers import compile_regex, parse_template_string, StringMatchNode
+from flywheel_cli.util import METADATA_EXPR
 
 def test_compile_regex():
     # No special replacement

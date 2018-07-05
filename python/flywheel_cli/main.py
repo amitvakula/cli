@@ -7,7 +7,7 @@ from .commands import add_commands
 
 def main():
     # Create base parser and subparsers
-    parser = argparse.ArgumentParser(description='Flywheel command-line interface')
+    parser = argparse.ArgumentParser(prog='fw', description='Flywheel command-line interface')
 
     # Add commands from commands module
     add_commands(parser)

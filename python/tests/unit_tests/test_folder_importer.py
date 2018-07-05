@@ -4,7 +4,8 @@ import re
 import fs
 import pytest
 
-from cli.importers import FolderImporter, StringMatchNode
+from flywheel_cli.importers import FolderImporter, StringMatchNode
+from flywheel_cli.config import Config
 from .test_container_factory import MockContainerResolver
 
 def mock_fs(structure):
@@ -20,7 +21,7 @@ def mock_fs(structure):
     
 def make_importer(resolver, group=None, project=None, no_subjects=False, no_sessions=False):
     importer = FolderImporter(resolver, group=group, project=project, 
-        merge_subject_and_session=(no_subjects or no_sessions))
+        merge_subject_and_session=(no_subjects or no_sessions), config=Config())
 
     if not group:
         importer.add_template_node(StringMatchNode('group'))
@@ -165,7 +166,7 @@ def test_composite_packfiles():
     }))
 
     resolver = MockContainerResolver()
-    importer = FolderImporter(resolver, group='group', project='project')
+    importer = FolderImporter(resolver, group='group', project='project', config=Config())
     importer.add_template_node(StringMatchNode('subject'))
     importer.add_template_node(StringMatchNode('session'))
 
@@ -234,7 +235,7 @@ def test_nested_packfiles():
     }))
 
     resolver = MockContainerResolver()
-    importer = FolderImporter(resolver, group='group', project='project')
+    importer = FolderImporter(resolver, group='group', project='project', config=Config())
     importer.add_template_node(StringMatchNode('subject'))
     importer.add_template_node(StringMatchNode('session'))
 

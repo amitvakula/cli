@@ -4,7 +4,7 @@ import zlib
 import zipfile
 
 class Config(object):
-    def __init__(self, args):
+    def __init__(self, args=None):
         # Set the default compression (used by zipfile/ZipFS)
         self.compression_level = getattr(args, 'compression_level', 1) 
         if self.compression_level > 0:

@@ -1,6 +1,6 @@
 import os
-from cli.bruker import parse_bruker_params
-from cli.importers.bruker_scan import format_timestamp_fn
+from flywheel_cli.bruker import parse_bruker_params
+from flywheel_cli.importers.bruker_scan import format_timestamp_fn
 
 TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'test_data/bruker')
 

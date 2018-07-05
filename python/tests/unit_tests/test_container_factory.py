@@ -1,4 +1,4 @@
-from cli.importers.container_factory import ContainerFactory, ContainerResolver
+from flywheel_cli.importers.container_factory import ContainerFactory, ContainerResolver
 
 class MockContainerResolver(ContainerResolver):
     def __init__(self, paths=None):

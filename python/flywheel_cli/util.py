@@ -28,7 +28,12 @@ METADATA_EXPR = {
 
 NO_FILE_CONTAINERS = [ 'group', 'subject' ]
 
-DEFAULT_TZ = tzlocal.get_localzone()
+try:
+    DEFAULT_TZ = tzlocal.get_localzone()
+except:
+    import pytz
+    print('Could not determine timezone, defaulting to UTC')
+    DEFAULT_TZ = pytz.utc
 
 def set_nested_attr(obj, key, value):
     """Set a nested attribute in dictionary, creating sub dictionaries as necessary.

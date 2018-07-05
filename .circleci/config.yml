@@ -17,7 +17,7 @@ jobs:
 
             - run:
                 name: Install Python3 & UPX
-                command: apt -y update && apt -y install upx python3 python3-pip python3-venv
+                command: apt -y update && apt -y install python3 python3-pip python3-venv unzip upx
 
             - run:
                 name: Execute python unit tests 

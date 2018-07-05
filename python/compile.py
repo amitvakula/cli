@@ -95,10 +95,11 @@ def build_site_packages():
                 _, ext = os.path.splitext(src_path)
                 if ext == '.py':
                     cfile_path = src_path + 'c'
-                    print('Compiling: {}'.format(cfile_path))
-                    py_compile.compile(src_path, cfile=cfile_path, optimize=2)
-                    src_path = cfile_path
                     dst_path += 'c'
+
+                    print('Compiling: {}'.format(dst_path))
+                    py_compile.compile(src_path, cfile=cfile_path, dfile=dst_path, optimize=2)
+                    src_path = cfile_path
 
                 if not dst_path in added_files:
                     zf.write(src_path, dst_path)

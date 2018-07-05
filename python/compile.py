@@ -1,5 +1,6 @@
 #/usr/bin/env python3
 
+import fnmatch
 import json
 import re
 import os
@@ -55,6 +56,14 @@ def update_pth_file(path):
             f.write('\r\nlib/python{}/site-packages\r\n'.format(PYVER))
 
 def build_site_packages():
+    # Remove flywheel_cli from cache
+    if os.path.isdir(PEX_BUILD_CACHE_DIR):
+        for name in os.listdir(PEX_BUILD_CACHE_DIR):
+            if fnmatch.fnmatch(name, 'flywheel_cli*.whl'):
+                path = os.path.join(PEX_BUILD_CACHE_DIR, name)
+                print('Removing {} from cache...'.format(name))
+                os.remove(path)
+
     # Read ignore list
     ignore_patterns = read_ignore_patterns()
 
@@ -73,7 +82,7 @@ def build_site_packages():
         builder.add_requirement(dist.as_requirement())
 
     print('Compiling package')
-    builder.freeze(bytecode_compile=True)
+    builder.freeze(bytecode_compile=False)
 
     site_packages_path = os.path.join(BUILD_DIR, 'site-packages.zip')
 

@@ -63,7 +63,7 @@ jobs:
 
             - run:
                 name: Cleanup
-                command: rm -rf /workspace/bin/glide /workspace/bin/go-junit-report /workspace/bin/fw
+                command: rm -rf /workspace/bin/glide /workspace/bin/go-junit-report /workspace/bin/fw /workspace/bin/go-bindata
                 when: always
 
             - store_artifacts:

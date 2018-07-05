@@ -46,6 +46,7 @@ class ProgressReporter(ABC):
         self._running = True
         self._suspended = False
         self._thread = threading.Thread(target=self.run, name='progress-report-thread')
+        self._thread.daemon = True
         self._thread.start()
 
     def suspend(self, clear_output=True):

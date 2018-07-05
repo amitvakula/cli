@@ -68,6 +68,7 @@ class WorkQueue(object):
 
             for i in range(count):
                 t = threading.Thread(target=work_fn, name=tname)
+                t.daemon = True
                 t.start()
                 self._work_threads.append(t)
 

@@ -142,16 +142,28 @@ class UploadQueue(WorkQueue):
         if self._progress_thread:
             self._progress_thread.start()
 
-    def finish(self):
-        self.wait_for_finish()
-
+    def shutdown(self):
         # Shutdown reporting thread
         if self._progress_thread:
             self._progress_thread.shutdown()
             self._progress_thread.final_report()
 
-        # Shutdown
-        self.shutdown()
+        super(UploadQueue, self).shutdown()
+
+    def suspend_reporting(self):
+        if self._progress_thread:
+            self._progress_thread.suspend()
+
+    def resume_reporting(self):
+        if self._progress_thread:
+            self._progress_thread.resume()
+
+    def log_exception(self, job):
+        self.suspend_reporting()
+
+        super(UploadQueue, self).log_exception(job)
+
+        self.resume_reporting()
 
     def upload(self, container, filename, fileobj):
         self.enqueue(UploadTask(self.uploader, container, filename, fileobj))

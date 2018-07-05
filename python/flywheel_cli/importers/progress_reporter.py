@@ -48,8 +48,12 @@ class ProgressReporter(ABC):
         self._thread = threading.Thread(target=self.run, name='progress-report-thread')
         self._thread.start()
 
-    def suspend(self):
+    def suspend(self, clear_output=True):
         self._suspended = True
+
+        message = ' ' * self.columns + '\r'
+        sys.stdout.write(message)
+        sys.stdout.flush()
 
     def resume(self):
         self._suspended = False

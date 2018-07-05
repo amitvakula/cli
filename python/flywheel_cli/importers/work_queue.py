@@ -44,6 +44,8 @@ class WorkQueue(object):
         self.pending = []
         # Queue of completed jobs
         self.completed = []
+        # List of errored jobs
+        self.errors = []
 
         self.groups = groups
     
@@ -107,6 +109,29 @@ class WorkQueue(object):
             with self._complete_cond:
                 self._complete_cond.notify_all()
 
+    def log_exception(self, job):
+        with self._lock:
+            log.exception('Error {}'.format(job.get_desc()))
+
+    def has_errors(self):
+        with self._lock:
+            return bool(self.errors)
+
+    def error(self, task):
+        finished = False
+
+        with self._lock:
+            self.pending.remove(task)
+            self.errors.append(task)
+
+            if self._finish_called:
+                # Check to see if we're done
+                finished = not self.tasks_pending()
+
+        if finished:
+            with self._complete_cond:
+                self._complete_cond.notify_all()
+
     def tasks_pending(self):
         with self._lock:
             if self.pending:
@@ -137,6 +162,16 @@ class WorkQueue(object):
                 stats['completed_bytes'] = stats['completed_bytes'] + task.get_bytes_processed()
 
         return results
+
+    def requeue_errors(self):
+        errors = []
+        with self._lock:
+            self._finish_called = False
+            errors = self.errors
+            self.errors = []
+
+        for job in errors:
+            self.enqueue(job)
 
     def wait_for_finish(self):
         with self._complete_cond:
@@ -172,8 +207,9 @@ class WorkQueue(object):
             try:
                 next_job = job.execute()
             except Exception:
-                #TODO: Check to retry or add to errors list
-                log.exception('Error {}'.format(job.get_desc()))
+                # Add to errors list
+                self.log_exception(job)
+                self.error(job)
                 continue
 
             if next_job:

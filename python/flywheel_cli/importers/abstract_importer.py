@@ -226,8 +226,19 @@ class AbstractImporter(ABC):
                         packfile_src_fs = src_fs.opendir('/')
                         upload_queue.upload_packfile(src_fs, packfile_type, packfile_args, container, file_name, paths=path)
 
-            upload_queue.finish()
+            upload_queue.wait_for_finish()
+            # Retry loop for errored jobs
+            while upload_queue.has_errors():
 
-    
+                upload_queue.suspend_reporting()
+                print('')
+                if not util.confirmation_prompt('One or more errors occurred. Retry?'):
+                    break
 
+                # Requeue and wait for finish
+                upload_queue.requeue_errors()
+                upload_queue.resume_reporting()
+                upload_queue.wait_for_finish()
+
+            upload_queue.shutdown()
 

@@ -16,8 +16,9 @@ from pex.resolver_options import ResolverOptionsBuilder
 from pex.resolver import CachingResolver
 from pex.resolvable import Resolvable
 
-BUILD_DIR = os.path.abspath('build')
-DIST_DIR = os.path.abspath('dist')
+SRC_DIR = os.path.abspath(os.path.dirname(__file__))
+BUILD_DIR = os.path.join(SRC_DIR, 'build')
+DIST_DIR = os.path.join(SRC_DIR, 'dist')
 PEX_BUILD_CACHE_DIR = os.path.join(BUILD_DIR, 'pex-cache')
 PACKAGE_CACHE_DIR = os.path.join(BUILD_DIR, 'src-packages')
 
@@ -33,7 +34,8 @@ PYXY = ''.join(PYTHON_VERSION.split('.')[:2])
 def read_ignore_patterns():
     # Load ignores
     result = []
-    with open('package-ignore.txt', 'r') as f:
+    pkg_ignore_path = os.path.join(SRC_DIR, 'package-ignore.txt')
+    with open(pkg_ignore_path, 'r') as f:
         for line in f.readlines():
             line = line.strip()
             if line:
@@ -58,7 +60,7 @@ def build_site_packages():
 
     # Create resolver
     resolver_option_builder = ResolverOptionsBuilder()
-    resolvables = [Resolvable.get('.', resolver_option_builder)]
+    resolvables = [Resolvable.get(SRC_DIR, resolver_option_builder)]
     resolver = CachingResolver(PEX_BUILD_CACHE_DIR, None)
 
     print('Resolving distributions')

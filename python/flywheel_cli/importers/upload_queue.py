@@ -22,6 +22,14 @@ class Uploader(ABC):
         """
         pass
 
+    def supports_signed_url(self):
+        """Check if signed url upload is supported.
+
+        Returns:
+            bool: True if signed url upload is supported
+        """
+        return False
+
 class UploadFileWrapper(object):
     """Wrapper around file that measures progress"""
     def __init__(self, fileobj):
@@ -30,12 +38,20 @@ class UploadFileWrapper(object):
 
         self.fileobj.seek(0,2)
         self._total_size = self.fileobj.tell()
+        self._override_read_size = 2**20 
         self.fileobj.seek(0)
 
     def read(self, size=-1):
+        # NOTE: Overriding the size is probably an unsupported operation
+        # but *significantly* speeds up uploads
+        if self._override_read_size > 0:
+            size = self._override_read_size
         chunk = self.fileobj.read(size)
         self._sent = self._sent + len(chunk)
         return chunk
+
+    def reset(self):
+        self.fileobj.seek(0)
 
     @property
     def len(self):
@@ -56,6 +72,7 @@ class UploadTask(Task):
         self.fileobj = UploadFileWrapper(fileobj)
 
     def execute(self):
+        self.fileobj.reset()
         self.uploader.upload(self.container, self.filename, self.fileobj)
 
         # Safely close the file object
@@ -120,9 +137,13 @@ class PackfileTask(Task):
 
 class UploadQueue(WorkQueue):
     def __init__(self, uploader, config, packfile_count=0, upload_count=0, show_progress=True):
-        # TODO: Detect signed-url upload and start multiple upload threads
+        # Detect signed-url upload and start multiple upload threads
+        upload_threads = 1
+        if uploader.supports_signed_url():
+            upload_threads = config.concurrent_uploads 
+
         super(UploadQueue, self).__init__({
-            'upload': 1,
+            'upload': upload_threads,
             'packfile': config.cpu_count 
         })
 

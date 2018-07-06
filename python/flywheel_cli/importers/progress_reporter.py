@@ -126,5 +126,5 @@ class ProgressReporter(ABC):
         self.report(newline='\n')
 
         # Then write a summary of time elapsed
-        print('Finished in {:.2g} seconds'.format(elapsed.total_seconds()))
+        print('Finished in {:.2f} seconds'.format(elapsed.total_seconds()))
 

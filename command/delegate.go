@@ -38,6 +38,7 @@ type PythonPathInfo struct {
 var DelegatedCommands = []CommandDesc{
 	{"import", "Import data into Flywheel"},
 	{"export", "Export data from Flywheel"},
+	{"fgm", "Manage gears installed on Flywheel instances"},
 }
 
 var PythonCliCommand = []string{"-m", "flywheel_cli.main"}

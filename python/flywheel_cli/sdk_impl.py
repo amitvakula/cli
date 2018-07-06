@@ -6,6 +6,8 @@ import os
 import requests
 import sys
 
+from urllib.parse import urlparse
+
 from .importers import Uploader, ContainerResolver
 
 CONFIG_PATH = '~/.config/flywheel/user.json'
@@ -36,14 +38,35 @@ def load_config():
             pass
     return config
 
-def create_flywheel_client(require=True):
+def create_flywheel_client(require=True, root=False):
     config = load_config()
     if config is None or config.get('key') is None:
         if require:
             print('Not logged in, please login using `fw login` and your API key', file=sys.stderr)
             sys.exit(1)
         return None
-    return flywheel.Flywheel(config['key'])
+    return flywheel.Flywheel(config['key'], root=root)
+
+def get_site_name(fw):
+    config = fw.get_config()
+    name = config.site.get('name')
+    url = config.site.get('api_url', fw.api_client.configuration.host)
+    hostname = None
+
+    if url:
+        try:
+            parts = urlparse(url)
+            hostname = parts.hostname
+        except:
+            pass
+
+    if name:
+        if hostname:
+            return '{} ({})'.format(name, hostname)
+        return name
+    elif hostname:
+        return hostname
+    return 'Unknown Site'
 
 """
 For now we skip subjects, replacing them (effectively) with the project layer,

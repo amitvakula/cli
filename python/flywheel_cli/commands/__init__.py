@@ -4,6 +4,13 @@ from . import import_bruker
 from . import import_dicom
 from . import import_bids
 
+from . import fgm_install
+from . import fgm_upgrade
+from . import fgm_show
+from . import fgm_list
+from . import fgm_search
+
+
 from . import export_bids
 
 from ..config import Config
@@ -73,6 +80,21 @@ def add_commands(parser):
     set_subparser_print_help(parser_export)
 
     parsers['export bids'] = export_bids.add_command(export_subparsers)
+
+    # =====
+    # fgm (Flywheel Gear Manager)
+    # =====
+    parser_fgm = subparsers.add_parser('fgm', help='Manage gears installed on flywheel instances')
+    parsers['fgm'] = parser_fgm
+
+    fgm_subparsers = parser_fgm.add_subparsers(title='Available fgm commands', metavar='')
+    set_subparser_print_help(parser_fgm)
+
+    parsers['fgm install'] = fgm_install.add_command(fgm_subparsers)
+    parsers['fgm upgrade'] = fgm_upgrade.add_command(fgm_subparsers)
+    parsers['fgm show'] = fgm_show.add_command(fgm_subparsers)
+    parsers['fgm list'] = fgm_list.add_command(fgm_subparsers)
+    parsers['fgm search'] = fgm_search.add_command(fgm_subparsers)
 
     # =====
     # help commands

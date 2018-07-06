@@ -6,6 +6,8 @@ from .work_queue import Task, WorkQueue
 from .packfile import create_zip_packfile
 from .progress_reporter import ProgressReporter
 
+MAX_IN_MEMORY_XFER = 32 * (2 ** 20) # Files under 32mb send as one chunk
+
 class Uploader(ABC):
     """Abstract uploader class, that can upload files"""
     @abstractmethod
@@ -70,10 +72,18 @@ class UploadTask(Task):
         self.container = container
         self.filename = filename
         self.fileobj = UploadFileWrapper(fileobj)
+        self._data = None
 
     def execute(self):
         self.fileobj.reset()
-        self.uploader.upload(self.container, self.filename, self.fileobj)
+
+        # Under 32 MB, just read the entire file
+        if self.fileobj.len < MAX_IN_MEMORY_XFER:
+            if self._data is None:
+                self._data = self.fileobj.read(self.fileobj.len)
+            self.uploader.upload(self.container, self.filename, self._data)
+        else:
+            self.uploader.upload(self.container, self.filename, self.fileobj)
 
         # Safely close the file object
         try:

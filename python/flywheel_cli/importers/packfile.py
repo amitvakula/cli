@@ -9,6 +9,14 @@ from .custom_walker import CustomWalker
 
 log = logging.getLogger(__name__)
 
+class PackfileDescriptor(object):
+    def __init__(self, packfile_type, path, count, name=None):
+        """Descriptor object for creating a packfile"""
+        self.packfile_type = packfile_type
+        self.path = path
+        self.count = count
+        self.name = name
+
 def create_zip_packfile(dst_file, src_fs, packfile_type=None, symlinks=False, paths=None, progress_callback=None, compression=None, **kwargs):
     """Create a zipped packfile for the given packfile_type and options, that writes a ZipFile to dst_file
 

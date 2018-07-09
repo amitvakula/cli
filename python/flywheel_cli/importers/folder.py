@@ -8,6 +8,7 @@ from ..util import set_nested_attr, sorted_container_nodes, METADATA_ALIASES, NO
 from .abstract_importer import AbstractImporter
 from .container_factory import ContainerFactory
 from .template import CompositeNode
+from .packfile import PackfileDescriptor
 
 class FolderImporter(AbstractImporter):
     def __init__(self, resolver, group=None, project=None, de_identify=False, 
@@ -122,7 +123,10 @@ class FolderImporter(AbstractImporter):
             if files:
                 if container:
                     if 'packfile' in context:
-                        container.packfiles.append((context['packfile'], curdir, len(files)))
+                        packfile_name = context.get('packfile_name')
+                        container.packfiles.append(PackfileDescriptor(
+                            context['packfile'], curdir, len(files), name=packfile_name
+                        ))
                     else:
                         container.files.extend(files)
                 else:

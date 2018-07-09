@@ -97,10 +97,10 @@ def test_folder_resolver_default():
     assert child.label == 'fMRI_Ret_knk'
     assert len(child.files) == 0
     assert len(child.packfiles) == 1
-    packfile_type, folder, count = child.packfiles[0]
-    assert packfile_type == 'dicom'
-    assert folder == '/scitran/Anxiety Study/anx_s1/ses1/fMRI_Ret_knk/dicom'
-    assert count == 3
+    desc = child.packfiles[0]
+    assert desc.packfile_type == 'dicom'
+    assert desc.path == '/scitran/Anxiety Study/anx_s1/ses1/fMRI_Ret_knk/dicom'
+    assert desc.count == 3
 
     try:
         next(itr)
@@ -196,10 +196,10 @@ def test_composite_packfiles():
     assert child.label == 'session'
 
     assert len(child.packfiles) == 1
-    packfile_type, folder, count = child.packfiles[0]
-    assert packfile_type == 'pv5'
-    assert folder == '/subject/session/pv5'
-    assert count == 2
+    desc = child.packfiles[0]
+    assert desc.packfile_type == 'pv5'
+    assert desc.path == '/subject/session/pv5'
+    assert desc.count == 2
 
     _, child = next(itr)
     assert child.container_type == 'acquisition'
@@ -265,10 +265,10 @@ def test_nested_packfiles():
     assert child.label == 'session'
 
     assert len(child.packfiles) == 1
-    packfile_type, folder, count = child.packfiles[0]
-    assert packfile_type == 'pv5'
-    assert folder == '/subject/session/pv5'
-    assert count == 4
+    desc = child.packfiles[0]
+    assert desc.packfile_type == 'pv5'
+    assert desc.path == '/subject/session/pv5'
+    assert desc.count == 4
 
     _, child = next(itr)
     assert child.container_type == 'acquisition'
@@ -276,10 +276,10 @@ def test_nested_packfiles():
     assert child.files == ['/subject/session/acquisition/file5.txt']
 
     assert len(child.packfiles) == 1
-    packfile_type, folder, count = child.packfiles[0]
-    assert packfile_type == 'dicom'
-    assert folder == '/subject/session/acquisition/dicom'
-    assert count == 3
+    desc = child.packfiles[0]
+    assert desc.packfile_type == 'dicom'
+    assert desc.path == '/subject/session/acquisition/dicom'
+    assert desc.count == 3
 
     try:
         next(itr)

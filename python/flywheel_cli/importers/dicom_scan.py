@@ -5,6 +5,7 @@ import sys
 
 from .abstract_importer import AbstractImporter
 from .custom_walker import CustomWalker
+from .packfile import PackfileDescriptor
 from ..dcm import DicomFileError, DicomFile
 from .. import util
 
@@ -134,7 +135,7 @@ class DicomScanner(AbstractImporter):
                 files = list(acquisition.files.values())
 
                 container = self.container_factory.resolve(acquisition_context)
-                container.packfiles.append(('dicom', files, len(files)))
+                container.packfiles.append(PackfileDescriptor('dicom', files, len(files)))
 
     def resolve_session(self, dcm):
         """Find or create a sesson from a dcm file. """

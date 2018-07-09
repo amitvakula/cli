@@ -94,8 +94,9 @@ class AbstractImporter(ABC):
                 name = fs.path.basename(path)
                 write(level, fs.path.basename(path))
 
-            for packfile_type, _, count in current.packfiles:
-                write(level, '{} ({} files)'.format(packfile_type, count))
+            for desc in current.packfiles:
+                label = desc.name if desc.name else desc.packfile_type
+                write(level, '{} ({} files)'.format(label, desc.count))
 
             for child in util.sorted_container_nodes(current.children):
                 queue.appendleft((level, child))
@@ -132,7 +133,7 @@ class AbstractImporter(ABC):
                     msg = 'File {} cannot be uploaded to {} {} - files are not supported at this level'.format(fname, container.container_type, cname)
                     results.append(('warn', msg))
 
-                for packfile_type, _, _ in container.packfiles:
+                for desc in container.packfiles:
                     msg = '{} pack-file cannot be uploaded to {} {} - files are not supported at this level'.format(fname, container.container_type, cname)
                     results.append(('warn', msg))
 
@@ -211,20 +212,23 @@ class AbstractImporter(ABC):
                     upload_queue.upload(container, file_name, src)
 
                 # packfiles
-                for packfile_type, path, _ in container.packfiles:
-                    # Don't call things foo.zip.zip
-                    packfile_name = util.str_to_filename(cname)
-                    if packfile_type == 'zip':
-                        file_name = '{}.zip'.format(packfile_name)
+                for desc in container.packfiles:
+                    if desc.name:
+                        file_name = desc.name
                     else:
-                        file_name = '{}.{}.zip'.format(packfile_name, packfile_type)
+                        # Don't call things foo.zip.zip
+                        packfile_name = util.str_to_filename(cname)
+                        if desc.packfile_type == 'zip':
+                            file_name = '{}.zip'.format(packfile_name)
+                        else:
+                            file_name = '{}.{}.zip'.format(packfile_name, desc.packfile_type)
                     
-                    if isinstance(path, str):
-                        packfile_src_fs = src_fs.opendir(path)
-                        upload_queue.upload_packfile(packfile_src_fs, packfile_type, packfile_args, container, file_name)
+                    if isinstance(desc.path, str):
+                        packfile_src_fs = src_fs.opendir(desc.path)
+                        upload_queue.upload_packfile(packfile_src_fs, desc.packfile_type, packfile_args, container, file_name)
                     else:
                         packfile_src_fs = src_fs.opendir('/')
-                        upload_queue.upload_packfile(src_fs, packfile_type, packfile_args, container, file_name, paths=path)
+                        upload_queue.upload_packfile(src_fs, desc.packfile_type, packfile_args, container, file_name, paths=desc.path)
 
             upload_queue.wait_for_finish()
             # Retry loop for errored jobs

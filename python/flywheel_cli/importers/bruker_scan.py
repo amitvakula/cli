@@ -62,7 +62,7 @@ def create_bruker_scanner(resolver, group, project, follow_symlinks, config, sub
 
     acq_metadata_fn = extract_bruker_metadata_fn('acqp', ACQP_PARAMS)
     importer.add_composite_template_node([
-        StringMatchNode(re.compile('AdjResult'), packfile_type='zip'),
+        StringMatchNode(re.compile('AdjResult'), packfile_type='zip', packfile_name='AdjResult.zip'),
         StringMatchNode('acquisition', packfile_type='pv5', metadata_fn=acq_metadata_fn)
     ])
 

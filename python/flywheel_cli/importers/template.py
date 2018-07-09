@@ -34,18 +34,20 @@ class TerminalNode(ImportTemplateNode):
 TERMINAL_NODE = TerminalNode()
 
 class StringMatchNode(ImportTemplateNode):
-    def __init__(self, template=None, packfile_type=None, metadata_fn=None):
+    def __init__(self, template=None, packfile_type=None, metadata_fn=None, packfile_name=None):
         """Create a new container-level node.
 
         Arguments:
             template (str|Pattern): The metavar or regular expression
             packfile_type (str): The optional packfile type if this is a packfile folder
             metadata_fn (function): Optional function to extract additional metadata
+            packfile_name (str): The optional packfile name, if not using the default
         """
         self.template = template
         self.next_node = None
         self.packfile_type = packfile_type
         self.metadata_fn = metadata_fn
+        self.packfile_name = packfile_name
 
     def set_next(self, next_node):
         """Set the next node"""
@@ -76,6 +78,7 @@ class StringMatchNode(ImportTemplateNode):
 
         if self.packfile_type:
             context['packfile'] = self.packfile_type
+            context['packfile_name'] = self.packfile_name
             return TERMINAL_NODE
 
         return self.next_node

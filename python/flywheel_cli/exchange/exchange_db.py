@@ -99,7 +99,7 @@ class GearExchangeDB(object):
         if resp.status_code == 200:
             new_etag = resp.headers['etag']
 
-            if new_etag == etag[0]:
+            if etag and new_etag == etag[0]:
                 # Not modified
                 resp.close()
                 return

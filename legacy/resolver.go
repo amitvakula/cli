@@ -60,8 +60,15 @@ func decode(config *mapstructure.DecoderConfig, src interface{}) {
 
 // addDynamicNode will take an untyped string map and add it to a slice.
 func (r *ResolveResult) addDynamicNode(x map[string]interface{}, slice *[]interface{}) {
+	// Handle switch from node_type to container_type
+	var nodeType string
+	if val, ok := x["container_type"].(string); ok {
+		nodeType = val
+	} else {
+		nodeType = x["node_type"].(string)
+	}
 
-	switch x["node_type"].(string) {
+	switch nodeType {
 	case "group":
 		var obj Group
 		config := newDecoderConfig()
@@ -97,8 +104,11 @@ func (r *ResolveResult) addDynamicNode(x map[string]interface{}, slice *[]interf
 		decode(config, x)
 		*slice = append(*slice, &obj)
 
+	case "analysis":
+		// Ignore analysis for now
+
 	default:
-		Println("Unknown dynamic node type " + x["node_type"].(string))
+		Println("Unknown dynamic node type " + nodeType)
 	}
 }
 

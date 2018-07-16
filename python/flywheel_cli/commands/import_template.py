@@ -1,7 +1,7 @@
 import argparse
 
 from ..importers import parse_template_string, FolderImporter
-from ..util import split_key_value_argument
+from ..util import set_nested_attr, split_key_value_argument, METADATA_ALIASES
 from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
 def add_command(subparsers):
@@ -28,6 +28,14 @@ def add_command(subparsers):
 
     return parser
 
+def build_context(variables):
+    context = {}
+    for key, value in variables:
+        if key in METADATA_ALIASES:
+            key = METADATA_ALIASES[key]
+        set_nested_attr(context, key, value)
+    return context
+
 def import_folder_with_template(args):
     fw = create_flywheel_client()
     resolver = SdkUploadWrapper(fw)
@@ -36,7 +44,7 @@ def import_folder_with_template(args):
     importer = FolderImporter(resolver, group=args.group, project=args.project, 
         de_identify=args.de_identify, repackage_archives=args.repack, 
         merge_subject_and_session=(args.no_subjects or args.no_sessions), 
-        context=dict(args.set_var), config=args.config)
+        context=build_context(args.set_var), config=args.config)
 
     # Build the template string
     try:

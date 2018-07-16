@@ -109,6 +109,8 @@ class PackfileTask(Task):
         return UploadTask(self.uploader, self.container, self.filename, tmpfile)
 
     def get_bytes_processed(self):
+        if self._bytes_processed is None:
+            return 0
         return self._bytes_processed
 
     def get_desc(self):

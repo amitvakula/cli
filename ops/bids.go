@@ -18,6 +18,9 @@ import (
 const BidsContainerVersion = "0.6"
 const BidsContainerName = "flywheel/bids-client"
 
+const ValidateBidsContainerVersion = "0.26.16"
+const ValidateBidsContainerName = "bids/validator"
+
 func ImportBids(docker *client.Client, apiKey string, folder string, group_id string, projectLabel string) {
 	// Make sure that bidsDir is an absolute path
 
@@ -104,9 +107,31 @@ func ExportBids(docker *client.Client, apiKey string, folder string, projectLabe
 	}
 }
 
+func ValidateBids(docker *client.Client, folder string) {
+	imageName := Sprintf("%s:%s", ValidateBidsContainerName, ValidateBidsContainerVersion)
+
+	// Map The destination dir to /data
+	binding := Sprintf("%s:/data:ro", folder)
+	status, err := runCmdInContainer(docker, imageName, []string{binding}, []string{"/data"})
+
+	if err != nil {
+		// Intentionally obtuse error message, ideally we would hide that we're
+		// calling into a container
+		Fprintln(os.Stderr, "Error validating BIDS data --", err.Error())
+		os.Exit(1)
+	} else {
+		if status != 0 {
+			os.Exit(int(status))
+		}
+	}
+}
+
 func runBidsCmdInContainer(docker *client.Client, bindings []string, cmd []string) (int64, error) {
 	imageName := Sprintf("%s:%s", BidsContainerName, BidsContainerVersion)
+	return runCmdInContainer(docker, imageName, bindings, cmd)
+}
 
+func runCmdInContainer(docker *client.Client, imageName string, bindings []string, cmd []string) (int64, error) {
 	ctx := context.Background()
 
 	// Pull the image every time

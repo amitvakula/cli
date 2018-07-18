@@ -19,7 +19,7 @@ test -d ../../../src || fatal "This project must be located in a gopath.\\nTry c
 export GOPATH; GOPATH=$(cd ../../../; pwd); unset GOBIN
 
 # Check that python3 is installed
-/usr/bin/env python3 --version >> /dev/null 2>&1  || fatal "This project requires an available python3 interpreter"
+python3 --version >> /dev/null 2>&1  || fatal "This project requires an available python3 interpreter"
 
 # Get system info
 localOs=$( uname -s | tr '[:upper:]' '[:lower:]' )
@@ -349,7 +349,7 @@ showEnv() {
 
 preparePython() {
 	if [ ! -d "${venv_dir}" ]; then
-		/usr/bin/env python3 -m venv "${venv_dir}"
+		python3 -m venv "${venv_dir}"
 	fi
 }
 
@@ -360,8 +360,8 @@ buildPython() {
 	source "${venv_dir}/bin/activate"
 	set -u
 	echo "Installing build dependencies..."
-	pip3 install -q -r python/build-requirements.txt
-	python3 python/compile.py 
+	pip install -q -r python/build-requirements.txt
+	python python/compile.py
 }
 
 testPython() {
@@ -371,8 +371,8 @@ testPython() {
 	source "${venv_dir}/bin/activate"
 	set -u
 	echo "Installing test dependencies..."
-	pip3 install -q -r python/test-requirements.txt
-	pip3 install -q -e python/
+	pip install -q -r python/test-requirements.txt
+	pip install -q -e python/
 	py.test python/tests/unit_tests
 }
 

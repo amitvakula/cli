@@ -8,10 +8,13 @@ from . import export_bids
 
 from ..config import Config
 
-def set_subparser_print_help(parser):
+def set_subparser_print_help(parser, subparsers):
     def print_help(args):
         parser.print_help()
     parser.set_defaults(func=print_help)
+
+    help_parser = subparsers.add_parser('help', help='Print this help message and exit')
+    help_parser.set_defaults(func=print_help)
 
 def print_help(default_parser, parsers):
     def print_help_fn(args):
@@ -42,7 +45,6 @@ def add_commands(parser):
     parsers['import'] = parser_import
 
     import_subparsers = parser_import.add_subparsers(title='Available import commands', metavar='')
-    set_subparser_print_help(parser_import)
 
     # import folder
     parsers['import folder'] = import_folder.add_command(import_subparsers)
@@ -63,6 +65,9 @@ def add_commands(parser):
     parsers['import template'] = import_template.add_command(import_subparsers)
     Config.add_config_args(parsers['import template'])
 
+    # Link help commands
+    set_subparser_print_help(parser_import, import_subparsers)
+
     # =====
     # export
     # =====
@@ -70,9 +75,11 @@ def add_commands(parser):
     parsers['export'] = parser_export
 
     export_subparsers = parser_export.add_subparsers(title='Available export commands', metavar='')
-    set_subparser_print_help(parser_export)
 
     parsers['export bids'] = export_bids.add_command(export_subparsers)
+
+    # Link help commands
+    set_subparser_print_help(parser_export, export_subparsers)
 
     # =====
     # help commands

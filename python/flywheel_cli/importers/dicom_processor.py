@@ -1,4 +1,7 @@
+import logging
 from ..dcm import DicomFile
+
+log = logging.getLogger(__name__)
 
 class DicomProcessor(object):
     def __init__(self, de_identify=False, **kwargs):

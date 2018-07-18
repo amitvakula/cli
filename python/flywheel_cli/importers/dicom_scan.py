@@ -144,7 +144,9 @@ class DicomScanner(AbstractImporter):
             self.sessions[dcm.session_uid] = DicomSession({
                 'session': {
                     'uid': dcm.session_uid.replace('.', ''),
-                    'label': self.determine_session_label(dcm)
+                    'label': self.determine_session_label(dcm),
+                    'timestamp': dcm.session_timestamp,
+                    'timezone': str(util.DEFAULT_TZ)
                 },
                 'subject': {
                     'label': dcm.get('PatientID', '')
@@ -160,7 +162,9 @@ class DicomScanner(AbstractImporter):
             session.acquisitions[dcm.series_uid] = DicomAcquisition({
                 'acquisition': {
                     'uid': dcm.series_uid.replace('.', ''),
-                    'label': self.determine_acquisition_label(dcm)
+                    'label': self.determine_acquisition_label(dcm),
+                    'timestamp': dcm.acquisition_timestamp,
+                    'timezone': str(util.DEFAULT_TZ)
                 }
             })
 

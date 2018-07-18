@@ -81,15 +81,16 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
             for child in result.children:
                 if 'subject' in child and child.subject.code == subject:
                     # Return the project id
-                    return result.path[-1].id
+                    return result.path[-1].id, None
 
-            return None
+            return None, None
 
         try:
             result = self.fw.resolve(parts)
-            return result.path[-1].id
+            container = result.path[-1]
+            return container.id, container.get('uid')
         except flywheel.ApiException:
-            return None
+            return None, None
 
     def create_container(self, parent, container):
         if container.container_type == 'subject':

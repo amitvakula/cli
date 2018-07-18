@@ -1,10 +1,33 @@
+import argparse
 import re
+import textwrap
 
 from ..importers import FolderImporter, StringMatchNode
 from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
 def add_command(subparsers):
-    parser = subparsers.add_parser('folder', help='Import a structured folder')
+    parser = subparsers.add_parser('folder', help='Import a structured folder',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=textwrap.dedent("""\
+            Import a folder with the following structure:
+
+            root-folder
+            └── group-id
+                └── project-label
+                    └── subject-label
+                        └── session-label
+                            └── acquisition-label
+                                ├── dicom
+                                │   ├── 1.dcm
+                                │   └── 2.dcm
+                                ├── data.foo
+                                └── scan.nii.gz
+
+            Files can be placed at the project level and below.
+
+            By default, folders under the acquisition label will be zipped with
+                foldername as the default.
+            """))
     parser.add_argument('folder', help='The path to the folder to import')
     parser.add_argument('--group', '-g', metavar='<id>', help='The id of the group, if not in folder structure')
     parser.add_argument('--project', '-p', metavar='<label>', help='The label of the project, if not in folder structure')

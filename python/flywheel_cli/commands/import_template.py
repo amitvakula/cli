@@ -1,11 +1,26 @@
 import argparse
+import textwrap
 
 from ..importers import parse_template_string, FolderImporter
 from ..util import set_nested_attr, split_key_value_argument, METADATA_ALIASES
 from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
 def add_command(subparsers):
-    parser = subparsers.add_parser('template', help='Import a folder, using a template')
+    parser = subparsers.add_parser('template', help='Import a folder, using a template',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=textwrap.dedent("""\
+            A template string can be used to extract metadata from custom folder trees.
+
+            Simple properties can be extracted using replacement syntax; subfolders
+            are delimited by ':'. For example:
+                'ses-{session}-{subject}:{acquisition}'
+            would extract the session label "01", subject code "ex2002" and
+            acquisition label of "Diffusion" from the folder names:
+                ses-01-ex2002/Diffusion
+
+            Any variable can be set using --set-var. e.g. to set the acquisition label:
+                --set-var 'acquisition.label=Scan'
+        """))
 
     parser.add_argument('--group', '-g', metavar='<id>', help='The id of the group, if not in folder structure')
     parser.add_argument('--project', '-p', metavar='<label>', help='The label of the project, if not in folder structure')

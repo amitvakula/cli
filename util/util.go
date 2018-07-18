@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	. "fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"runtime/debug"
 )
@@ -31,26 +30,6 @@ func PrintFormat(x interface{}) {
 		panic(err)
 	}
 	Fprintln(os.Stderr, string(y))
-}
-
-// Remove the contents of directory
-func RemoveTree(dir string) error {
-	d, err := os.Open(dir)
-	if err != nil {
-		return err
-	}
-	defer d.Close()
-	names, err := d.Readdirnames(-1)
-	if err != nil {
-		return err
-	}
-	for _, name := range names {
-		err = os.RemoveAll(filepath.Join(dir, name))
-		if err != nil {
-			return err
-		}
-	}
-	return os.Remove(dir)
 }
 
 // Aims to match the $GOPATH/src this binary was compiled with, during stack trace output.

@@ -16,7 +16,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"flywheel.io/fw/python/pkgdata"
-	"flywheel.io/fw/util"
 )
 
 type CommandDesc struct {
@@ -170,7 +169,7 @@ func PopulateCache(cacheDir string) (*PythonPathInfo, error) {
 	buildTime, err := ioutil.ReadFile(buildTimePath)
 	if err != nil || string(buildTime) != versionInfo.BuildTime {
 		// Extract site-packages.zip
-		util.RemoveTree(sitePkgPath)
+		os.RemoveAll(sitePkgPath)
 		err = ExtractAssetZip(SitePackagesName, sitePkgPath)
 
 		// Write the build time to .site-packages.buildtime

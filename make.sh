@@ -79,18 +79,18 @@ preparePkgData() {
 	)
 
 	# Prepare data files
-	mkdir -p pkgdata/
+	mkdir -p python/pkgdata/
 	for platform in darwin linux windows
 	do
 		srcdir="python/dist/${platform}-x86_64/"
-		dstfile="pkgdata/pkgdata_${platform}.go"
+		dstfile="python/pkgdata/pkgdata_${platform}.go"
 		if [ ! -d ${srcdir} ]; then 
 			echo "Python package-data folder ${srcdir} does not exist! Run 'make.sh buildPython' first!"
 			exit 1
 		fi
 		if [ "${srcdir}/version.json" -nt "${dstfile}" ]; then
 			echo "Generating ${dstfile}"
-			go-bindata -nocompress -pkg pkgdata -prefix "${srcdir}" -o "${dstfile}" "${srcdir}"
+			go-bindata -nocompress -pkg "pkgdata" -prefix "${srcdir}" -o "${dstfile}" "${srcdir}"
 			gofmt -s -w "${dstfile}"
 		fi
 	done

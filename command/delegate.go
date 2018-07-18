@@ -15,7 +15,7 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 
-	"flywheel.io/fw/pkgdata"
+	"flywheel.io/fw/python/pkgdata"
 	"flywheel.io/fw/util"
 )
 

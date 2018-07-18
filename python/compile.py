@@ -56,7 +56,13 @@ def update_pth_file(path):
             f.write('\r\nlib/python{}/site-packages\r\n'.format(PYVER))
 
 def build_site_packages():
+    """Use PEX to resolve dependencies in a virtual environment,
+    with some customizations to reduce the size of our build.
+
+    https://www.pantsbuild.org/pex.html
+    """
     # Remove flywheel_cli from cache
+    # If you skip this step, it doesn't automatically update the python code
     if os.path.isdir(PEX_BUILD_CACHE_DIR):
         for name in os.listdir(PEX_BUILD_CACHE_DIR):
             if fnmatch.fnmatch(name, 'flywheel_cli*.whl'):
@@ -65,13 +71,18 @@ def build_site_packages():
                 os.remove(path)
 
     # Read ignore list
+    # See package-ignore.txt, largely we're removing test files and
+    # Multi-megabyte dicoms from the dicom folder
     ignore_patterns = read_ignore_patterns()
 
     # Create resolver
+    # Loosely based on: https://github.com/pantsbuild/pex/blob/982cb9a988949ffff3348b9bca98ae72a0bf8847/pex/bin/pex.py#L577
     resolver_option_builder = ResolverOptionsBuilder()
     resolvables = [Resolvable.get(SRC_DIR, resolver_option_builder)]
     resolver = CachingResolver(PEX_BUILD_CACHE_DIR, None)
 
+    # Effectively we resolve (possibly from cache) The source and all of the dependency packages
+    # Then create the virtual environment, which contains those files
     print('Resolving distributions')
     resolved = resolver.resolve(resolvables)
 
@@ -81,11 +92,14 @@ def build_site_packages():
         builder.add_distribution(dist)
         builder.add_requirement(dist.as_requirement())
 
+    # After this point, builder.chroot contains a full list of the files
     print('Compiling package')
     builder.freeze(bytecode_compile=False)
 
     site_packages_path = os.path.join(BUILD_DIR, 'site-packages.zip')
 
+    # Create an uncompressed site-packages.zip and add all of the discovered files
+    # (Except those that are filtered out)
     with open(site_packages_path, 'wb') as f:
         added_files = set()
         with zipfile.ZipFile(f, 'w') as zf:
@@ -123,16 +137,18 @@ if __name__ == '__main__':
     if os.path.isdir(DIST_DIR):
         shutil.rmtree(DIST_DIR)
 
-    # Build each distribution
+    # Download and extract a python interpreter for each platform under build/{dist_name}
     for dist_name, package_url in PYTHON_PACKAGES:
         print('Building {}'.format(dist_name))
 
-        # Download
+        # Determine the name of the package file
         package_name = os.path.basename(package_url).replace('.tar.gz', '.tgz')
         package_path = os.path.join(PACKAGE_CACHE_DIR, package_name)
 
+        # Only perform this step if the interpreter folder doesn't already exist
         python_dist_dir = os.path.join(BUILD_DIR, dist_name)
         if not os.path.isdir(python_dist_dir):
+            # Download the python interpreter if not cached
             if not os.path.isfile(package_path):
                 if not os.path.isdir(PACKAGE_CACHE_DIR):
                     os.makedirs(PACKAGE_CACHE_DIR)
@@ -150,6 +166,8 @@ if __name__ == '__main__':
                 subprocess.check_call(['unzip', package_path], cwd=python_dist_dir)
 
             # Update windows python{}._pth file:
+            # See: https://docs.python.org/3/using/windows.html#finding-modules
+            # Effectively we need to re-add the site-packages folder to the overridden path file
             pth_file = os.path.join(python_dist_dir, 'python{}._pth'.format(PYXY))
             update_pth_file(pth_file)
 
@@ -157,6 +175,7 @@ if __name__ == '__main__':
         dist_dir = os.path.join(DIST_DIR, dist_name)
         os.makedirs(dist_dir)
 
+        # Re-zip everything to an uncompressed zipfile
         dst_archive_path = os.path.join(dist_dir, 'python-{}.zip'.format(PYTHON_VERSION))
         with open(dst_archive_path, 'wb') as f:
             with zipfile.ZipFile(f, 'w') as zf:
@@ -170,7 +189,8 @@ if __name__ == '__main__':
         # Copy site-packages
         shutil.copyfile(site_packages_path, os.path.join(dist_dir, 'site-packages.zip'))
         
-        # Write build info
+        # Write build info, which will be used in go to determine whether or not to extract
+        # the interpreter and/or the site-packages.zip
         ver_info_path = os.path.join(dist_dir, 'version.json')
         with open(ver_info_path, 'w') as f:
             json.dump({

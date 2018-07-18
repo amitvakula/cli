@@ -360,8 +360,8 @@ buildPython() {
 	source "${venv_dir}/bin/activate"
 	set -u
 	echo "Installing build dependencies..."
-	pip install -q -r python/build-requirements.txt
-	python python/compile.py 
+	pip3 install -q -r python/build-requirements.txt
+	python3 python/compile.py 
 }
 
 testPython() {
@@ -371,8 +371,8 @@ testPython() {
 	source "${venv_dir}/bin/activate"
 	set -u
 	echo "Installing test dependencies..."
-	pip install -q -r python/test-requirements.txt
-	pip install -q -e python/
+	pip3 install -q -r python/test-requirements.txt
+	pip3 install -q -e python/
 	py.test python/tests/unit_tests
 }
 

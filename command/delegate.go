@@ -47,14 +47,16 @@ const LibcExec = "libc-exe"
 const SitePackagesName = "site-packages.zip"
 
 // Add python delegated commands to the command list
-func AddDelegatedCommands(cmd *cobra.Command) {
+func GetDelegatedCommands() []*cobra.Command {
+	result := make([]*cobra.Command, 0)
 	for _, desc := range DelegatedCommands {
-		cmd.AddCommand(&cobra.Command{
+		result = append(result, &cobra.Command{
 			Use:   desc.Command,
 			Short: desc.Description,
 			Run:   func(cmd *cobra.Command, args []string) {},
 		})
 	}
+	return result
 }
 
 // Check if the given command name should be delegated to python CLI

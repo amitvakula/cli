@@ -122,10 +122,18 @@ func runBidsCmdInContainer(docker *client.Client, bindings []string, cmd []strin
 		return -1, err
 	}
 
+	// Forward HTTPS_PROXY environment variable
+	var env []string
+	proxy, proxyOk := os.LookupEnv("HTTPS_PROXY")
+	if proxyOk {
+		env = append(env, Sprintf("HTTPS_PROXY=%s", proxy))
+	}
+
 	// Capture Stdout and Stderr since we're going to pipe it
 	containerCfg := container.Config{
 		Image:        imageName,
 		Cmd:          cmd,
+		Env:          env,
 		AttachStdout: true,
 		AttachStderr: true,
 	}

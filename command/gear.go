@@ -92,7 +92,10 @@ func (o *opts) gearUpload() *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&category, "category", "c", "converter", "Gear category: converter or analysis")
 	cmd.Flags().StringVarP(&file, "file", "f", "", "Write the result to a gzipped tarball instead of flywheel (-- for stdout)")
-	cmd.Flags().StringVarP(&project, "project", "p", "", "Limit visibility of the gear to a specific project")
+
+	// This feature was canceled:
+	// https://github.com/flywheel-io/core/pull/1213
+	// cmd.Flags().StringVarP(&project, "project", "p", "", "Limit visibility of the gear to a specific project")
 
 	return cmd
 }

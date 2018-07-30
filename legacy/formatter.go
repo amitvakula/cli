@@ -103,7 +103,7 @@ func PrintResolve(r *ResolveResult, userId string, showDbIds bool) {
 		case *File:
 			level := FindPermissionById(userId, resolvePermissions(parent)).Level
 			printId(x.Name)
-			Fprintf(w, "%s\t%s\t\t%s\t\n", level, x.Modified.Format(timeFormat), x.Name)
+			Fprintf(w, "%s\t%s\t\tfiles/%s\t\n", level, x.Modified.Format(timeFormat), x.Name)
 
 		default:
 			Printf("Error: printing unexpected type %T\n", node)

@@ -12,8 +12,8 @@ Flags:
 """
 def add_command(subparsers):
     parser = subparsers.add_parser('bids', help='Export a BIDS project to the destination folder')
-    parser.add_argument('folder', help='The path to the destination folder')
-    parser.add_argument('project', metavar='<label>', help='Label of project to import into')
+    parser.add_argument('folder', metavar='[dest folder]', help='The path to the destination folder')
+    parser.add_argument('--project', '-p', required=True, help='Label of project to import into')
     parser.add_argument('--subject', dest='subjects', action='append', help='Limit export to the given subject')
     parser.add_argument('--session', dest='sessions', action='append', help='Limit export to the given session')
     parser.add_argument('--data-type', dest='data_types', action='append', help='Limit export to the given data-types. (e.g. func)')

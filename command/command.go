@@ -32,9 +32,13 @@ func BuildCommand(version, buildHash, buildDate string) *cobra.Command {
 	cmd.AddCommand(o.batch())
 	cmd.AddCommand(o.gear())
 	cmd.AddCommand(o.job())
-	cmd.AddCommand(o.importCommand())
-	cmd.AddCommand(o.exportCommand())
 	cmd.AddCommand(o.bidsCommand())
+
+	for _, subcmd := range GetDelegatedCommands() {
+		cmd.AddCommand(subcmd)
+	}
+
+	cmd.AddCommand(o.legacyCommands())
 	cmd.AddCommand(o.version(version, buildHash, buildDate))
 
 	return cmd

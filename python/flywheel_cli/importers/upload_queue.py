@@ -6,6 +6,8 @@ from .work_queue import Task, WorkQueue
 from .packfile import create_zip_packfile
 from .progress_reporter import ProgressReporter
 
+MAX_IN_MEMORY_XFER = 32 * (2 ** 20) # Files under 32mb send as one chunk
+
 class Uploader(ABC):
     """Abstract uploader class, that can upload files"""
     @abstractmethod
@@ -22,6 +24,14 @@ class Uploader(ABC):
         """
         pass
 
+    def supports_signed_url(self):
+        """Check if signed url upload is supported.
+
+        Returns:
+            bool: True if signed url upload is supported
+        """
+        return False
+
 class UploadFileWrapper(object):
     """Wrapper around file that measures progress"""
     def __init__(self, fileobj):
@@ -30,12 +40,20 @@ class UploadFileWrapper(object):
 
         self.fileobj.seek(0,2)
         self._total_size = self.fileobj.tell()
+        self._override_read_size = 2**20 
         self.fileobj.seek(0)
 
     def read(self, size=-1):
+        # NOTE: Overriding the size is probably an unsupported operation
+        # but *significantly* speeds up uploads
+        if self._override_read_size > 0:
+            size = self._override_read_size
         chunk = self.fileobj.read(size)
         self._sent = self._sent + len(chunk)
         return chunk
+
+    def reset(self):
+        self.fileobj.seek(0)
 
     @property
     def len(self):
@@ -54,9 +72,18 @@ class UploadTask(Task):
         self.container = container
         self.filename = filename
         self.fileobj = UploadFileWrapper(fileobj)
+        self._data = None
 
     def execute(self):
-        self.uploader.upload(self.container, self.filename, self.fileobj)
+        self.fileobj.reset()
+
+        # Under 32 MB, just read the entire file
+        if self.fileobj.len < MAX_IN_MEMORY_XFER:
+            if self._data is None:
+                self._data = self.fileobj.read(self.fileobj.len)
+            self.uploader.upload(self.container, self.filename, self._data)
+        else:
+            self.uploader.upload(self.container, self.filename, self.fileobj)
 
         # Safely close the file object
         try:
@@ -122,9 +149,13 @@ class PackfileTask(Task):
 
 class UploadQueue(WorkQueue):
     def __init__(self, uploader, config, packfile_count=0, upload_count=0, show_progress=True):
-        # TODO: Detect signed-url upload and start multiple upload threads
+        # Detect signed-url upload and start multiple upload threads
+        upload_threads = 1
+        if uploader.supports_signed_url():
+            upload_threads = config.concurrent_uploads 
+
         super(UploadQueue, self).__init__({
-            'upload': 1,
+            'upload': upload_threads,
             'packfile': config.cpu_count 
         })
 
@@ -135,6 +166,7 @@ class UploadQueue(WorkQueue):
         self._progress_thread = None
         if show_progress:
             self._progress_thread = ProgressReporter(self)
+            self._progress_thread.log_process_info(config.cpu_count, upload_threads, packfile_count)
             self._progress_thread.add_group('packfile', 'Packing',  packfile_count)
             self._progress_thread.add_group('upload', 'Uploading', upload_count + packfile_count)
 

@@ -39,6 +39,12 @@ class ProgressReporter(ABC):
         self._shutdown_event = threading.Event()
         self._start_time = datetime.now()
 
+    def log_process_info(self, work_threads, upload_threads, packfile_jobs):
+        if packfile_jobs > 0:
+            print('Using up to {} worker thread(s) and {} upload connection(s).'.format(work_threads, upload_threads))
+        else:
+            print('Using up to {} upload connection(s).'.format(upload_threads))
+
     def add_group(self, name, desc, total_count):
         self.groups[name] = GroupStats(desc, total_count)
 

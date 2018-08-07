@@ -166,6 +166,7 @@ class UploadQueue(WorkQueue):
         self._progress_thread = None
         if show_progress:
             self._progress_thread = ProgressReporter(self)
+            self._progress_thread.log_process_info(config.cpu_count, upload_threads, packfile_count)
             self._progress_thread.add_group('packfile', 'Packing',  packfile_count)
             self._progress_thread.add_group('upload', 'Uploading', upload_count + packfile_count)
 

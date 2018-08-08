@@ -11,9 +11,10 @@ def combine_path(path, child):
     return child
 
 class ContainerNode(object):
-    def __init__(self, container_type, uid=None, label=None, exists=False):
+    def __init__(self, container_type, cid=None, label=None, uid=None, exists=False):
         self.container_type = container_type
-        self.id = uid
+        self.id = cid
+        self.uid = uid
         self.label = label
         self.children = []
         self.exists = exists
@@ -42,9 +43,9 @@ class ContainerResolver(ABC):
             path (str): The resolver path
 
         Returns:
-            str: The id if the container exists, otherwise None
+            str, str: The id and uid if the container exists, otherwise None
         """
-        return None
+        return None, None
 
     @abstractmethod
     def create_container(self, parent, container):
@@ -149,31 +150,33 @@ class ContainerFactory(object):
             ContainerNode: The new or existing container node
         """
         subcon = context[container_type]
-        uid = subcon.get('_id')
+        cid = subcon.get('_id')
+        uid = subcon.get('uid')
         label = subcon.get('label')
 
         for child in parent.children:
             # Prefer resolve by id
-            if uid and child.id == uid:
+            if cid and child.id == cid:
                 return child
 
-            if label and child.label == label:
+            if label and child.label == label and child.uid == uid:
                 # In case we resolved this elsewhere, update the child id
-                if uid and not child.id:
-                    child.id = uid
+                if cid and not child.id:
+                    child.id = cid
 
                 return child
 
         # Create child
-        child = ContainerNode(container_type, uid=uid, label=label)
+        child = ContainerNode(container_type, cid=cid, label=label, uid=uid)
         child.context = copy.deepcopy(context)
 
         # Check if exists
         if self.resolver and parent.exists:
             path = combine_path(path, child.path_el())
-            uid = self.resolver.resolve_path(container_type, path)
-            if uid:
-                child.id = uid
+            cid, uid = self.resolver.resolve_path(container_type, path)
+            if cid:
+                child.id = cid
+                child.uid = uid
                 child.exists = True
 
         parent.children.append(child)

@@ -1,3 +1,4 @@
+import copy
 from flywheel_cli.importers.container_factory import ContainerFactory, ContainerResolver
 
 class MockContainerResolver(ContainerResolver):
@@ -11,7 +12,7 @@ class MockContainerResolver(ContainerResolver):
     def resolve_path(self, container_type, path):
         if path in self.paths:
             return self.paths[path]
-        return None
+        return None, None
 
     def create_container(self, parent, container):
         self.created_nodes.append((parent, container))
@@ -33,7 +34,7 @@ def test_resolve_group_not_exist():
 
 def test_resolve_group_exists():
     resolver = MockContainerResolver({
-        'foo': 'foo'    
+        'foo': ('foo', None)    
     })
 
     factory = ContainerFactory(resolver)
@@ -61,9 +62,9 @@ def test_resolve_missing_level():
 
 def test_resolve_acquisition():
     resolver = MockContainerResolver({
-        'scitran': 'scitran',
-        'scitran/Project1': 'project1',
-        'scitran/Project1/Subject1/Session1/Acquisition1': 'NOT_EXIST'
+        'scitran': ('scitran', None),
+        'scitran/Project1': ('project1', None),
+        'scitran/Project1/Subject1/Session1/Acquisition1': ('NOT_EXIST', None)
     })
 
     factory = ContainerFactory(resolver)
@@ -82,7 +83,10 @@ def test_resolve_acquisition():
         'project': {'label': 'Project1'},
         'subject': {'label': 'Subject1'},
         'session': {'label': 'Session1'},
-        'acquisition': {'label': 'Acquisition1'}
+        'acquisition': {
+            'label': 'Acquisition1',
+            'uid': '1234'
+        }
     }
 
     result = factory.resolve(acquisition_context)
@@ -91,6 +95,7 @@ def test_resolve_acquisition():
     assert result.id is None
     assert result.label == 'Acquisition1'
     assert not result.exists
+    acquisition_node = result
 
     result = factory.resolve(group_context)
     assert result is not None
@@ -105,11 +110,25 @@ def test_resolve_acquisition():
     assert result.label == 'Project1'
     assert result.exists
 
+    result = factory.resolve(acquisition_context)
+    assert result == acquisition_node
+    
+    acquisition_context2 = copy.deepcopy(acquisition_context)
+    acquisition_context2['acquisition']['uid'] = '5678'
+
+    result = factory.resolve(acquisition_context2)
+    assert result is not None
+    assert result.container_type == 'acquisition'
+    assert result.id is None
+    assert result.label == 'Acquisition1'
+    assert not result.exists
+    assert result != acquisition_node
+
 
 def test_creation():
     resolver = MockContainerResolver({
-        'scitran': 'scitran',
-        'scitran/Project1': 'project1',
+        'scitran': ('scitran', None),
+        'scitran/Project1': ('project1', None)
     })
 
     factory = ContainerFactory(resolver)

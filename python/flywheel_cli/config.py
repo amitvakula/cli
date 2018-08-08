@@ -1,5 +1,6 @@
 import math
 import multiprocessing
+import os
 import zlib
 import zipfile
 
@@ -19,6 +20,9 @@ class Config(object):
         self.follow_symlinks = getattr(args, 'symlinks', False)
 
         self.buffer_size = 65536
+
+        # Globally disable flywheel SDK version check warnings
+        os.environ['FLYWHEEL_SDK_SKIP_VERSION_CHECK'] = '1'
 
     def get_compression_type(self):
         if self.compression_level == 0:

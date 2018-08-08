@@ -60,11 +60,16 @@ def sorted_container_nodes(containers):
     """
     return sorted(containers, key=lambda x: (x.label or x.id).lower(), reverse=True)
 
-def to_fs_url(path):
+class UnsupportedFilesystemError(Exception):
+    """Error for unsupported filesystem type"""
+    pass
+
+def to_fs_url(path, support_archive=True):
     """Convert path to an fs url (such as osfs://~/data)
 
     Arguments:
         path (str): The path to convert
+        support_archive (bool): Whether or not to support archives
 
     Returns:
         str: A filesystem url
@@ -74,12 +79,15 @@ def to_fs_url(path):
         return path
 
     if not os.path.isdir(path):
-        # Specialized path options for tar/zip files
-        if is_tar_file(path):
-            return 'tar://{}'.format(path)
+        if support_archive:
+            # Specialized path options for tar/zip files
+            if is_tar_file(path):
+                return 'tar://{}'.format(path)
 
-        if is_zip_file(path): 
-            return 'zip://{}'.format(path)
+            if is_zip_file(path):
+                return 'zip://{}'.format(path)
+
+        raise UnsupportedFilesystemError('Unknown or unsupported filesystem for: {}'.format(path))
         
     # Default is OSFS pointing at directory
     return 'osfs://{}'.format(path)

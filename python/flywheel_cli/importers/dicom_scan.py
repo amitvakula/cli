@@ -51,6 +51,9 @@ def _at_stack_id(tag, VR, length):
     return tag == (0x0020, 0x9056)
 
 class DicomScanner(AbstractImporter):
+    # Archive filesystems are not supported, because zipfiles are not seekable
+    support_archive_fs = False
+
     # The session label dicom header key
     session_label_key = 'StudyDescription'
 
@@ -65,6 +68,7 @@ class DicomScanner(AbstractImporter):
             de_identify (bool): Whether or not to de-identify DICOM, e-file, or p-file data before import. Default is False.
         """
         super(DicomScanner, self).__init__(resolver, group, project, de_identify, False, context, config)
+
         # Extract the following fields from dicoms:
 
         # session label
@@ -119,7 +123,7 @@ class DicomScanner(AbstractImporter):
                         acquisition.files[sop_uid] = path
 
             except DicomFileError as e:
-                log.info('File {} is not a dicom: {}'.format(path, e))
+                log.warn('File {} is not a dicom: {}'.format(path, e))
 
         sys.stdout.write(''.ljust(80) + '\n')
         sys.stdout.flush()

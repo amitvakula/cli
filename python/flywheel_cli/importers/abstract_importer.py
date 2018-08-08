@@ -13,6 +13,9 @@ from .upload_queue import UploadQueue
 from .packfile import create_zip_packfile
 
 class AbstractImporter(ABC):
+    # Whether or not archive filesystems are supported
+    support_archive_fs = True
+
     def __init__(self, resolver, group, project, de_identify, repackage_archives, context, config):
         """Abstract class that handles state for flywheel imports
 
@@ -160,10 +163,19 @@ class AbstractImporter(ABC):
 
     def interactive_import(self, folder, uploader):
         """Performs interactive import of the discovered hierarchy"""
+        try:
+            fs_url = util.to_fs_url(folder, self.support_archive_fs)
+        except util.UnsupportedFilesystemError as e:
+            print(e)
+            return
 
-        with fs.open_fs(util.to_fs_url(folder)) as src_fs:
+        with fs.open_fs(fs_url) as src_fs:
             # Perform discovery on target filesystem
             self.discover(src_fs)
+
+            if self.container_factory.is_empty():
+                print('Nothing found to import!')
+                return
 
             # Print summary
             print('The following data hierarchy was found:\n')

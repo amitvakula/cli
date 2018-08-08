@@ -73,6 +73,10 @@ class ContainerFactory(object):
         # The root container
         self.root = ContainerNode('root', exists=True)
 
+    def is_empty(self):
+        """Check if any nodes have been added to the root node"""
+        return not bool(self.root.children)
+
     def resolve(self, context):
         """Given a context with hierarchy definitions, returns a ContainerNode if resolved.
 

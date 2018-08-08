@@ -123,7 +123,7 @@ class DicomScanner(AbstractImporter):
                         acquisition.files[sop_uid] = path
 
             except DicomFileError as e:
-                log.info('File {} is not a dicom: {}'.format(path, e))
+                log.warn('File {} is not a dicom: {}'.format(path, e))
 
         sys.stdout.write(''.ljust(80) + '\n')
         sys.stdout.flush()

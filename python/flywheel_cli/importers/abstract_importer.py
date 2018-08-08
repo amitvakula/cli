@@ -167,11 +167,15 @@ class AbstractImporter(ABC):
             fs_url = util.to_fs_url(folder, self.support_archive_fs)
         except util.UnsupportedFilesystemError as e:
             print(e)
-            sys.exit(1)
+            return
 
         with fs.open_fs(fs_url) as src_fs:
             # Perform discovery on target filesystem
             self.discover(src_fs)
+
+            if self.container_factory.is_empty():
+                print('Nothing found to import!')
+                return
 
             # Print summary
             print('The following data hierarchy was found:\n')

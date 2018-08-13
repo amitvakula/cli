@@ -40,14 +40,9 @@ class UploadFileWrapper(object):
 
         self.fileobj.seek(0,2)
         self._total_size = self.fileobj.tell()
-        self._override_read_size = 2**20 
         self.fileobj.seek(0)
 
     def read(self, size=-1):
-        # NOTE: Overriding the size is probably an unsupported operation
-        # but *significantly* speeds up uploads
-        if self._override_read_size > 0:
-            size = self._override_read_size
         chunk = self.fileobj.read(size)
         self._sent = self._sent + len(chunk)
         return chunk

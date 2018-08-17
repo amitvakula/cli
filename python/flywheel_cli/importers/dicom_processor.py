@@ -1,5 +1,5 @@
 import logging
-from ..dcm import DicomFile
+from ..dcm import DicomFile, DicomFileError
 
 log = logging.getLogger(__name__)
 
@@ -27,34 +27,38 @@ class DicomProcessor(object):
             bool, str: True to write the file, otherwise false, and the destination path.
         """
         # Open the dicom file and parse common headers. Possibly de-identify as well.
-        dcm = DicomFile(src_file, parse=True, de_identify=self.de_identify, decode=False)
-        if self.series_uid is not None:
-            # Validate SeriesInstanceUID
-            if dcm.series_uid != self.series_uid:
-                log.warn('DICOM {} has a different SeriesInstanceUID ({}) from the rest of the series: {}'.format(path, dcm.series_uid, self.series_uid))
-            # Validate StudyInstanceUID
-            elif dcm.session_uid != self.session_uid:
-                log.warn('DICOM {} has a different StudyInstanceUID ({}) from the rest of the series: {}'.format(path, dcm.session_uid, self.session_uid)) 
-        else:
-            self.series_uid = dcm.series_uid
-            self.session_uid = dcm.session_uid
-        
-        # Validate SOPInstanceUID
-        sop_uid = dcm.get('SOPInstanceUID')
-        if sop_uid:
-            if sop_uid in self.sop_uids:
-                log.error('DICOM {} re-uses SOPInstanceUID {}, and will be excluded!'.format(path, sop_uid))
-                return False, None
-            self.sop_uids.add(sop_uid)
+        try:
+            dcm = DicomFile(src_file, parse=True, de_identify=self.de_identify, decode=False)
+            if self.series_uid is not None:
+                # Validate SeriesInstanceUID
+                if dcm.series_uid != self.series_uid:
+                    log.warn('DICOM {} has a different SeriesInstanceUID ({}) from the rest of the series: {}'.format(path, dcm.series_uid, self.series_uid))
+                # Validate StudyInstanceUID
+                elif dcm.session_uid != self.session_uid:
+                    log.warn('DICOM {} has a different StudyInstanceUID ({}) from the rest of the series: {}'.format(path, dcm.session_uid, self.session_uid)) 
+            else:
+                self.series_uid = dcm.series_uid
+                self.session_uid = dcm.session_uid
 
-            # By default, name the file: {Modality}.{SOPInstanceUID}.dcm
-            modality = dcm.get('Modality', 'NA')
-            path = '{}.{}.dcm'.format(modality, sop_uid)
+            # Validate SOPInstanceUID
+            sop_uid = dcm.get('SOPInstanceUID')
+            if sop_uid:
+                if sop_uid in self.sop_uids:
+                    log.error('DICOM {} re-uses SOPInstanceUID {}, and will be excluded!'.format(path, sop_uid))
+                    return False, None
+                self.sop_uids.add(sop_uid)
 
-        # Write dicom to destination
-        if self.de_identify:
-            dcm.save(dst_file)
-            return True, path
+                # By default, name the file: {Modality}.{SOPInstanceUID}.dcm
+                modality = dcm.get('Modality', 'NA')
+                path = '{}.{}.dcm'.format(modality, sop_uid)
 
-        return 'copy', path
+            # Write dicom to destination
+            if self.de_identify:
+                dcm.save(dst_file)
+                return True, path
+
+            return 'copy', path
+        except DicomFileError as e:
+            log.warning('IGNORING %s - it is not a DICOM file!', path.strip())
+            return False, None
 

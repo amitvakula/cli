@@ -1,11 +1,8 @@
-import argparse
 import math
 import multiprocessing
 import os
 import zlib
 import zipfile
-
-from flywheel_migration import deidentify
 
 class Config(object):
     def __init__(self, args=None):
@@ -24,44 +21,13 @@ class Config(object):
 
         self.buffer_size = 65536
 
-        # Get de-identification profile
-        if getattr(args, 'de_identify', False):
-            profile_name = 'minimal'
-        else:
-            profile_name = getattr(args, 'profile', None)
-
-        if not profile_name:
-            profile_name = 'none'
-
-        self.deid_profile = self.load_deid_profile(profile_name, args=args)
+        # Globally disable flywheel SDK version check warnings
+        os.environ['FLYWHEEL_SDK_SKIP_VERSION_CHECK'] = '1'
 
     def get_compression_type(self):
         if self.compression_level == 0:
             return zipfile.ZIP_STORED
         return zipfile.ZIP_DEFLATED
-
-    def load_deid_profile(self, name, args=None):
-        print('Load deid profile: {}'.format(name))
-        if os.path.isfile(name):
-            return deidentify.load_profile(name)
-
-        # Load default profiles
-        profiles = deidentify.load_default_profiles()
-        for profile in profiles:
-            if profile.name == name:
-                return profile
-
-        msg = 'Unknown de-identification profile: {}'.format(name)
-        if args:
-            args.parser.error(msg)
-        else:
-            raise ValueError(msg)
-
-    @staticmethod
-    def add_deid_args(parser):
-        deid_group = parser.add_mutually_exclusive_group()
-        deid_group.add_argument('--de-identify', action='store_true', help='De-identify DICOM files, e-files and p-files prior to upload')
-        deid_group.add_argument('--profile', help='Use the De-identify profile by name or file')
 
     @staticmethod
     def add_config_args(parser):
@@ -70,3 +36,7 @@ class Config(object):
         parser.add_argument('--compression-level', default=1, type=int, choices=range(-1, 9), 
                 help='The compression level to use for packfiles. -1 for default, 0 for store')
         parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
+
+
+
+    

@@ -6,9 +6,8 @@ import sys
 from .abstract_importer import AbstractImporter
 from .custom_walker import CustomWalker
 from .packfile import PackfileDescriptor
+from ..dcm import DicomFileError, DicomFile
 from .. import util
-
-from flywheel_migration.dcm import DicomFileError, DicomFile
 
 from pydicom.datadict import tag_for_keyword
 from pydicom.tag import Tag
@@ -58,7 +57,7 @@ class DicomScanner(AbstractImporter):
     # The session label dicom header key
     session_label_key = 'StudyDescription'
 
-    def __init__(self, resolver, group, project, config, context=None): 
+    def __init__(self, resolver, group, project, config, de_identify=False, context=None): 
         """Class that handles state for dicom scanning import.
 
         Arguments:
@@ -66,8 +65,9 @@ class DicomScanner(AbstractImporter):
             group (str): The optional group id
             project (str): The optional project label or id in the format <id:xyz>
             config (Config): The config object
+            de_identify (bool): Whether or not to de-identify DICOM, e-file, or p-file data before import. Default is False.
         """
-        super(DicomScanner, self).__init__(resolver, group, project, False, context, config)
+        super(DicomScanner, self).__init__(resolver, group, project, de_identify, False, context, config)
 
         # Extract the following fields from dicoms:
 

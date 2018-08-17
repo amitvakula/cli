@@ -16,13 +16,14 @@ class AbstractImporter(ABC):
     # Whether or not archive filesystems are supported
     support_archive_fs = True
 
-    def __init__(self, resolver, group, project, repackage_archives, context, config):
+    def __init__(self, resolver, group, project, de_identify, repackage_archives, context, config):
         """Abstract class that handles state for flywheel imports
 
         Arguments:
             resolver (ContainerResolver): The container resolver instance
             group (str): The optional group id
             project (str): The optional project label or id in the format <id:xyz>
+            de_identify (bool): Whether or not to de-identify DICOM, e-file, or p-file data before import. Default is False.
             repackage_archives (bool): Whether or not to repackage (and validate and de-identify) zipped packfiles. Default is False.
             context (dict): The optional additional context fields
             config (Config): The config object
@@ -31,15 +32,11 @@ class AbstractImporter(ABC):
 
         self.group = group
         self.project = project
+        self.de_identify = de_identify
         self.messages = []
         self.context = context
         self.config = config
         self.repackage_archives = repackage_archives
-
-        if config:
-            self.deid_profile = config.deid_profile
-        else:
-            self.deid_profile = None
 
     def initial_context(self):
         """Creates the initial context for folder import.
@@ -196,6 +193,11 @@ class AbstractImporter(ABC):
             # Create containers
             self.container_factory.create_containers()
 
+            # Packfile args
+            packfile_args = {
+                'de_identify': self.de_identify
+            }
+
             # Walk the hierarchy, uploading files
             upload_queue = UploadQueue(uploader, self.config, upload_count=counts['file'], packfile_count=counts['packfile'])
             upload_queue.start()
@@ -212,14 +214,13 @@ class AbstractImporter(ABC):
                         if archive_fs:
                             if util.contains_dicoms(archive_fs):
                                 # Repackage upload
-                                upload_queue.upload_packfile(archive_fs, 'dicom', self.deid_profile, container, file_name)
+                                upload_queue.upload_packfile(archive_fs, 'dicom', packfile_args, container, file_name)
                                 continue
                             else:
                                 archive_fs.close()
 
                     # Normal upload
                     src = src_fs.open(path, 'rb')
-                    # TODO: upload_queue.upload_file()
                     upload_queue.upload(container, file_name, src)
 
                 # packfiles
@@ -236,10 +237,10 @@ class AbstractImporter(ABC):
                     
                     if isinstance(desc.path, str):
                         packfile_src_fs = src_fs.opendir(desc.path)
-                        upload_queue.upload_packfile(packfile_src_fs, desc.packfile_type, self.deid_profile, container, file_name)
+                        upload_queue.upload_packfile(packfile_src_fs, desc.packfile_type, packfile_args, container, file_name)
                     else:
                         packfile_src_fs = src_fs.opendir('/')
-                        upload_queue.upload_packfile(src_fs, desc.packfile_type, self.deid_profile, container, file_name, paths=desc.path)
+                        upload_queue.upload_packfile(src_fs, desc.packfile_type, packfile_args, container, file_name, paths=desc.path)
 
             upload_queue.wait_for_finish()
             # Retry loop for errored jobs

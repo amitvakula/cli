@@ -2,7 +2,6 @@ import argparse
 import re
 import textwrap
 
-from ..config import Config
 from ..importers import FolderImporter, StringMatchNode
 from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
@@ -38,8 +37,7 @@ def add_command(subparsers):
     acq_group.add_argument('--dicom', default='dicom', metavar='name', help='The name of dicom subfolders to be zipped prior to upload')
     acq_group.add_argument('--pack-acquisitions', metavar='type', help='Acquisition folders only contain acquisitions of <type> and are zipped prior to upload')
     
-    Config.add_deid_args(parser)
-
+    parser.add_argument('--de-identify', action='store_true', help='De-identify DICOM files, e-files and p-files prior to upload')
     parser.add_argument('--repack', action='store_true', help='Whether or not to validate, de-identify and repackage zipped packfiles')
 
     no_level_group = parser.add_mutually_exclusive_group()
@@ -62,7 +60,8 @@ def import_folder(args):
     resolver = SdkUploadWrapper(fw)
 
     # Build the importer instance
-    importer = FolderImporter(resolver, group=args.group, project=args.project, repackage_archives=args.repack, 
+    importer = FolderImporter(resolver, group=args.group, project=args.project, 
+        de_identify=args.de_identify, repackage_archives=args.repack, 
         merge_subject_and_session=(args.no_subjects or args.no_sessions), config=args.config)
 
     for i in range(args.root_dirs):

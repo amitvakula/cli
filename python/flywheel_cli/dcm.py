@@ -1,5 +1,6 @@
 """DICOM file wrapper"""
 
+import collections
 import os
 import logging
 import datetime
@@ -47,7 +48,7 @@ class DicomFile(object):
 
         sort_info = dcm.get(map_key, '') if map_key else ''
 
-        if dcm.get('Manufacturer', '').upper() != 'SIEMENS':
+        if self.get_manufacturer() != 'SIEMENS':
             self.acq_no = (str(dcm.get('AcquisitionNumber', '')) or None)
             acq_datetime = self._timestamp(dcm.get('AcquisitionDate'), dcm.get('AcquisitionTime'), timezone)
         else:
@@ -101,6 +102,19 @@ class DicomFile(object):
             if value:
                 return str(value).strip('\x00')
         return default
+
+    def get_manufacturer(self):
+        value = self.raw.get('Manufacturer')
+
+        if not value:
+            value =  ''
+        elif not isinstance(value, str):
+            if isinstance(value, collections.Sequence):
+                value = str(value[0])
+            else: # Unknown value, just convert to string
+                value = str(value)
+
+        return value.upper()
 
     @staticmethod
     def _is_screenshot(image_type):

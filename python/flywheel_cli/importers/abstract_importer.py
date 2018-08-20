@@ -193,6 +193,8 @@ class AbstractImporter(ABC):
             if not util.confirmation_prompt('Confirm upload?'):
                 return
 
+            self.before_begin_upload()
+
             # Create containers
             self.container_factory.create_containers()
 
@@ -257,3 +259,6 @@ class AbstractImporter(ABC):
 
             upload_queue.shutdown()
 
+    def before_begin_upload(self):
+        """Called before actual upload begins"""
+        pass

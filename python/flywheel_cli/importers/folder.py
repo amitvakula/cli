@@ -1,5 +1,6 @@
 import collections
 import copy
+import fnmatch
 import fs
 import os
 import sys
@@ -9,6 +10,20 @@ from .abstract_importer import AbstractImporter
 from .container_factory import ContainerFactory
 from .template import CompositeNode
 from .packfile import PackfileDescriptor
+
+IGNORED_FILE_LIST = [
+    '.*',
+    'ehthumbs.db',
+    'Thumbs.db',
+    'Icon\r'
+]
+
+def should_ignore_file(name):
+    """Check if the given filename should be ignored"""
+    for pattern in IGNORED_FILE_LIST:
+        if fnmatch.fnmatch(name, pattern):
+            return True
+    return False
 
 class FolderImporter(AbstractImporter):
     def __init__(self, resolver, group=None, project=None, de_identify=False, 
@@ -86,7 +101,8 @@ class FolderImporter(AbstractImporter):
 
         # We only need to query for symlink if we're NOT following them
         for name in src_fs.listdir('/'):
-            if name.startswith('.'):
+            # Check if it's in the exclusion list
+            if should_ignore_file(name):
                 continue
 
             info = src_fs.getinfo(name, info_ns) 

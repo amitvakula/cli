@@ -23,6 +23,7 @@ REQUIRES = [
     "pydicom~=1.0.2",
     "tzlocal~=1.5.1",
     "fs~=2.0.23",
+    "flywheel_migration==0.2.0.dev3",
     "flywheel-bids~=0.6.0"
 ]
 

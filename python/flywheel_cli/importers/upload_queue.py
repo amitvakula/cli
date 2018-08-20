@@ -95,13 +95,13 @@ class UploadTask(Task):
         return 'Upload {}'.format(self.filename)
 
 class PackfileTask(Task):
-    def __init__(self, uploader, archive_fs, packfile_type, packfile_args, follow_symlinks, container, filename, paths=None, compression=None):
+    def __init__(self, uploader, archive_fs, packfile_type, deid_profile, follow_symlinks, container, filename, paths=None, compression=None):
         super(PackfileTask, self).__init__('packfile')
 
         self.uploader = uploader
         self.archive_fs = archive_fs
         self.packfile_type = packfile_type
-        self.packfile_args = packfile_args
+        self.deid_profile = deid_profile
         self.follow_symlinks = follow_symlinks
 
         self.container = container
@@ -116,7 +116,7 @@ class PackfileTask(Task):
 
         create_zip_packfile(tmpfile, self.archive_fs, packfile_type=self.packfile_type, 
             symlinks=self.follow_symlinks, paths=self.paths, compression=self.compression, 
-            progress_callback=self.update_bytes_processed, **self.packfile_args)
+            progress_callback=self.update_bytes_processed, deid_profile=self.deid_profile)
 
         #Rewind
         tmpfile.seek(0)
@@ -197,7 +197,7 @@ class UploadQueue(WorkQueue):
     def upload(self, container, filename, fileobj):
         self.enqueue(UploadTask(self.uploader, container, filename, fileobj))
 
-    def upload_packfile(self, archive_fs, packfile_type, packfile_args, container, filename, paths=None):
-        self.enqueue(PackfileTask(self.uploader, archive_fs, packfile_type, packfile_args, self.follow_symlinks, container, 
+    def upload_packfile(self, archive_fs, packfile_type, deid_profile, container, filename, paths=None):
+        self.enqueue(PackfileTask(self.uploader, archive_fs, packfile_type, deid_profile, self.follow_symlinks, container, 
             filename, paths=paths, compression=self.compression))
 

@@ -1,6 +1,8 @@
 import argparse
+import re
 import textwrap
 
+from ..config import Config
 from ..importers import parse_template_string, FolderImporter
 from ..util import set_nested_attr, split_key_value_argument, METADATA_ALIASES
 from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
@@ -25,7 +27,8 @@ def add_command(subparsers):
     parser.add_argument('--group', '-g', metavar='<id>', help='The id of the group, if not in folder structure')
     parser.add_argument('--project', '-p', metavar='<label>', help='The label of the project, if not in folder structure')
 
-    parser.add_argument('--de-identify', action='store_true', help='De-identify DICOM files, e-files and p-files prior to upload')
+    Config.add_deid_args(parser)
+
     parser.add_argument('--repack', action='store_true', help='Whether or not to validate, de-identify and repackage zipped packfiles')
 
     no_level_group = parser.add_mutually_exclusive_group()
@@ -57,15 +60,14 @@ def import_folder_with_template(args):
 
     # Build the importer instance
     importer = FolderImporter(resolver, group=args.group, project=args.project, 
-        de_identify=args.de_identify, repackage_archives=args.repack, 
-        merge_subject_and_session=(args.no_subjects or args.no_sessions), 
+        repackage_archives=args.repack, merge_subject_and_session=(args.no_subjects or args.no_sessions), 
         context=build_context(args.set_var), config=args.config)
 
     # Build the template string
     try:
         importer.root_node = parse_template_string(args.template) 
     except (ValueError, re.error) as e:
-        raise argparse.ArgumentError('Invalid template: {}'.format(e))
+        args.parser.error('Invalid template: {}'.format(e))
 
     # Perform the import
     importer.interactive_import(args.folder, resolver)

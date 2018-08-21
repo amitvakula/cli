@@ -121,7 +121,7 @@ class DicomScanner(AbstractImporter):
                 with src_fs.open(path, 'rb', buffering=self.config.buffer_size) as f:
                     # Don't decode while scanning, stop as early as possible
                     dcm = DicomFile(f, parse=True, session_label_key=self.session_label_key, 
-                        decode=False, stop_when=_at_stack_id, specific_tags=tags)
+                        decode=False, stop_when=_at_stack_id, update_in_place=False, specific_tags=tags)
                     acquisition = self.resolve_acquisition(dcm)
 
                     sop_uid = dcm.get('SOPInstanceUID')

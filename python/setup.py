@@ -22,7 +22,7 @@ VERSION = "6.0.0"
 REQUIRES = [
     "tzlocal~=1.5.1",
     "fs~=2.0.23",
-    "flywheel_migration==0.2.0.dev4",
+    "flywheel_migration==0.2.0.dev5",
     "flywheel-bids~=0.6.0"
 ]
 

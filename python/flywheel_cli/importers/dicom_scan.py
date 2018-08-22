@@ -1,4 +1,5 @@
 import copy
+import gzip
 import logging
 import os
 import sys
@@ -57,7 +58,7 @@ class DicomScanner(AbstractImporter):
     # The session label dicom header key
     session_label_key = 'StudyDescription'
 
-    def __init__(self, resolver, group, project, config, context=None): 
+    def __init__(self, resolver, group, project, config, context=None, subject_label=None, session_label=None):
         """Class that handles state for dicom scanning import.
 
         Arguments:
@@ -71,6 +72,9 @@ class DicomScanner(AbstractImporter):
         self.subject_map = None  # Provides subject mapping services
         if self.deid_profile:
             self.subject_map = self.deid_profile.map_subjects
+
+        self.subject_label = subject_label
+        self.session_label = session_label
 
         # Extract the following fields from dicoms:
 
@@ -116,9 +120,14 @@ class DicomScanner(AbstractImporter):
             sys.stdout.write('Scanning {}/{} files...'.format(files_scanned, file_count).ljust(80) + '\r')
             sys.stdout.flush()
             files_scanned = files_scanned+1
-            
+
             try:
                 with src_fs.open(path, 'rb', buffering=self.config.buffer_size) as f:
+                    # Unzip gzipped files
+                    _, ext = os.path.splitext(path)
+                    if ext.lower() == '.gz':
+                        f = gzip.GzipFile(fileobj=f)
+
                     # Don't decode while scanning, stop as early as possible
                     dcm = DicomFile(f, parse=True, session_label_key=self.session_label_key, 
                         decode=False, stop_when=_at_stack_id, update_in_place=False, specific_tags=tags)
@@ -158,7 +167,9 @@ class DicomScanner(AbstractImporter):
         """Find or create a sesson from a dcm file. """
         if dcm.session_uid not in self.sessions:
             # Map subject
-            if self.subject_map:
+            if self.subject_label:
+                subject_code = self.subject_label
+            elif self.subject_map:
                 subject_code = self.subject_map.get_code(dcm)
             else:
                 subject_code = dcm.get('PatientID', '')
@@ -195,6 +206,9 @@ class DicomScanner(AbstractImporter):
 
     def determine_session_label(self, dcm):
         """Determine session label from DICOM headers"""
+        if self.session_label:
+            return self.session_label
+
         name = dcm.session_label
         if not name:
             if dcm.session_timestamp:

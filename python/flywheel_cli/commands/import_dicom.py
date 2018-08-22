@@ -10,6 +10,9 @@ def add_command(subparsers):
     parser.add_argument('group', metavar='group_id', help='The id of the group')
     parser.add_argument('project', metavar='project_label', help='The label of the project')
 
+    parser.add_argument('--subject', metavar='subject_label', help='Override value for the subject label')
+    parser.add_argument('--session', metavar='session_label', help='Override value for the session label')
+
     Config.add_deid_args(parser)
 
     parser.set_defaults(func=import_dicoms)
@@ -22,7 +25,8 @@ def import_dicoms(args):
     resolver = SdkUploadWrapper(fw)
 
     # Build the importer instance
-    importer = DicomScanner(resolver, group=args.group, project=args.project, config=args.config)
+    importer = DicomScanner(resolver, group=args.group, project=args.project, config=args.config,
+        subject_label=args.subject, session_label=args.session)
 
     # Perform the import
     importer.interactive_import(args.folder, resolver)

@@ -3,8 +3,11 @@ import collections
 import copy
 import fs
 import io
+import logging
 import os
 import sys
+
+log = logging.getLogger(__name__)
 
 from .. import util
 from .container_factory import ContainerFactory
@@ -170,15 +173,21 @@ class AbstractImporter(ABC):
             fs_url = util.to_fs_url(folder, self.support_archive_fs)
         except util.UnsupportedFilesystemError as e:
             print(e)
-            return
+            sys.exit(1)
 
-        with fs.open_fs(fs_url) as src_fs:
+        try:
+            src_fs = fs.open_fs(fs_url)
+        except fs.errors.CreateFailed:
+            log.exception('Could not open filesystem at "{}"'.format(folder))
+            sys.exit(1)
+
+        with src_fs:
             # Perform discovery on target filesystem
             self.discover(src_fs)
 
             if self.container_factory.is_empty():
                 print('Nothing found to import!')
-                return
+                sys.exit(1)
 
             # Print summary
             print('The following data hierarchy was found:\n')

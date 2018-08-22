@@ -41,7 +41,6 @@ class Config(object):
         return zipfile.ZIP_DEFLATED
 
     def load_deid_profile(self, name, args=None):
-        print('Load deid profile: {}'.format(name))
         if os.path.isfile(name):
             return deidentify.load_profile(name)
 

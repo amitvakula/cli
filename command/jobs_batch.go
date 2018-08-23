@@ -20,12 +20,13 @@ func (o *opts) batch() *cobra.Command {
 }
 
 func (o *opts) batchRun() *cobra.Command {
+	var optionalInputPolicy string
 	cmd := &cobra.Command{
 		Use:   "run [gear] [folders...]",
 		Short: "Start a batch job.",
 		Args:  cobra.MinimumNArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			ops.BatchRun(o.Client, args)
+			ops.BatchRun(o.Client, args, optionalInputPolicy)
 		},
 	}
 
@@ -36,10 +37,11 @@ func (o *opts) batchRun() *cobra.Command {
 		if len(args) < 3 || args[2] == "-h" || args[2] == "--help" {
 			batchDefaultHelpFunc(cmd, args)
 		} else {
-			ops.BatchRun(o.Client, []string{args[2], "-h"})
+			ops.BatchRun(o.Client, []string{args[2], "-h"}, optionalInputPolicy)
 		}
 
 	})
+	cmd.Flags().StringVarP(&optionalInputPolicy, "optional-input-policy", "p", "", "Policy to take for optional inputs (ignore, flexible, required)")
 	cmd.Flags().SetInterspersed(false)
 	//
 

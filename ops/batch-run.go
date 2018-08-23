@@ -16,7 +16,7 @@ import (
 	. "flywheel.io/fw/util"
 )
 
-func BatchRun(client *api.Client, args []string) {
+func BatchRun(client *api.Client, args []string, optionalInputPolicy string) {
 
 	// Slice
 	gearName := args[0]
@@ -112,7 +112,7 @@ func BatchRun(client *api.Client, args []string) {
 			// 	Println(x.Id)
 			// }
 
-			proposal, _, err := client.ProposeBatch(gearDoc.Id, config, []string{"batch", "cli"}, targets)
+			proposal, _, err := client.ProposeBatch(gearDoc.Id, config, []string{"batch", "cli"}, targets, optionalInputPolicy)
 			Check(err)
 
 			if proposal.Id == "" {

@@ -3,8 +3,11 @@ import collections
 import copy
 import fs
 import io
+import logging
 import os
 import sys
+
+log = logging.getLogger(__name__)
 
 from .. import util
 from .container_factory import ContainerFactory
@@ -16,14 +19,13 @@ class AbstractImporter(ABC):
     # Whether or not archive filesystems are supported
     support_archive_fs = True
 
-    def __init__(self, resolver, group, project, de_identify, repackage_archives, context, config):
+    def __init__(self, resolver, group, project, repackage_archives, context, config):
         """Abstract class that handles state for flywheel imports
 
         Arguments:
             resolver (ContainerResolver): The container resolver instance
             group (str): The optional group id
             project (str): The optional project label or id in the format <id:xyz>
-            de_identify (bool): Whether or not to de-identify DICOM, e-file, or p-file data before import. Default is False.
             repackage_archives (bool): Whether or not to repackage (and validate and de-identify) zipped packfiles. Default is False.
             context (dict): The optional additional context fields
             config (Config): The config object
@@ -32,11 +34,15 @@ class AbstractImporter(ABC):
 
         self.group = group
         self.project = project
-        self.de_identify = de_identify
         self.messages = []
         self.context = context
         self.config = config
         self.repackage_archives = repackage_archives
+
+        if config:
+            self.deid_profile = config.deid_profile
+        else:
+            self.deid_profile = None
 
     def initial_context(self):
         """Creates the initial context for folder import.
@@ -167,15 +173,21 @@ class AbstractImporter(ABC):
             fs_url = util.to_fs_url(folder, self.support_archive_fs)
         except util.UnsupportedFilesystemError as e:
             print(e)
-            return
+            sys.exit(1)
 
-        with fs.open_fs(fs_url) as src_fs:
+        try:
+            src_fs = fs.open_fs(fs_url)
+        except fs.errors.CreateFailed:
+            log.exception('Could not open filesystem at "{}"'.format(folder))
+            sys.exit(1)
+
+        with src_fs:
             # Perform discovery on target filesystem
             self.discover(src_fs)
 
             if self.container_factory.is_empty():
                 print('Nothing found to import!')
-                return
+                sys.exit(1)
 
             # Print summary
             print('The following data hierarchy was found:\n')
@@ -190,13 +202,10 @@ class AbstractImporter(ABC):
             if not util.confirmation_prompt('Confirm upload?'):
                 return
 
+            self.before_begin_upload()
+
             # Create containers
             self.container_factory.create_containers()
-
-            # Packfile args
-            packfile_args = {
-                'de_identify': self.de_identify
-            }
 
             # Walk the hierarchy, uploading files
             upload_queue = UploadQueue(uploader, self.config, upload_count=counts['file'], packfile_count=counts['packfile'])
@@ -214,13 +223,14 @@ class AbstractImporter(ABC):
                         if archive_fs:
                             if util.contains_dicoms(archive_fs):
                                 # Repackage upload
-                                upload_queue.upload_packfile(archive_fs, 'dicom', packfile_args, container, file_name)
+                                upload_queue.upload_packfile(archive_fs, 'dicom', self.deid_profile, container, file_name)
                                 continue
                             else:
                                 archive_fs.close()
 
                     # Normal upload
                     src = src_fs.open(path, 'rb')
+                    # TODO: upload_queue.upload_file()
                     upload_queue.upload(container, file_name, src)
 
                 # packfiles
@@ -237,10 +247,10 @@ class AbstractImporter(ABC):
                     
                     if isinstance(desc.path, str):
                         packfile_src_fs = src_fs.opendir(desc.path)
-                        upload_queue.upload_packfile(packfile_src_fs, desc.packfile_type, packfile_args, container, file_name)
+                        upload_queue.upload_packfile(packfile_src_fs, desc.packfile_type, self.deid_profile, container, file_name)
                     else:
                         packfile_src_fs = src_fs.opendir('/')
-                        upload_queue.upload_packfile(src_fs, desc.packfile_type, packfile_args, container, file_name, paths=desc.path)
+                        upload_queue.upload_packfile(src_fs, desc.packfile_type, self.deid_profile, container, file_name, paths=desc.path)
 
             upload_queue.wait_for_finish()
             # Retry loop for errored jobs
@@ -258,3 +268,6 @@ class AbstractImporter(ABC):
 
             upload_queue.shutdown()
 
+    def before_begin_upload(self):
+        """Called before actual upload begins"""
+        pass

@@ -1,4 +1,5 @@
 import copy
+import gzip
 import logging
 import os
 import sys
@@ -6,8 +7,9 @@ import sys
 from .abstract_importer import AbstractImporter
 from .custom_walker import CustomWalker
 from .packfile import PackfileDescriptor
-from ..dcm import DicomFileError, DicomFile
 from .. import util
+
+from flywheel_migration.dcm import DicomFileError, DicomFile
 
 from pydicom.datadict import tag_for_keyword
 from pydicom.tag import Tag
@@ -19,7 +21,6 @@ class DicomSession(object):
         """Helper class that holds session properties and acquisitions"""
         self.context = context
         self.acquisitions = {}
-
 class DicomAcquisition(object):
     def __init__(self, context):
         """Helper class that holds acquisition properties and files"""
@@ -57,7 +58,7 @@ class DicomScanner(AbstractImporter):
     # The session label dicom header key
     session_label_key = 'StudyDescription'
 
-    def __init__(self, resolver, group, project, config, de_identify=False, context=None): 
+    def __init__(self, resolver, group, project, config, context=None, subject_label=None, session_label=None):
         """Class that handles state for dicom scanning import.
 
         Arguments:
@@ -65,9 +66,15 @@ class DicomScanner(AbstractImporter):
             group (str): The optional group id
             project (str): The optional project label or id in the format <id:xyz>
             config (Config): The config object
-            de_identify (bool): Whether or not to de-identify DICOM, e-file, or p-file data before import. Default is False.
         """
-        super(DicomScanner, self).__init__(resolver, group, project, de_identify, False, context, config)
+        super(DicomScanner, self).__init__(resolver, group, project, False, context, config)
+
+        self.subject_map = None  # Provides subject mapping services
+        if self.deid_profile:
+            self.subject_map = self.deid_profile.map_subjects
+
+        self.subject_label = subject_label
+        self.session_label = session_label
 
         # Extract the following fields from dicoms:
 
@@ -81,6 +88,11 @@ class DicomScanner(AbstractImporter):
         # A map of UID to DicomSession
         self.sessions = {} 
 
+    def before_begin_upload(self):
+        # Save subject map
+        if self.subject_map:
+            self.subject_map.save()
+
     def perform_discover(self, src_fs, context):
         """Performs discovery of containers to create and files to upload in the given folder.
 
@@ -89,6 +101,11 @@ class DicomScanner(AbstractImporter):
             context (dict): The initial context
         """
         tags = [ Tag(tag_for_keyword(keyword)) for keyword in DICOM_TAGS ]
+
+        # If we're mapping subject fields to id, then include those fields in the scan
+        if self.subject_map:
+            subject_cfg = self.subject_map.get_config()
+            tags += [ Tag(tag_for_keyword(keyword)) for keyword in subject_cfg.fields ]
 
         # First step is to walk and sort files
         walker = CustomWalker(symlinks=self.config.follow_symlinks)
@@ -103,12 +120,17 @@ class DicomScanner(AbstractImporter):
             sys.stdout.write('Scanning {}/{} files...'.format(files_scanned, file_count).ljust(80) + '\r')
             sys.stdout.flush()
             files_scanned = files_scanned+1
-            
+
             try:
                 with src_fs.open(path, 'rb', buffering=self.config.buffer_size) as f:
+                    # Unzip gzipped files
+                    _, ext = os.path.splitext(path)
+                    if ext.lower() == '.gz':
+                        f = gzip.GzipFile(fileobj=f)
+
                     # Don't decode while scanning, stop as early as possible
                     dcm = DicomFile(f, parse=True, session_label_key=self.session_label_key, 
-                        decode=False, stop_when=_at_stack_id, specific_tags=tags)
+                        decode=False, stop_when=_at_stack_id, update_in_place=False, specific_tags=tags)
                     acquisition = self.resolve_acquisition(dcm)
 
                     sop_uid = dcm.get('SOPInstanceUID')
@@ -144,6 +166,14 @@ class DicomScanner(AbstractImporter):
     def resolve_session(self, dcm):
         """Find or create a sesson from a dcm file. """
         if dcm.session_uid not in self.sessions:
+            # Map subject
+            if self.subject_label:
+                subject_code = self.subject_label
+            elif self.subject_map:
+                subject_code = self.subject_map.get_code(dcm)
+            else:
+                subject_code = dcm.get('PatientID', '')
+
             # Create session
             self.sessions[dcm.session_uid] = DicomSession({
                 'session': {
@@ -153,7 +183,7 @@ class DicomScanner(AbstractImporter):
                     'timezone': str(util.DEFAULT_TZ)
                 },
                 'subject': {
-                    'label': dcm.get('PatientID', '')
+                    'label': subject_code
                 }
             })
 
@@ -176,6 +206,9 @@ class DicomScanner(AbstractImporter):
 
     def determine_session_label(self, dcm):
         """Determine session label from DICOM headers"""
+        if self.session_label:
+            return self.session_label
+
         name = dcm.session_label
         if not name:
             if dcm.session_timestamp:

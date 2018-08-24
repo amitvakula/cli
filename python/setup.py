@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 from setuptools.command.install import install
 
 NAME = "flywheel-cli"
-VERSION = "6.1.0.a1"
+VERSION = "6.1.0"
 
 # To install the library, run the following
 #
@@ -22,8 +22,8 @@ VERSION = "6.1.0.a1"
 REQUIRES = [
     "tzlocal~=1.5.1",
     "fs~=2.0.23",
-    "flywheel_migration==0.2.0.dev5",
-    "flywheel-bids~=0.6.0"
+    "flywheel_migration==0.2.0",
+    "flywheel-bids~=0.6.1"
 ]
 
 class VerifyVersionCommand(install):

@@ -58,16 +58,15 @@ class DicomScanner(AbstractImporter):
     # The session label dicom header key
     session_label_key = 'StudyDescription'
 
-    def __init__(self, resolver, group, project, config, context=None, subject_label=None, session_label=None):
+    def __init__(self, group, project, config, context=None, subject_label=None, session_label=None):
         """Class that handles state for dicom scanning import.
 
         Arguments:
-            resolver (ContainerResolver): The container resolver instance
             group (str): The optional group id
             project (str): The optional project label or id in the format <id:xyz>
             config (Config): The config object
         """
-        super(DicomScanner, self).__init__(resolver, group, project, False, context, config)
+        super(DicomScanner, self).__init__(group, project, False, context, config)
 
         self.subject_map = None  # Provides subject mapping services
         if self.deid_profile:

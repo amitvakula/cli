@@ -2,7 +2,6 @@ import re
 
 from ..config import Config
 from ..importers import DicomScanner
-from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
 def add_command(subparsers):
     parser = subparsers.add_parser('dicom', help='Import a folder of dicom files')
@@ -21,14 +20,11 @@ def add_command(subparsers):
     return parser
 
 def import_dicoms(args):
-    fw = create_flywheel_client()
-    resolver = SdkUploadWrapper(fw)
-
     # Build the importer instance
-    importer = DicomScanner(resolver, group=args.group, project=args.project, config=args.config,
+    importer = DicomScanner(group=args.group, project=args.project, config=args.config,
         subject_label=args.subject, session_label=args.session)
 
     # Perform the import
-    importer.interactive_import(args.folder, resolver)
+    importer.interactive_import(args.folder)
 
 

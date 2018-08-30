@@ -4,7 +4,6 @@ import textwrap
 
 from ..config import Config
 from ..importers import FolderImporter, StringMatchNode
-from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
 def add_command(subparsers):
     parser = subparsers.add_parser('folder', help='Import a structured folder',
@@ -58,11 +57,8 @@ def import_folder(args):
     if args.project and not args.group:
         args.parser.error('Specifying project requires also specifying group')
 
-    fw = create_flywheel_client()
-    resolver = SdkUploadWrapper(fw)
-
     # Build the importer instance
-    importer = FolderImporter(resolver, group=args.group, project=args.project, repackage_archives=args.repack, 
+    importer = FolderImporter(group=args.group, project=args.project, repackage_archives=args.repack, 
         merge_subject_and_session=(args.no_subjects or args.no_sessions), config=args.config)
 
     for i in range(args.root_dirs):
@@ -87,5 +83,5 @@ def import_folder(args):
         importer.add_template_node(StringMatchNode(re.compile(args.dicom), packfile_type='dicom'))
 
     # Perform the import
-    importer.interactive_import(args.folder, resolver)
+    importer.interactive_import(args.folder)
 

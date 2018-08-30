@@ -1,6 +1,5 @@
 
 from ..importers.bruker_scan import create_bruker_scanner
-from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
 def add_command(subparsers):
     parser = subparsers.add_parser('bruker', help='Import structured bruker data')
@@ -14,12 +13,9 @@ def add_command(subparsers):
     return parser
 
 def import_bruker_folder(args):
-    fw = create_flywheel_client()
-    resolver = SdkUploadWrapper(fw)
-
     # Build the importer instance
-    importer = create_bruker_scanner(resolver, args.group, args.project, args.symlinks, args.config)
+    importer = create_bruker_scanner(args.group, args.project, args.symlinks, args.config)
 
     # Perform the import
-    importer.interactive_import(args.folder, resolver)
+    importer.interactive_import(args.folder)
 

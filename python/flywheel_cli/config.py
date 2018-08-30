@@ -6,9 +6,13 @@ import zlib
 import zipfile
 
 from flywheel_migration import deidentify
+from .sdk_impl import create_flywheel_client, SdkUploadWrapper
+from .folder_impl import FSWrapper
 
 class Config(object):
     def __init__(self, args=None):
+        self._resolver = None
+
         # Set the default compression (used by zipfile/ZipFS)
         self.compression_level = getattr(args, 'compression_level', 1) 
         if self.compression_level > 0:
@@ -23,6 +27,9 @@ class Config(object):
         self.follow_symlinks = getattr(args, 'symlinks', False)
 
         self.buffer_size = 65536
+
+        # Set output folder
+        self.output_folder = getattr(args, 'output_folder', None)
 
         # Get de-identification profile
         if getattr(args, 'de_identify', False):
@@ -56,6 +63,20 @@ class Config(object):
         else:
             raise ValueError(msg)
 
+    def get_resolver(self):
+        if not self._resolver:
+            if self.output_folder:
+                self._resolver = FSWrapper(self.output_folder)
+            else:
+                fw = create_flywheel_client()
+                self._resolver = SdkUploadWrapper(fw)
+
+        return self._resolver
+
+    def get_uploader(self):
+        # Currently all resolvers are uploaders
+        return self.get_resolver()
+
     @staticmethod
     def add_deid_args(parser):
         deid_group = parser.add_mutually_exclusive_group()
@@ -69,3 +90,5 @@ class Config(object):
         parser.add_argument('--compression-level', default=1, type=int, choices=range(-1, 9), 
                 help='The compression level to use for packfiles. -1 for default, 0 for store')
         parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
+        parser.add_argument('--output-folder', help='Output to the given folder instead of uploading to flywheel')
+

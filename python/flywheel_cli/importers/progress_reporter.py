@@ -41,9 +41,9 @@ class ProgressReporter(ABC):
 
     def log_process_info(self, work_threads, upload_threads, packfile_jobs):
         if packfile_jobs > 0:
-            print('Using up to {} worker thread(s) and {} upload connection(s).'.format(work_threads, upload_threads))
+            print('Using up to {} worker thread(s) and {} transfer thread(s).'.format(work_threads, upload_threads))
         else:
-            print('Using up to {} upload connection(s).'.format(upload_threads))
+            print('Using up to {} transfer thread(s).'.format(upload_threads))
 
     def add_group(self, name, desc, total_count):
         self.groups[name] = GroupStats(desc, total_count)

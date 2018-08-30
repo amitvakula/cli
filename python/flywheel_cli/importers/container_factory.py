@@ -22,17 +22,18 @@ class ContainerNode(object):
         self.files = []
         self.packfiles = []
 
-    def path_el(self):
-        if self.container_type == 'group':
-            return self.id
-        if self.id:
-            return '<id:{}>'.format(self.id)
-        return self.label
-
 class ContainerResolver(ABC):
     def __init__(self):
         """Interface that handles resolution and creation of containers"""
         pass
+
+    def path_el(self, container):
+        """Get the path element for container"""
+        if container.container_type == 'group':
+            return container.id
+        if container.id:
+            return '<id:{}>'.format(container.id)
+        return container.label
 
     @abstractmethod
     def resolve_path(self, container_type, path):
@@ -101,7 +102,7 @@ class ContainerFactory(object):
 
                 last = current
                 current = self._resolve_child(current, container, context, path)
-                path = combine_path(path, current.path_el())
+                path = combine_path(path, self.resolver.path_el(current))
             else:
                 if current:
                     last = current
@@ -176,7 +177,7 @@ class ContainerFactory(object):
 
         # Check if exists
         if self.resolver and parent.exists:
-            path = combine_path(path, child.path_el())
+            path = combine_path(path, self.resolver.path_el(child))
             cid, uid = self.resolver.resolve_path(container_type, path)
             if cid:
                 child.id = cid

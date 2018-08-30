@@ -9,6 +9,8 @@ from .progress_reporter import ProgressReporter
 MAX_IN_MEMORY_XFER = 32 * (2 ** 20) # Files under 32mb send as one chunk
 
 class Uploader(ABC):
+    verb = 'Uploading'
+
     """Abstract uploader class, that can upload files"""
     @abstractmethod
     def upload(self, container, name, fileobj):
@@ -143,9 +145,10 @@ class PackfileTask(Task):
 
 
 class UploadQueue(WorkQueue):
-    def __init__(self, uploader, config, packfile_count=0, upload_count=0, show_progress=True):
+    def __init__(self, config, packfile_count=0, upload_count=0, show_progress=True):
         # Detect signed-url upload and start multiple upload threads
         upload_threads = 1
+        uploader = config.get_uploader()
         if uploader.supports_signed_url():
             upload_threads = config.concurrent_uploads 
 
@@ -163,7 +166,7 @@ class UploadQueue(WorkQueue):
             self._progress_thread = ProgressReporter(self)
             self._progress_thread.log_process_info(config.cpu_count, upload_threads, packfile_count)
             self._progress_thread.add_group('packfile', 'Packing',  packfile_count)
-            self._progress_thread.add_group('upload', 'Uploading', upload_count + packfile_count)
+            self._progress_thread.add_group('upload', self.uploader.verb, upload_count + packfile_count)
 
     def start(self):
         super(UploadQueue, self).start()

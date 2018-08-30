@@ -18,10 +18,15 @@ def mock_fs(structure):
                     f.write('Hello World!')
 
     return mockfs
-    
+
+def make_config(resolver):
+    config = Config()
+    config._resolver = resolver
+    return config
+
 def make_importer(resolver, group=None, project=None, no_subjects=False, no_sessions=False):
-    importer = FolderImporter(resolver, group=group, project=project, 
-        merge_subject_and_session=(no_subjects or no_sessions), config=Config())
+    importer = FolderImporter(group=group, project=project, 
+        merge_subject_and_session=(no_subjects or no_sessions), config=make_config(resolver))
 
     if not group:
         importer.add_template_node(StringMatchNode('group'))
@@ -166,7 +171,7 @@ def test_composite_packfiles():
     }))
 
     resolver = MockContainerResolver()
-    importer = FolderImporter(resolver, group='group', project='project', config=Config())
+    importer = FolderImporter(group='group', project='project', config=make_config(resolver))
     importer.add_template_node(StringMatchNode('subject'))
     importer.add_template_node(StringMatchNode('session'))
 
@@ -235,7 +240,7 @@ def test_nested_packfiles():
     }))
 
     resolver = MockContainerResolver()
-    importer = FolderImporter(resolver, group='group', project='project', config=Config())
+    importer = FolderImporter(group='group', project='project', config=make_config(resolver))
     importer.add_template_node(StringMatchNode('subject'))
     importer.add_template_node(StringMatchNode('session'))
 
@@ -286,8 +291,4 @@ def test_nested_packfiles():
         pytest.fail('Unexpected container found')
     except StopIteration:
         pass
-
-
-
-
 

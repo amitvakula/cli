@@ -26,19 +26,18 @@ def should_ignore_file(name):
     return False
 
 class FolderImporter(AbstractImporter):
-    def __init__(self, resolver, group=None, project=None,  repackage_archives=False, 
+    def __init__(self, group=None, project=None,  repackage_archives=False, 
             merge_subject_and_session=False, context=None, config=None):
         """Class that handles state for folder import.
 
         Arguments:
-            resolver (ContainerResolver): The container resolver instance
             group (str): The optional group id
             project (str): The optional project label or id in the format <id:xyz>
             repackage_archives (bool): Whether or not to repackage (and validate and de-identify) zipped packfiles. Default is False.
             merge_subject_and_session (bool): Whether or not subject or session layer is missing. Default is False.
             config (Config): The config object
         """
-        super(FolderImporter, self).__init__(resolver, group, project, repackage_archives, context, config)
+        super(FolderImporter, self).__init__(group, project, repackage_archives, context, config)
 
         self.root_node = None
         self._last_added_node = None

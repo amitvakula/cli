@@ -36,11 +36,10 @@ ACQP_PARAMS = {
     'ACQ_abs_time': format_timestamp_fn('acquisition.timestamp')
 }
 
-def create_bruker_scanner(resolver, group, project, follow_symlinks, config, subject_pattern=None):
+def create_bruker_scanner(group, project, follow_symlinks, config, subject_pattern=None):
     """Create a bruker importer instance
 
     Arguments:
-        resolver (ContainerResolver): The resolver instance
         group (str): The group id
         project (str): The project label
         config: (Config): The config object
@@ -50,7 +49,7 @@ def create_bruker_scanner(resolver, group, project, follow_symlinks, config, sub
         FolderImporter: The configured folder importer instance
     """
     # Build the importer instance
-    importer = FolderImporter(resolver, group=group, project=project, config=config)
+    importer = FolderImporter(group=group, project=project, config=config)
 
     if not subject_pattern:
         subject_pattern = re.compile(r'(?P<session>[-\w]+)-\d+-(?P<subject>\d+)\..*')

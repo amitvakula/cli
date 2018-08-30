@@ -5,7 +5,6 @@ import textwrap
 from ..config import Config
 from ..importers import parse_template_string, FolderImporter
 from ..util import set_nested_attr, split_key_value_argument, METADATA_ALIASES
-from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
 def add_command(subparsers):
     parser = subparsers.add_parser('template', help='Import a folder, using a template',
@@ -55,11 +54,8 @@ def build_context(variables):
     return context
 
 def import_folder_with_template(args):
-    fw = create_flywheel_client()
-    resolver = SdkUploadWrapper(fw)
-
     # Build the importer instance
-    importer = FolderImporter(resolver, group=args.group, project=args.project, 
+    importer = FolderImporter(group=args.group, project=args.project, 
         repackage_archives=args.repack, merge_subject_and_session=(args.no_subjects or args.no_sessions), 
         context=build_context(args.set_var), config=args.config)
 
@@ -70,5 +66,5 @@ def import_folder_with_template(args):
         args.parser.error('Invalid template: {}'.format(e))
 
     # Perform the import
-    importer.interactive_import(args.folder, resolver)
+    importer.interactive_import(args.folder)
 

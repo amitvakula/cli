@@ -19,18 +19,17 @@ class AbstractImporter(ABC):
     # Whether or not archive filesystems are supported
     support_archive_fs = True
 
-    def __init__(self, resolver, group, project, repackage_archives, context, config):
+    def __init__(self, group, project, repackage_archives, context, config):
         """Abstract class that handles state for flywheel imports
 
         Arguments:
-            resolver (ContainerResolver): The container resolver instance
             group (str): The optional group id
             project (str): The optional project label or id in the format <id:xyz>
             repackage_archives (bool): Whether or not to repackage (and validate and de-identify) zipped packfiles. Default is False.
             context (dict): The optional additional context fields
             config (Config): The config object
         """
-        self.container_factory = ContainerFactory(resolver)
+        self.container_factory = ContainerFactory(config.get_resolver())
 
         self.group = group
         self.project = project
@@ -167,7 +166,7 @@ class AbstractImporter(ABC):
         """
         pass
 
-    def interactive_import(self, folder, uploader):
+    def interactive_import(self, folder):
         """Performs interactive import of the discovered hierarchy"""
         try:
             fs_url = util.to_fs_url(folder, self.support_archive_fs)
@@ -208,7 +207,7 @@ class AbstractImporter(ABC):
             self.container_factory.create_containers()
 
             # Walk the hierarchy, uploading files
-            upload_queue = UploadQueue(uploader, self.config, upload_count=counts['file'], packfile_count=counts['packfile'])
+            upload_queue = UploadQueue(self.config, upload_count=counts['file'], packfile_count=counts['packfile'])
             upload_queue.start()
 
             for _, container in self.container_factory.walk_containers():

@@ -1,5 +1,22 @@
 version: 2
 
+workflows:
+    version: 2
+    build_and_deploy:
+        jobs:
+            - build:
+                filters:
+                    tags:
+                        only: /.*/
+            - deploy:
+                requires:
+                    - build
+                filters:
+                    tags:
+                        only: /.*/
+                    branches:
+                        ignore: /.*/
+
 jobs:
     build:
         working_directory: "/workspace/src/flywheel.io/fw"
@@ -70,3 +87,24 @@ jobs:
                 path: "/workspace/bin"
                 destination: build
 
+            - persist_to_workspace:
+                root: "/workspace"
+                paths: bin
+    deploy:
+        working_directory: "/workspace/src/flywheel.io/fw"
+        docker:
+            - image: google/cloud-sdk:latest
+
+        steps:
+            - checkout
+
+            - attach_workspace:
+                at: ./
+
+            - run:
+                name: Install dependencies
+                command: apt-get update && apt-get install -y zip
+
+            - run:
+                name: Deploy binaries to gcloud
+                command: .circleci/gcp-upload.sh

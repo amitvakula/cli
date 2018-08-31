@@ -44,6 +44,24 @@ class AbstractImporter(ABC):
         else:
             self.deid_profile = None
 
+    @property
+    def assume_yes(self):
+        if self.config:
+            return self.config.assume_yes
+        return False
+
+    @property
+    def max_retries(self):
+        if self.config:
+            return self.config.max_retries
+        return 0
+
+    @property
+    def retry_wait(self):
+        if self.config:
+            return self.config.retry_wait
+        return 0
+
     def initial_context(self):
         """Creates the initial context for folder import.
 
@@ -205,7 +223,7 @@ class AbstractImporter(ABC):
                 print('{} - {}'.format(severity.upper(), msg))
             print('')
 
-            if not util.confirmation_prompt('Confirm upload?'):
+            if not self.assume_yes and not util.confirmation_prompt('Confirm upload?'):
                 return
 
             self.before_begin_upload()
@@ -260,11 +278,22 @@ class AbstractImporter(ABC):
 
             upload_queue.wait_for_finish()
             # Retry loop for errored jobs
+            retries = 0
             while upload_queue.has_errors():
 
                 upload_queue.suspend_reporting()
                 print('')
-                if not util.confirmation_prompt('One or more errors occurred. Retry?'):
+                if self.assume_yes:
+                    if retries >= self.max_retries:
+                        print('Maximum number of retries has been reached!')
+                        break
+                    retries += 1
+                    import time
+
+                    print('Retrying in {} seconds...'.format(self.retry_wait))
+                    time.sleep(self.retry_wait)
+
+                elif not util.confirmation_prompt('One or more errors occurred. Retry?'):
                     break
 
                 # Requeue and wait for finish

@@ -247,3 +247,12 @@ def str_to_filename(val):
 def _repl_hex(m):
     return chr(int(m.group(1), 16))
 
+def sanitize_string_to_filename(value):
+    """
+    Best-effort attempt to remove blatantly poor characters from a string before turning into a filename.
+
+    Happily stolen from the internet, then modified.
+    http://stackoverflow.com/a/7406369
+    """
+    keepcharacters = (' ', '.', '_', '-')
+    return "".join([c for c in value if c.isalnum() or c in keepcharacters]).rstrip()

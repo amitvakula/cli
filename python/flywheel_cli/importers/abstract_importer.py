@@ -228,6 +228,10 @@ class AbstractImporter(ABC):
 
             self.before_begin_upload()
 
+            # Initialize profile
+            if self.deid_profile:
+                self.deid_profile.initialize()
+
             # Create containers
             self.container_factory.create_containers()
 
@@ -300,6 +304,10 @@ class AbstractImporter(ABC):
                 upload_queue.requeue_errors()
                 upload_queue.resume_reporting()
                 upload_queue.wait_for_finish()
+
+            # Shutdown de-id profile
+            if self.deid_profile:
+                self.deid_profile.finalize()
 
             upload_queue.shutdown()
 

@@ -18,6 +18,7 @@ from .packfile import create_zip_packfile
 class AbstractImporter(ABC):
     # Whether or not archive filesystems are supported
     support_archive_fs = True
+    support_subject_mapping = False
 
     def __init__(self, group, project, repackage_archives, context, config):
         """Abstract class that handles state for flywheel imports
@@ -168,6 +169,12 @@ class AbstractImporter(ABC):
 
     def interactive_import(self, folder):
         """Performs interactive import of the discovered hierarchy"""
+
+        # Sanity check
+        if not self.support_subject_mapping and self.deid_profile and self.deid_profile.map_subjects:
+            print('ERROR: Subject mapping not supported with this import type!')
+            sys.exit(1)
+
         try:
             fs_url = util.to_fs_url(folder, self.support_archive_fs)
         except util.UnsupportedFilesystemError as e:

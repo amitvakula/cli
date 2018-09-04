@@ -33,12 +33,14 @@ class FSWrapper(Uploader, ContainerResolver):
         return None, None
 
     def create_container(self, parent, container):
-        # Create folder
+        # Create folder, if it doesn't exist
         if parent:
             parent_path = parent.id
             path = fs.path.join(parent_path, sanitize_string_to_filename(container.label))
         else:
             path = sanitize_string_to_filename(container.id) # Group id
 
-        self.dst_fs.makedir(path)
+        if not self.dst_fs.exists(path):
+            self.dst_fs.makedir(path)
+
         return path

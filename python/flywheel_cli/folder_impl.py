@@ -1,6 +1,7 @@
 import os
 import fs.path
 import fs.osfs
+from .util import sanitize_string_to_filename
 from .importers import Uploader, ContainerResolver
 
 class FSWrapper(Uploader, ContainerResolver):
@@ -22,8 +23,8 @@ class FSWrapper(Uploader, ContainerResolver):
 
     def path_el(self, container):
         if container.container_type == 'group':
-            return container.id
-        return container.label
+            return sanitize_string_to_filename(container.id)
+        return sanitize_string_to_filename(container.label)
 
     def resolve_path(self, container_type, path):
         # Resolve folder
@@ -35,9 +36,9 @@ class FSWrapper(Uploader, ContainerResolver):
         # Create folder
         if parent:
             parent_path = parent.id
-            path = fs.path.join(parent_path, container.label)
+            path = fs.path.join(parent_path, sanitize_string_to_filename(container.label))
         else:
-            path = container.id # Group id
+            path = sanitize_string_to_filename(container.id) # Group id
 
         self.dst_fs.makedir(path)
         return path

@@ -55,6 +55,9 @@ class DicomScanner(AbstractImporter):
     # Archive filesystems are not supported, because zipfiles are not seekable
     support_archive_fs = False
 
+    # Subject mapping is supported
+    support_subject_mapping = True
+
     # The session label dicom header key
     session_label_key = 'StudyDescription'
 

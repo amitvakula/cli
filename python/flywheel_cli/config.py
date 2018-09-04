@@ -28,6 +28,11 @@ class Config(object):
 
         self.buffer_size = 65536
 
+        # Assume yes option
+        self.assume_yes = getattr(args, 'yes', False)
+        self.max_retries = getattr(args, 'max_retries', 3)
+        self.retry_wait = 5 # Wait 5 seconds between retries
+
         # Set output folder
         self.output_folder = getattr(args, 'output_folder', None)
 
@@ -85,6 +90,8 @@ class Config(object):
 
     @staticmethod
     def add_config_args(parser):
+        parser.add_argument('-y', '--yes', action='store_true', help='Assume the answer is yes to all prompts')
+        parser.add_argument('--max-retries', default=3, help='Maximum number of retry attempts, if assume yes')
         parser.add_argument('--jobs', '-j', default=-1, type=int, help='The number of concurrent jobs to run (e.g. compression jobs)')
         parser.add_argument('--concurrent-uploads', default=4, type=int, help='The maximum number of concurrent uploads')
         parser.add_argument('--compression-level', default=1, type=int, choices=range(-1, 9), 

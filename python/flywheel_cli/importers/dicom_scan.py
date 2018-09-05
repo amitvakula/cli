@@ -150,7 +150,7 @@ class DicomScanner(AbstractImporter):
                         acquisition.files[sop_uid] = path
 
             except DicomFileError as e:
-                log.warn('File {} is not a dicom: {}'.format(path, e))
+                log.debug('File {} is not a dicom: {}'.format(path, e))
 
         sys.stdout.write(''.ljust(80) + '\n')
         sys.stdout.flush()
@@ -241,7 +241,6 @@ class DicomScanner(AbstractImporter):
     def get_timestamp(self, dcm, date_key, time_key):
         """Get a timestamp value"""
         date_value = self.get_value(dcm, date_key)
-        print('date {}: {}'.format(date_key, date_value))
         time_value = self.get_value(dcm, time_key)
 
         return DicomFile.timestamp(date_value, time_value, util.DEFAULT_TZ)

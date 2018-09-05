@@ -83,6 +83,13 @@ func (r *ResolveResult) addDynamicNode(x map[string]interface{}, slice *[]interf
 		decode(config, x)
 		*slice = append(*slice, &obj)
 
+	case "subject":
+		var obj Subject
+		config := newDecoderConfig()
+		config.Result = &obj
+		decode(config, x)
+		*slice = append(*slice, &obj)
+
 	case "session":
 		var obj Session
 		config := newDecoderConfig()

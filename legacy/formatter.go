@@ -32,6 +32,8 @@ func resolvePermissions(x interface{}) []*api.Permission {
 		return x.Permissions
 	case *Project:
 		return x.Permissions
+	case *Subject:
+		return x.Permissions
 	case *Session:
 		return x.Permissions
 	case *Acquisition:
@@ -90,10 +92,15 @@ func PrintResolve(r *ResolveResult, userId string, showDbIds bool) {
 			printId(x.Id)
 			Fprintf(w, "%s\t%s\n", level, blueBold(x.Name))
 
+		case *Subject:
+			level := FindPermissionById(userId, x.Permissions).Level
+			printId(x.Id)
+			Fprintf(w, "%s\t%s\n", level, blueBold(x.Code))
+
 		case *Session:
 			level := FindPermissionById(userId, x.Permissions).Level
 			printId(x.Id)
-			Fprintf(w, "%s\t%s\t%s\t%s\n", level, tryTimestampFormat(x.Timestamp, timeFormat), x.Subject.Code, blueBold(x.Name))
+			Fprintf(w, "%s\t%s\t%s\n", level, tryTimestampFormat(x.Timestamp, timeFormat), blueBold(x.Name))
 
 		case *Acquisition:
 			level := FindPermissionById(userId, x.Permissions).Level

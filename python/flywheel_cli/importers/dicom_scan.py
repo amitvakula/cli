@@ -71,9 +71,11 @@ class DicomScanner(AbstractImporter):
         """
         super(DicomScanner, self).__init__(group, project, False, context, config)
 
+        self.profile = None  # Dicom file profile
         self.subject_map = None  # Provides subject mapping services
         if self.deid_profile:
             self.subject_map = self.deid_profile.map_subjects
+            self.profile = self.deid_profile.get_file_profile('dicom')
 
         self.subject_label = subject_label
         self.session_label = session_label
@@ -131,11 +133,12 @@ class DicomScanner(AbstractImporter):
                         f = gzip.GzipFile(fileobj=f)
 
                     # Don't decode while scanning, stop as early as possible
-                    dcm = DicomFile(f, parse=True, session_label_key=self.session_label_key, 
+                    # TODO: will we ever rely on fields after stack id for subject mapping
+                    dcm = DicomFile(f, parse=False, session_label_key=self.session_label_key, 
                         decode=False, stop_when=_at_stack_id, update_in_place=False, specific_tags=tags)
                     acquisition = self.resolve_acquisition(dcm)
 
-                    sop_uid = dcm.get('SOPInstanceUID')
+                    sop_uid = self.get_value(dcm, 'SOPInstanceUID')
                     if sop_uid in acquisition.files:
                         orig_path = acquisition.files[sop_uid]
 
@@ -167,21 +170,24 @@ class DicomScanner(AbstractImporter):
 
     def resolve_session(self, dcm):
         """Find or create a sesson from a dcm file. """
-        if dcm.session_uid not in self.sessions:
+        session_uid = self.get_value(dcm, 'StudyInstanceUID')
+        if session_uid not in self.sessions:
             # Map subject
             if self.subject_label:
                 subject_code = self.subject_label
             elif self.subject_map:
                 subject_code = self.subject_map.get_code(dcm)
             else:
-                subject_code = dcm.get('PatientID', '')
+                subject_code = self.get_value(dcm, 'PatientID', '')
+
+            session_timestamp = self.get_timestamp(dcm, 'StudyDate', 'StudyTime')
 
             # Create session
-            self.sessions[dcm.session_uid] = DicomSession({
+            self.sessions[session_uid] = DicomSession({
                 'session': {
-                    'uid': dcm.session_uid.replace('.', ''),
-                    'label': self.determine_session_label(dcm),
-                    'timestamp': dcm.session_timestamp,
+                    'uid': session_uid.replace('.', ''),
+                    'label': self.determine_session_label(dcm, session_uid, timestamp=session_timestamp),
+                    'timestamp': session_timestamp,
                     'timezone': str(util.DEFAULT_TZ)
                 },
                 'subject': {
@@ -189,43 +195,63 @@ class DicomScanner(AbstractImporter):
                 }
             })
 
-        return self.sessions[dcm.session_uid]
+        return self.sessions[session_uid]
 
     def resolve_acquisition(self, dcm):
         """Find or create an acquisition from a dcm file. """
         session = self.resolve_session(dcm)
-        if dcm.series_uid not in session.acquisitions:
-            session.acquisitions[dcm.series_uid] = DicomAcquisition({
+        series_uid = self.get_value(dcm, 'SeriesInstanceUID')
+        if series_uid not in session.acquisitions:
+            # Get acquisition timestamp (based on manufacturer)
+            if dcm.get_manufacturer() == 'SIEMENS':
+                acquisition_timestamp = self.get_timestamp(dcm, 'SeriesDate', 'SeriesTime')
+            else:
+                acquisition_timestamp = self.get_timestamp(dcm, 'AcquisitionDate', 'AcquisitionTime')
+
+            session.acquisitions[series_uid] = DicomAcquisition({
                 'acquisition': {
-                    'uid': dcm.series_uid.replace('.', ''),
-                    'label': self.determine_acquisition_label(dcm),
-                    'timestamp': dcm.acquisition_timestamp,
+                    'uid': series_uid.replace('.', ''),
+                    'label': self.determine_acquisition_label(dcm, series_uid, timestamp=acquisition_timestamp),
+                    'timestamp': acquisition_timestamp,
                     'timezone': str(util.DEFAULT_TZ)
                 }
             })
 
-        return session.acquisitions[dcm.series_uid]
+        return session.acquisitions[series_uid]
 
-    def determine_session_label(self, dcm):
+    def determine_session_label(self, _dcm, uid, timestamp=None):
         """Determine session label from DICOM headers"""
         if self.session_label:
             return self.session_label
 
-        name = dcm.session_label
-        if not name:
-            if dcm.session_timestamp:
-                name = dcm.session_timestamp.strftime('%Y-%m-%d %H:%M:%S')
-        if not name:
-            name = dcm.session_uid
-        return name
+        if timestamp:
+            return timestamp.strftime('%Y-%m-%d %H:%M:%S')
 
-    def determine_acquisition_label(self, dcm):
+        return uid
+
+    def determine_acquisition_label(self, dcm, uid, timestamp=None):
         """Determine acquisition label from DICOM headers"""
-        name = dcm.acquisition_label
+        name = self.get_value(dcm, 'SeriesDescription')
+        if not name and timestamp:
+            name = timestamp.strftime('%Y-%m-%d %H:%M:%S')
         if not name:
-            if dcm.acquisition_timestamp:
-                name = dcm.acquisition_timestamp.strftime('%Y-%m-%d %H:%M:%S')
-        if not name:
-            name = dcm.get('SeriesInstanceUID')
+            name = uid
         return name
 
+    def get_timestamp(self, dcm, date_key, time_key):
+        """Get a timestamp value"""
+        date_value = self.get_value(dcm, date_key)
+        print('date {}: {}'.format(date_key, date_value))
+        time_value = self.get_value(dcm, time_key)
+
+        return DicomFile.timestamp(date_value, time_value, util.DEFAULT_TZ)
+
+    def get_value(self, dcm, key, default=None):
+        """Get a transformed value"""
+        if self.profile:
+            result = self.profile.get_value(None, dcm.raw, key)
+            if not result:
+                result = default
+        else:
+            result = dcm.get(key, default)
+        return result

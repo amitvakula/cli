@@ -106,7 +106,7 @@ func (u *Project) GetName() string {
 type Subject api.Subject
 
 func (u *Subject) GetType() string {
-	return "session"
+	return "subject"
 }
 func (u *Subject) GetId() string {
 	return u.Id

@@ -1,4 +1,5 @@
 from datetime import datetime
+import fs.path
 import logging
 import re
 
@@ -17,7 +18,7 @@ def format_timestamp_fn(dst_key):
     Returns:
         function: The function that will format a datetime
     """
-    def format(val):
+    def format(val, **kwargs):
         # Could be a tuple, e.g.: (352523325, 323, 43)
         if val and val[0] == '(':
             parts = val.strip('()').split(',')
@@ -31,6 +32,14 @@ def format_timestamp_fn(dst_key):
             return None
     return format
 
+
+def acquisition_label(value, path=None, **kwargs):
+    """Convert acquisition label to '<folder> - <label>'"""
+    acq_dir = fs.path.dirname(path)
+    acq_folder = fs.path.basename(acq_dir)
+    return 'acquisition.label', '{} - {}'.format(acq_folder, value)
+
+
 SUBJECT_PARAMS = {
     'SUBJECT_id': 'subject.label',
     'SUBJECT_study_name': 'session.label',
@@ -38,9 +47,10 @@ SUBJECT_PARAMS = {
 }
 
 ACQP_PARAMS = {
-    'ACQ_protocol_name': 'acquisition.label',
+    'ACQ_protocol_name': acquisition_label,
     'ACQ_abs_time': format_timestamp_fn('acquisition.timestamp')
 }
+
 
 def create_bruker_scanner(group, project, follow_symlinks, config, folder_template=None):
     """Create a bruker importer instance

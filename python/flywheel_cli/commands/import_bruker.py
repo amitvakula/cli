@@ -7,6 +7,8 @@ def add_command(subparsers):
     parser.add_argument('group', metavar='group_id', help='The id of the group')
     parser.add_argument('project', metavar='project_label', help='The label of the project')
 
+    parser.add_argument('--folder-template', help='The optional folder template')
+
     parser.set_defaults(func=import_bruker_folder)
     parser.set_defaults(parser=parser)
 
@@ -14,7 +16,8 @@ def add_command(subparsers):
 
 def import_bruker_folder(args):
     # Build the importer instance
-    importer = create_bruker_scanner(args.group, args.project, args.symlinks, args.config)
+    importer = create_bruker_scanner(args.group, args.project, args.symlinks, args.config, 
+            folder_template=args.folder_template)
 
     # Perform the import
     importer.interactive_import(args.folder)

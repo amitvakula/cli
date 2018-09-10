@@ -103,7 +103,7 @@ def extract_bruker_metadata_fn(filename, keys):
                 if src_key in params:
                     value = params[src_key]
                     if callable(dst_key):
-                        ret = dst_key(value)
+                        ret = dst_key(value, path=path, context=context)
                         if ret:
                             dst_key, value = ret
                         else:

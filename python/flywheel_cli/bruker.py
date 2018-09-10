@@ -116,3 +116,16 @@ def extract_bruker_metadata_fn(filename, keys):
 
     return extract_metadata
 
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='Read and print bruker parameters file')
+    parser.add_argument('path', help='The path to the file to read')
+
+    args = parser.parse_args()
+
+    with open(args.path, 'r') as f:
+        result = parse_bruker_params(f)
+
+    for key, value in result.items():
+        print('{} = {}'.format(key, value))

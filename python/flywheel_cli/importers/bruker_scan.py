@@ -18,6 +18,12 @@ def format_timestamp_fn(dst_key):
         function: The function that will format a datetime
     """
     def format(val):
+        # Could be a tuple, e.g.: (352523325, 323, 43)
+        if val and val[0] == '(':
+            parts = val.strip('()').split(',')
+            val = parts[0].strip()
+
+        # Convert first part from seconds UTC
         try:
             val = datetime.utcfromtimestamp(int(val))
             return dst_key, val.isoformat() + 'Z'

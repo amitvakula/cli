@@ -58,7 +58,7 @@ def sorted_container_nodes(containers):
     Returns:
         iterable: The sorted set of containers
     """
-    return sorted(containers, key=lambda x: (x.label or x.id).lower(), reverse=True)
+    return sorted(containers, key=lambda x: (x.label or x.id or '').lower(), reverse=True)
 
 class UnsupportedFilesystemError(Exception):
     """Error for unsupported filesystem type"""

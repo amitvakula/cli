@@ -3,7 +3,7 @@ import logging
 import re
 
 from .folder import FolderImporter
-from .template import StringMatchNode
+from .template import parse_template_string, StringMatchNode
 from ..bruker import extract_bruker_metadata_fn
 
 log = logging.getLogger(__name__)
@@ -36,14 +36,14 @@ ACQP_PARAMS = {
     'ACQ_abs_time': format_timestamp_fn('acquisition.timestamp')
 }
 
-def create_bruker_scanner(group, project, follow_symlinks, config, subject_pattern=None):
+def create_bruker_scanner(group, project, follow_symlinks, config, folder_template=None):
     """Create a bruker importer instance
 
     Arguments:
         group (str): The group id
         project (str): The project label
         config: (Config): The config object
-        subject_pattern: (Pattern): The subject folder pattern
+        folder_template: (str): The subject folder template pattern
 
     Returns:
         FolderImporter: The configured folder importer instance
@@ -51,13 +51,15 @@ def create_bruker_scanner(group, project, follow_symlinks, config, subject_patte
     # Build the importer instance
     importer = FolderImporter(group=group, project=project, config=config)
 
-    if not subject_pattern:
-        subject_pattern = re.compile(r'(?P<session>[-\w]+)-\d+-(?P<subject>\d+)\..*')
+    # Parse a template string for the subject node
+    if folder_template is None:
+        folder_template = '.*'
 
-    subject_meta_fn = extract_bruker_metadata_fn('subject', SUBJECT_PARAMS)
-    importer.add_template_node(
-        StringMatchNode(subject_pattern, metadata_fn=subject_meta_fn)
-    )
+    subject_node = parse_template_string(folder_template)
+    if getattr(subject_node, 'next_node', None):
+        raise ValueError('Invalid subject template: "{}"'.format(folder_template))
+    subject_node.metadata_fn = extract_bruker_metadata_fn('subject', SUBJECT_PARAMS)
+    importer.add_template_node(subject_node)
 
     acq_metadata_fn = extract_bruker_metadata_fn('acqp', ACQP_PARAMS)
     importer.add_composite_template_node([

@@ -12,6 +12,8 @@ def add_command(subparsers):
     group.add_argument('--group', help='Show only gears on the exchange that belong to a particular group')
     group.add_argument('--all-versions', metavar='name', help='Show all versions for the named gear')
 
+    parser.add_argument('--json', action='store_true', help='Print output in JSON')
+
     parser.set_defaults(func=list_gears)
     parser.set_defaults(parser=parser)
 
@@ -37,5 +39,9 @@ def list_gears(args):
     else:
         gears = db.get_latest_gears()
 
-    for gear in gears:
-        print(gear_short_str(gear))
+    if args.json:
+        import json
+        print(json.dumps(gears, indent=2))
+    else:
+        for gear in gears:
+            print(gear_short_str(gear))

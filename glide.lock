@@ -57,7 +57,7 @@ imports:
 - name: github.com/flosch/pongo2
   version: 5e81b817a0c48c1c57cdf1a9056cf76bdee02ca9
 - name: github.com/globalsign/mgo
-  version: baa28fcb8e7d5dfab92026c0920cb6c9ae72faa2
+  version: 1ca0a4f7cbcbe61c005d1bd43fdd8bb8b71df6bc
   repo: https://github.com/globalsign/mgo
 - name: github.com/gobwas/glob
   version: 51eb1ee00b6d931c66d229ceeb7c31b985563420
@@ -111,6 +111,8 @@ imports:
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
   version: d2dd0262208475919e1a362f675cfc0e7c10e905
+- name: github.com/olekukonko/tablewriter
+  version: be2c049b30ccd4d3fd795d6bf7dce74e42eeedaa
 - name: github.com/opencontainers/go-digest
   version: eaa60544f31ccf3b0653b1a118b76d33418ff41b
 - name: github.com/opencontainers/image-spec

@@ -3,6 +3,10 @@ from . import import_template
 from . import import_bruker
 from . import import_dicom
 from . import import_bids
+from . import ghc_query
+from . import ghc_login
+from . import ghc_import
+from . import ghc_use
 
 from . import export_bids
 
@@ -82,11 +86,20 @@ def add_commands(parser):
     set_subparser_print_help(parser_export, export_subparsers)
 
     # =====
+    # Google Healthcare API related commands
+    # =====
+    parser_ghc = subparsers.add_parser('ghc', help='Query and import dicom files from GHC')
+    ghc_subparsers = parser_ghc.add_subparsers(title='Available ghc commands', metavar='')
+
+    parsers['ghc'] = parser_ghc
+    parsers['ghc query'] = ghc_query.add_command(ghc_subparsers)
+    parsers['ghc login'] = ghc_login.add_command(ghc_subparsers)
+    parsers['ghc import'] = ghc_import.add_command(ghc_subparsers)
+    parsers['ghc use'] = ghc_use.add_command(ghc_subparsers)
+
+    # =====
     # help commands
     # =====
     parser_help = subparsers.add_parser('help')
     parser_help.add_argument('subcommands', nargs='*')
     parser_help.set_defaults(func=print_help(parser, parsers))
-
-
-

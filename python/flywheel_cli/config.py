@@ -4,6 +4,7 @@ import multiprocessing
 import os
 import zlib
 import zipfile
+import json
 
 from flywheel_migration import deidentify
 from .sdk_impl import create_flywheel_client, SdkUploadWrapper
@@ -99,3 +100,34 @@ class Config(object):
         parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
         parser.add_argument('--output-folder', help='Output to the given folder instead of uploading to flywheel')
 
+
+class GHCConfig(object):
+    CONFIG_PATH = '~/.config/flywheel/ghc.json'
+    REQUIRED_FIELDS = ['project', 'token', 'location', 'dataset', 'store']
+
+    def __init__(self):
+        self.config = {}
+        self.path = os.path.expanduser(self.CONFIG_PATH)
+        self.load_config_file()
+
+    def load_config_file(self):
+        try:
+            with open(self.path, 'r') as f:
+                self.config = json.load(f)
+        except:
+            pass
+
+    def set(self, key, value):
+        self.config[key] = value
+        with open(self.path, 'w') as f:
+            json.dump(self.config, f)
+
+        self.load_config_file()
+
+    def validate(self):
+        missing_fields = []
+        for key in self.REQUIRED_FIELDS:
+            if not self.config.get(key):
+                missing_fields.append(key)
+
+        return missing_fields

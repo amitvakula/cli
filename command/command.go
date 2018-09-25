@@ -33,7 +33,6 @@ func BuildCommand(version, buildHash, buildDate string) *cobra.Command {
 	cmd.AddCommand(o.gear())
 	cmd.AddCommand(o.job())
 	cmd.AddCommand(o.bidsCommand())
-	cmd.AddCommand(o.ghcCommand())
 
 	for _, subcmd := range GetDelegatedCommands() {
 		cmd.AddCommand(subcmd)

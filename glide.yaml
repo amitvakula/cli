@@ -26,4 +26,3 @@ import:
   subpackages:
   - vlog
 - package: github.com/udhos/equalfile
-- package: github.com/olekukonko/tablewriter

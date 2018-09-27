@@ -27,6 +27,8 @@ func Download(client *api.Client, filename string, parent interface{}, dest io.W
 	switch parent := parent.(type) {
 	case *Project:
 		url = "projects/" + parent.Id + "/files/" + filename
+	case *Subject:
+		url = "subjects/" + parent.Id + "/files/" + filename
 	case *Session:
 		url = "sessions/" + parent.Id + "/files/" + filename
 	case *Acquisition:
@@ -75,6 +77,8 @@ func Upload(client *api.Client, filename string, parent interface{}, metadata []
 	switch parent := parent.(type) {
 	case *Project:
 		url = "projects/" + parent.Id + "/files"
+	case *Subject:
+		url = "subjects/" + parent.Id + "/files"
 	case *Session:
 		url = "sessions/" + parent.Id + "/files"
 	case *Acquisition:

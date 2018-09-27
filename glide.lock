@@ -1,6 +1,6 @@
 imports:
 - name: flywheel.io/sdk
-  version: dcb61e3d6ec74522044fa545b8689a4ea797b011
+  version: ea5d4281d7d631f2d9589c947193030a1143c1a1
   repo: https://github.com/flywheel-io/sdk
   subpackages:
   - api
@@ -85,6 +85,8 @@ imports:
   version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/juju/ratelimit
+  version: 59fac5042749a5afb9af70e813da1dd5474f0167
 - name: github.com/kennygrant/sanitize
   version: 2e6820834a1f36c626bf19a253b7d3cc060e9b8b
 - name: github.com/klauspost/compress

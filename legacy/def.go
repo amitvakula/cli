@@ -51,6 +51,7 @@ var _ Container = &User{}
 var _ Container = &File{}
 var _ Container = &Group{}
 var _ Container = &Project{}
+var _ Container = &Subject{}
 var _ Container = &Session{}
 var _ Container = &Acquisition{}
 
@@ -100,6 +101,18 @@ func (u *Project) GetId() string {
 }
 func (u *Project) GetName() string {
 	return u.Name
+}
+
+type Subject api.Subject
+
+func (u *Subject) GetType() string {
+	return "subject"
+}
+func (u *Subject) GetId() string {
+	return u.Id
+}
+func (u *Subject) GetName() string {
+	return u.Code
 }
 
 type Session api.Session

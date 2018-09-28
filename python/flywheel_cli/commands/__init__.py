@@ -4,9 +4,9 @@ from . import import_bruker
 from . import import_dicom
 from . import import_bids
 from . import ghc_query
-from . import ghc_login
+from . import ghc_init
 from . import ghc_import
-from . import ghc_use
+from . import ghc_logs
 
 from . import export_bids
 
@@ -92,10 +92,10 @@ def add_commands(parser):
     ghc_subparsers = parser_ghc.add_subparsers(title='Available ghc commands', metavar='')
 
     parsers['ghc'] = parser_ghc
+    parsers['ghc init'] = ghc_init.add_command(ghc_subparsers)
     parsers['ghc query'] = ghc_query.add_command(ghc_subparsers)
-    parsers['ghc login'] = ghc_login.add_command(ghc_subparsers)
     parsers['ghc import'] = ghc_import.add_command(ghc_subparsers)
-    parsers['ghc use'] = ghc_use.add_command(ghc_subparsers)
+    parsers['ghc logs'] = ghc_logs.add_command(ghc_subparsers)
 
     # =====
     # help commands

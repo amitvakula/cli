@@ -103,7 +103,8 @@ class Config(object):
 
 class GHCConfig(object):
     CONFIG_PATH = '~/.config/flywheel/ghc.json'
-    REQUIRED_FIELDS = ['project', 'token', 'location', 'dataset', 'store']
+    # token should be required later?
+    REQUIRED_FIELDS = ['project', 'location', 'dataset', 'store']
 
     def __init__(self):
         self.config = {}

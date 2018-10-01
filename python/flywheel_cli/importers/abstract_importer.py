@@ -200,7 +200,7 @@ class AbstractImporter(ABC):
             sys.exit(1)
 
         try:
-            src_fs = fs.open_fs(fs_url)
+            src_fs = util.open_fs(fs_url)
         except fs.errors.CreateFailed:
             log.exception('Could not open filesystem at "{}"'.format(folder))
             sys.exit(1)

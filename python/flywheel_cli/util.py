@@ -92,6 +92,20 @@ def to_fs_url(path, support_archive=True):
     # Default is OSFS pointing at directory
     return 'osfs://{}'.format(path)
 
+def open_fs(path):
+    if path.startswith('osfs://'):
+        from fs.osfs import OSFS
+        # WORKAROUND for https://github.com/PyFilesystem/pyfilesystem2/issues/217
+        # When opening a folder on an NFS drive on OSX,
+        # we get: OSError: [Errno 22] Invalid argument from OSFS
+
+        # Instead, open the root directory, and open the target path
+        # as a subdirectory
+        drive, root_path = os.path.splitdrive(path[7:])
+        root_fs = OSFS(drive or '/')
+        return root_fs.opendir(root_path)
+    return fs.open_fs(path)
+
 def is_tar_file(path):
     """Check if path appears to be a tar archive""" 
     return bool(re.match('^.*(\.tar|\.tgz|\.tar\.gz|\.tar\.bz2)$', path, re.I))

@@ -4,7 +4,7 @@ from ..ghc import result_printer
 
 def add_command(subparsers):
     parser = subparsers.add_parser('query', help='Query dicom files using BigQuery')
-    parser.add_argument('where', metavar='WHERE CLAUSE', help='Where clause of the sql query')
+    parser.add_argument('where', nargs="+", metavar='WHERE CLAUSE', help='Where clause of the sql query')
     parser.add_argument('--output', '-o', choices=['study', 'series'], help='show only studies or series in output')
 
     parser.set_defaults(func=run_query)
@@ -26,7 +26,7 @@ def run_query(args):
                                       'location': 'US',
                                       'dataset': config.config['dataset'],
                                       'store': config.config['store'],
-                                      'where': args.where
+                                      'where': ' '.join(args.where)
                                   },
                                   auth_settings=['ApiKey'],
                                   response_type=object,

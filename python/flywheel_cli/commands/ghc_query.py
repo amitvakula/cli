@@ -1,45 +1,78 @@
-from ..sdk_impl import create_flywheel_client
+import sys
+
+from flywheel.rest import ApiException
+from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 from ..config import GHCConfig
-from ..ghc import result_printer
+
 
 def add_command(subparsers):
     parser = subparsers.add_parser('query', help='Query dicom files using BigQuery')
-    parser.add_argument('where', nargs="+", metavar='WHERE CLAUSE', help='Where clause of the sql query')
-    parser.add_argument('--output', '-o', choices=['study', 'series'], help='show only studies or series in output')
+    parser.add_argument('where', metavar='COND', nargs='*', help='Filter conditions (SQL WHERE clause')
+    parser.add_argument('--study', action='store_true', help='Only show studies')
 
-    parser.set_defaults(func=run_query)
+    parser.set_defaults(func=ghc_query)
     parser.set_defaults(parser=parser)
 
     return parser
 
 
-def run_query(args):
-    print("Running query...")
-    config = GHCConfig()
-    missing_fields = config.validate()
-    if missing_fields:
-        print('%s required, did you run `fw ghc init`?' % (', '.join(missing_fields)))
-        exit(1)
+def ghc_query(args):
+    ghc_config = GHCConfig()
+    keys = ('project', 'token', 'dataset', 'dicomstore')
+    payload = {key: ghc_config[key] for key in keys if ghc_config.get(key)}
+    if 'dicomstore' in payload:
+        # use same bq datastore/table as hc dataset/dicomstore
+        payload['table'] = payload.pop('dicomstore')
+    if args.where:
+        payload['where'] = ' '.join(args.where)
 
-    fw = create_flywheel_client()
-    resp = fw.api_client.call_api('/ghc/query', 'POST', body={
-                                      'location': 'US',
-                                      'dataset': config.config['dataset'],
-                                      'store': config.config['store'],
-                                      'where': ' '.join(args.where)
-                                  },
-                                  auth_settings=['ApiKey'],
-                                  response_type=object,
-                                  _return_http_data_only=True)
+    print('Running query...')
+    fw = SdkUploadWrapper(create_flywheel_client())
+    try:
+        resp = fw.call_api('/ghc/query', 'POST', body=payload, response_type=object)
+    except ApiException as e:
+        print('{} {}: {}'.format(e.status, e.reason, e.detail))
+        sys.exit(1)
+    print_results(resp, studies_only=args.study)
+    ghc_config['last_query_id'] = resp['query_id']
+    ghc_config.save()
 
 
-    print('Query result:')
-    print('Query job ID: %s' % resp['JobId'])
-    print('Total number of studies: %d' % resp['TotalNumberOfStudies'])
-    print('Total number of series: %d' % resp['TotalNumberOfSeries'])
-    print('Total number of instances: %d' % resp['TotalNumberOfInstances'])
+def print_results(result, studies_only=False):
+    print('Query: {query_id}\n'
+          'Number of matching studies: {total_studies} / series: {total_series} / instances: {total_instances}'
+          .format(**result))
 
-    printer = result_printer.ResultTreePrinter(resp)
-    print(printer.generate_tree(skip_series=args.output == 'study'))
+    if studies_only:
+        study_template = ' {StudyInstanceUID} ({StudyDate}, {StudyDescription})\n'
+    else:
+        study_template = ' {StudyInstanceUID} ({StudyDate}, {StudyDescription}, {series_count} series)\n'
+        series_template = ' {SeriesInstanceUID} ({SeriesDescription}, {instance_count} instances)\n'
 
-    config.set('latestJobId', resp['JobId'])
+    # tree formatting prefixes
+    PFX_SINGLE   = '──'
+    PFX_FIRST    = '┬──'
+    PFX_MID      = '├──'
+    PFX_LAST     = '└──'
+    PAR_PFX_MID  = '│   '
+    PAR_PFX_LAST = '    '
+
+    for study_num, study in enumerate(result['studies']):
+        last_study = study_num == result['study_count'] - 1
+        if result['study_count'] == 1:
+            prefix = PFX_SINGLE
+        elif study_num == 0:
+            prefix = PFX_FIRST
+        elif last_study:
+            prefix = PFX_LAST
+        else:
+            prefix = PFX_MID
+        sys.stdout.write(prefix + study_template.format(**study))
+
+        if not studies_only:
+            for series_num, series in enumerate(study['series']):
+                last_series = series_num == study['series_count'] - 1
+
+                prefix = PAR_PFX_LAST if last_study else PAR_PFX_MID
+                prefix += PFX_LAST if last_series else PFX_MID
+                sys.stdout.write(prefix + series_template.format(**series))

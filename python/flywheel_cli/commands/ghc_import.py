@@ -1,90 +1,74 @@
-from ..sdk_impl import create_flywheel_client
-from ..config import GHCConfig
-import time
-from flywheel.api import JobsApi
 import sys
+import time
+
+from flywheel.api import JobsApi
+from flywheel.rest import ApiException
+from ..config import GHCConfig
+from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
+
 
 def add_command(subparsers):
-    parser = subparsers.add_parser('import', help='Import dicom series from GHC')
-    parser.add_argument('level', metavar='LEVEL', choices=['studies', 'series'], help='Studies or series level import')
+    parser = subparsers.add_parser('import', help='Import dicom studies or series from Google Healthcare API')
+    parser.add_argument('group', metavar='group_id', help='The id of the group')
+    parser.add_argument('project', metavar='project_label', help='The label of the project')
 
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--from-query', nargs='?', const='latest',
-                        help='Import studies/series of a given query or the last one if query id is not specified')
-    group.add_argument('--uids', nargs='+', metavar='UID', help='Import the given studies/series')
+    parser.add_argument('--study', action='store_true', help='Import whole studies instead of individual series')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--query', nargs='?', const='last', help='Import from query results (default to last query)')
+    group.add_argument('--uids', metavar='UID[,UID...]', help='Import by UIDs')
+    parser.add_argument('--exclude', metavar='UID[,UID...]', help='Exclude UIDs (used with --query)')
+    parser.add_argument('--de-identify', action='store_true', help='De-identify dicoms before import')
+    parser.add_argument('--async', action='store_true', help='Do not wait for import job to finish')
 
-    parser.add_argument('--exclude', nargs='+', metavar='UID', help='Exclude the given studies/series')
-    parser.add_argument('--logs', action='store_true',
-                        help='Show the import job logs')
-    parser.add_argument('--log-level', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO',
-                        help='Log level')
-    parser.add_argument('--timeout', type=int, metavar='N', default=120,
-                        help='Wait N seconds for the job to finish, default is 120 seconds')
-    parser.add_argument('--async', action='store_true',
-                        help='Run the import job async, in this case you will get a job id '
-                             'that can be used to check the status of the job')
-
-    parser.set_defaults(func=run_import)
+    parser.set_defaults(func=ghc_import)
     parser.set_defaults(parser=parser)
 
     return parser
 
 
-def run_import(args):
-    print("Starting import...")
-
-    config = GHCConfig()
-    missing_fields = config.validate()
-    if missing_fields:
-        print('%s required, did you run `fw ghc init`?' % (', '.join(missing_fields)))
-        exit(1)
-
-    payload = {
-        'project': config.config['project'],
-        'location': config.config['location'],
-        'dataset': config.config['dataset'],
-        'store': config.config['store'],
-        'exclude': args.exclude,
-        'log-level': args.log_level,
-        'level': args.level
-    }
-
-    if args.from_query and args.from_query != 'latest':
-        payload['jobId'] = args.from_query
-    elif args.uids:
-        payload['uids'] = args.uids
+def ghc_import(args):
+    ghc_config = GHCConfig()
+    keys = ('project', 'token', 'location', 'dataset', 'dicomstore')
+    payload = {key: ghc_config[key] for key in keys if ghc_config.get(key)}
+    if args.study:
+        payload['study'] = True
+    if args.uids:
+        payload['uids'] = args.uids.split(',')
+    elif args.query != 'last':
+        payload['query_id'] = args.query
+    elif 'last_query_id' in ghc_config:
+        payload['query_id'] = config['last_query_id']
     else:
-        latest_job_id = config.config.get('latestJobId')
-        if not latest_job_id:
-            print('We did\'t find recent query job. Did you run `fw ghc query`?')
-            exit(1)
-        else:
-            payload['jobId'] = latest_job_id
+        print('Last query id not found. Did you run `fw ghc query` first?')
+        exit(1)
+    if args.exclude:
+        payload['exclude'] = args.exclude.split(',')
+    if args.de_identify:
+        payload['de_identify'] = True
+    payload['group_id'] = args.group
+    payload['project_label'] = args.project
 
-    fw = create_flywheel_client()
-    resp = fw.api_client.call_api('/ghc/import', 'POST', body=payload,
-                                  auth_settings=['ApiKey'],
-                                  response_type=object,
-                                  _return_http_data_only=True)
-
+    print('Starting import...')
+    fw = SdkUploadWrapper(create_flywheel_client())
+    try:
+        resp = fw.call_api('/ghc/import', 'POST', body=payload, response_type=object)
+    except ApiException as e:
+        print('{} {}: {}'.format(e.status, e.reason, e.detail))
+        sys.exit(1)
     job_id = resp['_id']
-    print('Job Id: %s' % job_id)
-    if args.async:
-        exit(0)
+    print('Job: ' + job_id)
 
-    print('Waiting for job to finish...')
-    jobs_api = JobsApi(fw.api_client)
-    start = time.time()
-    last_log_entry = 0
-    while True:
-        job = jobs_api.get_job(job_id)
-        time.sleep(1)
-        if args.logs:
+    if not args.async:
+        jobs_api = JobsApi(fw.fw.api_client)
+        last_log_entry = 0
+        print('Waiting for import job to finish...')
+        while True:
+            time.sleep(1)
             logs = jobs_api.get_job_logs(job_id)['logs']
             for i in range(last_log_entry, len(logs)):
                 sys.stdout.write(logs[i]['msg'])
                 last_log_entry = i + 1
-        if job.state in ['failed', 'complete'] or time.time() - start > args.timeout:
-            break
-
-    print('Job %s' % job.state)
+            job = jobs_api.get_job(job_id)
+            if job.state in ['failed', 'complete']:
+                print('Job ' + job.state)
+                break

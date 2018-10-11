@@ -101,34 +101,21 @@ class Config(object):
         parser.add_argument('--output-folder', help='Output to the given folder instead of uploading to flywheel')
 
 
-class GHCConfig(object):
+class GHCConfig(dict):
     CONFIG_PATH = '~/.config/flywheel/ghc.json'
-    # token should be required later?
-    REQUIRED_FIELDS = ['project', 'location', 'dataset', 'store']
 
     def __init__(self):
-        self.config = {}
+        super(GHCConfig, self).__init__()
         self.path = os.path.expanduser(self.CONFIG_PATH)
-        self.load_config_file()
+        self.load()
 
-    def load_config_file(self):
+    def load(self):
         try:
             with open(self.path, 'r') as f:
-                self.config = json.load(f)
+                self.update(json.load(f))
         except:
             pass
 
-    def set(self, key, value):
-        self.config[key] = value
+    def save(self):
         with open(self.path, 'w') as f:
-            json.dump(self.config, f)
-
-        self.load_config_file()
-
-    def validate(self):
-        missing_fields = []
-        for key in self.REQUIRED_FIELDS:
-            if not self.config.get(key):
-                missing_fields.append(key)
-
-        return missing_fields
+            json.dump(self, f)

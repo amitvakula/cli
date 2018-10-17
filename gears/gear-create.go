@@ -65,11 +65,9 @@ func GearCreate(client *api.Client, docker *client.Client, clearCustomList bool,
 		os.Exit(1)
 	}
 
-	Println("A1")
 	err = UntarGearFolder(reader)
 	Check(err)
 
-	Println("A2")
 	gear := ManifestOrDefaultGear()
 
 	gearDescription := "Gear created with gear builder."
@@ -92,7 +90,6 @@ func GearCreate(client *api.Client, docker *client.Client, clearCustomList bool,
 		"image": image,
 	}
 
-	Println("A3")
 	raw, err := json.MarshalIndent(gear, "", "\t")
 	Check(err)
 	err = ioutil.WriteFile("manifest.json", raw, 0644)

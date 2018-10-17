@@ -19,7 +19,7 @@ import (
 	"flywheel.io/sdk/api"
 )
 
-func GearCreate(client *api.Client, docker *client.Client, clearCustomList bool) {
+func GearCreate(client *api.Client, docker *client.Client, clearCustomList bool, name, author, image string) {
 
 	user, _, err := client.GetCurrentUser()
 	Check(err)
@@ -27,21 +27,108 @@ func GearCreate(client *api.Client, docker *client.Client, clearCustomList bool)
 	Println("Welcome to gear creation! Let's get started.")
 	Println()
 
-	Println()
-	gearLabel := PromptOrDefault("What will be the name of your gear?", "My Gear")
-	gearName := strings.ToLower(gearLabel)
-	gearName = strings.Replace(gearName, " ", "-", -1)
+	// Resolve choices via flags or prompts
+	name, label := determineNameAndLabel(name)
+	image = determineImage(image, clearCustomList)
+	author = determineAuthor(user, author)
+
+	// Trigger acquisition of image, if needed
+	containerId, cleanup, err := CreateContainerWithCleanup(docker, background, &container.Config{Image: image}, nil, "")
+	Check(err)
+	defer cleanup()
+
+	var reader io.ReadCloser
+	var stat types.ContainerPathStat
+	// var copyError error
 
 	Println()
+	Println("Reading gear contents...")
+	gearPath := "/flywheel/v0"
+	reader, stat, err = docker.CopyFromContainer(background, containerId, gearPath)
 
-	choices := []string{"Python", "Just Linux (Ubuntu & Bash)", "Advanced configuration example", "Custom - use a docker image"}
-	results := []string{"flywheel/gear-base-anaconda", "flywheel/base-gear-ubuntu", "flywheel/example-gear", ""}
+	if err != nil && strings.HasSuffix(err.Error(), "no such file or directory") {
+		Println()
+		Println("This docker image does not appear to be a Flywheel Gear;")
+		Println("  the /flywheel/v0 folder is missing.")
+		Println("Providing an example gear script to get you started...")
 
+		containerId, cleanup, createErr := CreateContainerWithCleanup(docker, background, &container.Config{Image: "flywheel/base-gear-ubuntu"}, nil, "")
+		Check(createErr)
+		defer cleanup()
+
+		reader, stat, err = docker.CopyFromContainer(background, containerId, gearPath)
+	}
+	Check(err)
+
+	if !stat.Mode.IsDir() {
+		Println("Error: container path", gearPath, "is not a folder!")
+		os.Exit(1)
+	}
+
+	Println("A1")
+	err = UntarGearFolder(reader)
+	Check(err)
+
+	Println("A2")
+	gear := ManifestOrDefaultGear()
+
+	gearDescription := "Gear created with gear builder."
+
+	if gear.Description != "" {
+		gearDescription = gear.Description + " [" + gearDescription + "]"
+	}
+	gear.Description = gearDescription
+
+	gear.Name = name
+	gear.Label = label
+	gear.Version = "0"
+	gear.Author = author
+	gear.Maintainer = author
+	gear.License = "Other"
+	gear.Source = ""
+	gear.Url = ""
+	gear.Custom = map[string]interface{}{}
+	gear.Custom["gear-builder"] = map[string]interface{}{
+		"image": image,
+	}
+
+	Println("A3")
+	raw, err := json.MarshalIndent(gear, "", "\t")
+	Check(err)
+	err = ioutil.WriteFile("manifest.json", raw, 0644)
+	Check(err)
+
+	Println()
+	Println()
+	Println("Your gear is created and expanded to the working directory.")
+	Println("Try `fw gear run` to run the gear!")
+}
+
+func determineNameAndLabel(label string) (string, string) {
+	if label == "" {
+		label = PromptOrDefault("What will be the name of your gear?", "My Gear")
+	}
+
+	name := strings.Replace(label, " ", "-", -1)
+	name = strings.ToLower(name)
+
+	return name, label
+}
+
+func determineImage(image string, clearCustomList bool) string {
 	options := LoadOptions()
 	if clearCustomList {
 		options.CustomGearImages = []string{}
 		options.Save()
 	}
+
+	if image != "" {
+		return image
+	}
+
+	Println()
+	choices := []string{"Python", "Just Linux (Ubuntu & Bash)", "Advanced configuration example", "Custom - use a docker image"}
+	results := []string{"flywheel/gear-base-anaconda", "flywheel/base-gear-ubuntu", "flywheel/example-gear", ""}
 
 	for _, x := range options.CustomGearImages {
 		choices = append(choices, "[Recent image] "+x)
@@ -68,7 +155,7 @@ func GearCreate(client *api.Client, docker *client.Client, clearCustomList bool)
 			choice = -1
 		}
 	}
-	image := results[choice]
+	image = results[choice]
 
 	if image == "" {
 		image = prompt.StringRequired("Enter the name of your docker image")
@@ -95,77 +182,13 @@ func GearCreate(client *api.Client, docker *client.Client, clearCustomList bool)
 		}
 	}
 
-	Println()
-	author := PromptOrDefault("Who is the author of this gear?", user.Firstname+" "+user.Lastname)
+	return image
+}
 
-	gearPath := "/flywheel/v0"
-
-	Println()
-
-	containerId, cleanup, err := CreateContainerWithCleanup(docker, background, &container.Config{Image: image}, nil, "")
-	Check(err)
-	defer cleanup()
-
-	var reader io.ReadCloser
-	var stat types.ContainerPathStat
-	// var copyError error
-
-	Println("Reading gear contents...")
-	reader, stat, err = docker.CopyFromContainer(background, containerId, gearPath)
-
-	if err != nil && strings.HasSuffix(err.Error(), "no such file or directory") {
-		Println()
-		Println("This docker image does not appear to be a Flywheel Gear;")
-		Println("  the /flywheel/v0 folder is missing.")
-		Println("Providing an example gear script to get you started...")
-
-		containerId, cleanup, createErr := CreateContainerWithCleanup(docker, background, &container.Config{Image: "flywheel/base-gear-ubuntu"}, nil, "")
-		Check(createErr)
-		defer cleanup()
-
-		reader, stat, err = docker.CopyFromContainer(background, containerId, gearPath)
+func determineAuthor(user *api.User, author string) string {
+	if author != "" {
+		return author
+	} else {
+		return user.Firstname + " " + user.Lastname
 	}
-	Check(err)
-
-	if !stat.Mode.IsDir() {
-		Println("Error: container path", gearPath, "is not a folder!")
-		os.Exit(1)
-	}
-
-	err = UntarGearFolder(reader)
-	Check(err)
-
-	gear := ManifestOrDefaultGear()
-
-	gearDescription := "Gear created with gear builder."
-
-	if gear.Description != "" {
-		gearDescription = gear.Description + " [" + gearDescription + "]"
-	}
-	gear.Description = gearDescription
-
-	gear.Name = gearName
-	gear.Label = gearLabel
-	gear.Version = "0"
-	gear.Author = author
-	gear.Maintainer = author
-	gear.License = "Other"
-	gear.Source = ""
-	gear.Url = ""
-	gear.Custom = map[string]interface{}{}
-	gear.Custom["gear-builder"] = map[string]interface{}{
-		"image": image,
-	}
-
-	raw, err := json.MarshalIndent(gear, "", "\t")
-	Check(err)
-	err = ioutil.WriteFile("manifest.json", raw, 0644)
-	Check(err)
-
-	// Println(string(raw))
-
-	Println()
-	Println()
-	Println("Your gear is created and expanded to the working directory.")
-	Println("Try `fw gear run` to run the gear!")
 }

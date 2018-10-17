@@ -22,15 +22,19 @@ func (o *opts) gear() *cobra.Command {
 
 func (o *opts) gearCreate() *cobra.Command {
 	var clearCustomList bool = false
+	var name, author, image string
 	cmd := &cobra.Command{
 		Use:    "create",
 		Short:  "Create a new gear in the current folder",
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {
-			gears.GearCreate(o.Client, gears.DockerOrBust(), clearCustomList)
+			gears.GearCreate(o.Client, gears.DockerOrBust(), clearCustomList, name, author, image)
 		},
 	}
 	cmd.Flags().BoolVar(&clearCustomList, "clear-custom-containers", false, "Clear the custom container list")
+	cmd.Flags().StringVarP(&name, "name", "n", "", "Gear name")
+	cmd.Flags().StringVar(&author, "author", "", "Gear author, defaults to the current user")
+	cmd.Flags().StringVarP(&image, "image", "i", "", "Docker image to start from")
 
 	return cmd
 }

@@ -1,7 +1,9 @@
 import argparse
+import logging
 import math
 import multiprocessing
 import os
+import time
 import zlib
 import zipfile
 
@@ -12,6 +14,9 @@ from .folder_impl import FSWrapper
 class Config(object):
     def __init__(self, args=None):
         self._resolver = None
+
+        # Configure logging
+        self.configure_logging(args)
 
         # Set the default compression (used by zipfile/ZipFS)
         self.compression_level = getattr(args, 'compression_level', 1) 
@@ -82,6 +87,32 @@ class Config(object):
         # Currently all resolvers are uploaders
         return self.get_resolver()
 
+    def configure_logging(self, args):
+        root = logging.getLogger()
+
+        # Setup log format
+        formatter = logging.Formatter(fmt='%(asctime)s.%(msecs)03d %(levelname)s %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
+        formatter.converter = time.gmtime
+
+        # Setup level
+        if getattr(args, 'debug', False):
+            root.setLevel(logging.DEBUG)
+        else:
+            root.setLevel(logging.INFO)
+
+        # Initialize file logging
+        log_file_path = getattr(args, 'log_file', None)
+        if log_file_path:
+            fileHandler = logging.FileHandler(log_file_path)
+            fileHandler.setFormatter(formatter)
+            root.addHandler(fileHandler)
+
+        quiet = getattr(args, 'quiet', False)
+        if not quiet:
+            consoleHandler = logging.StreamHandler()
+            consoleHandler.setFormatter(formatter)
+            root.addHandler(consoleHandler)
+
     @staticmethod
     def add_deid_args(parser):
         deid_group = parser.add_mutually_exclusive_group()
@@ -99,3 +130,7 @@ class Config(object):
         parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
         parser.add_argument('--output-folder', help='Output to the given folder instead of uploading to flywheel')
 
+        # Logging configuration
+        parser.add_argument('--debug', action='store_true', help='Turn on debug logging')
+        parser.add_argument('--log-file', help='Append log statements to this file')
+        parser.add_argument('--quiet', action='store_true', help='Squelch log messages to the console')

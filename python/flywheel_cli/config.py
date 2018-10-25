@@ -1,7 +1,10 @@
 import argparse
+import logging
+import logging.handlers
 import math
 import multiprocessing
 import os
+import time
 import zlib
 import zipfile
 
@@ -9,9 +12,15 @@ from flywheel_migration import deidentify
 from .sdk_impl import create_flywheel_client, SdkUploadWrapper
 from .folder_impl import FSWrapper
 
+CLI_LOG_MAX_BYTES = 5242880 # 5MB
+CLI_LOG_PATH = '~/.cache/flywheel/logs/cli.log'
+
 class Config(object):
     def __init__(self, args=None):
         self._resolver = None
+
+        # Configure logging
+        self.configure_logging(args)
 
         # Set the default compression (used by zipfile/ZipFS)
         self.compression_level = getattr(args, 'compression_level', 1) 
@@ -82,6 +91,42 @@ class Config(object):
         # Currently all resolvers are uploaders
         return self.get_resolver()
 
+    def configure_logging(self, args):
+        root = logging.getLogger()
+
+        # Setup log format
+        formatter = logging.Formatter(fmt='%(asctime)s.%(msecs)03d %(levelname)s %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
+        formatter.converter = time.gmtime
+
+        # Propagate all debug logging
+        root.setLevel(logging.DEBUG)
+
+        # Always log to cli log file
+        log_path = os.path.expanduser(CLI_LOG_PATH)
+        log_dir = os.path.dirname(log_path)
+        if not os.path.isdir(log_dir):
+            os.makedirs(log_dir)
+
+        fileHandler = logging.handlers.RotatingFileHandler(log_path, maxBytes=CLI_LOG_MAX_BYTES, backupCount=2)
+        fileHandler.setFormatter(formatter)
+        root.addHandler(fileHandler)
+
+        # Control how much (if anything) goes to console
+        quiet = getattr(args, 'quiet', False)
+        if not quiet:
+            # Setup level
+            user_log_level = logging.INFO
+            if getattr(args, 'debug', False):
+                user_log_level = logging.DEBUG
+
+            consoleHandler = logging.StreamHandler()
+            consoleHandler.setFormatter(formatter)
+            consoleHandler.setLevel(user_log_level)
+            root.addHandler(consoleHandler)
+
+        # Finally, capture all warnings to the logging framework
+        logging.captureWarnings(True)
+
     @staticmethod
     def add_deid_args(parser):
         deid_group = parser.add_mutually_exclusive_group()
@@ -99,3 +144,7 @@ class Config(object):
         parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
         parser.add_argument('--output-folder', help='Output to the given folder instead of uploading to flywheel')
 
+        # Logging configuration
+        log_group = parser.add_mutually_exclusive_group()
+        log_group.add_argument('--debug', action='store_true', help='Turn on debug logging')
+        log_group.add_argument('--quiet', action='store_true', help='Squelch log messages to the console')

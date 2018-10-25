@@ -34,9 +34,8 @@ func BuildCommand(version, buildHash, buildDate string) *cobra.Command {
 	cmd.AddCommand(o.job())
 	cmd.AddCommand(o.bidsCommand())
 
-	for _, subcmd := range GetDelegatedCommands() {
-		cmd.AddCommand(subcmd)
-	}
+	AddDelegateCommand(cmd, "import", "Import data into Flywheel")
+	AddDelegateCommand(cmd, "export", "Export data from Flywheel")
 
 	cmd.AddCommand(o.legacyCommands())
 	cmd.AddCommand(o.version(version, buildHash, buildDate))

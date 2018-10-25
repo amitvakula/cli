@@ -34,60 +34,27 @@ type PythonPathInfo struct {
 	SitePackagePath string
 }
 
-var DelegatedCommands = []CommandDesc{
-	{"import", "Import data into Flywheel"},
-	{"export", "Export data from Flywheel"},
-}
-
 var PythonCliCommand = []string{"-m", "flywheel_cli.main"}
 
 const CachePath = "~/.cache/flywheel/"
 const LibcExec = "libc-exe"
 const SitePackagesName = "site-packages.zip"
 
-// Add python delegated commands to the command list
-func GetDelegatedCommands() []*cobra.Command {
-	result := make([]*cobra.Command, 0)
-	for _, desc := range DelegatedCommands {
-		result = append(result, &cobra.Command{
-			Use:   desc.Command,
-			Short: desc.Description,
-			Run:   func(cmd *cobra.Command, args []string) {},
-		})
+// Add a command to parent that will be delegated to python
+func AddDelegateCommand(parent *cobra.Command, command, description string) {
+	cmd := &cobra.Command{
+		Use:   command,
+		Short: description,
+		Args:  cobra.ArbitraryArgs,
+		Run:   DelegateCommandToPython,
 	}
-	return result
-}
+	cmd.SetHelpFunc(DelegateCommandToPython)
 
-// Check if the given command name should be delegated to python CLI
-func IsDelegatedCommand(command string) bool {
-	for _, cmd := range DelegatedCommands {
-		if command == cmd.Command {
-			return true
-		}
-	}
-	return false
+	parent.AddCommand(cmd)
 }
 
 // Exits if the command is delegated
-func DelegateCommandToPython(args []string) {
-	// Determine if the command should be delegated
-	delegate := false
-
-	// Should be delegated if it is in the list
-	if len(args) > 1 && IsDelegatedCommand(args[1]) {
-		delegate = true
-	}
-
-	// Should be delegated if help is requested for an item in the list
-	if !delegate && len(args) > 2 && args[1] == "help" && IsDelegatedCommand(args[2]) {
-		delegate = true
-	}
-
-	// No delegation, return
-	if !delegate {
-		return
-	}
-
+func DelegateCommandToPython(command *cobra.Command, args []string) {
 	// Expand cacheDir
 	cacheDir, err := homedir.Expand(CachePath)
 	if err != nil {
@@ -115,8 +82,9 @@ func DelegateCommandToPython(args []string) {
 		prog = []string{filepath.Join(pythonPathInfo.PythonBinDir, "python")}
 	}
 
+	// Passthrough all args beyond program
 	prog = append(prog, PythonCliCommand...)
-	prog = append(prog, args[1:]...)
+	prog = append(prog, os.Args[1:]...)
 
 	// Launch the python command with piped stdin/stdout
 	cmd := exec.Command(prog[0], prog[1:]...)

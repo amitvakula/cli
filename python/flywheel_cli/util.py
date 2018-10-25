@@ -1,8 +1,11 @@
 import argparse
 import datetime
+import dateutil.parser
 import re
 import os
 import string
+import subprocess
+import sys
 
 import fs
 import tzlocal
@@ -184,6 +187,33 @@ def split_key_value_argument(val):
 
     return (key.strip(), value.strip())
 
+def parse_datetime_argument(val):
+    """Convert an argument into a datetime value using dateutil.parser.
+
+    Raises ArgumentTypeError if the value is inscrutable
+
+    Arguments:
+        val (str): The date-time value string
+
+    Returns:
+        datetime: The parsed datetime instance
+    """
+    try:
+        return dateutil.parser.parse(val)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(' '.join(e.args))
+
+def args_to_list(items):
+    """Convert an argument into a list of arguments (by splitting each element on comma)"""
+    result = []
+    if items is not None:
+        for item in items:
+            for val in item.split(','):
+                val = val.strip()
+                if val:
+                    result.append(val)
+    return result
+
 def fs_files_equal(src_fs, path1, path2):
     chunk_size = 8192
 
@@ -270,3 +300,21 @@ def sanitize_string_to_filename(value):
     """
     keepcharacters = (' ', '.', '_', '-')
     return "".join([c for c in value if c.isalnum() or c in keepcharacters]).rstrip()
+
+def edit_file(path):
+    """
+    Open the given path in a file editor, wait for the editor to exit.
+
+    Arguments:
+        path (str): The path to the file to edit
+    """
+    if sys.platform == 'darwin':
+        default_editor = 'pico'
+    elif sys.platform == 'windows':
+        default_editor = 'notepad'
+    else:
+        default_editor = 'nano'
+
+    editor = os.environ.get('EDITOR', default_editor)
+    subprocess.call([editor, path])
+    

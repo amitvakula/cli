@@ -6,6 +6,8 @@ from . import import_bids
 
 from . import export_bids
 
+from . import retry_job
+
 from ..config import Config
 
 def set_subparser_print_help(parser, subparsers):
@@ -70,6 +72,7 @@ def add_commands(parser):
     # Link help commands
     set_subparser_print_help(parser_import, import_subparsers)
 
+
     # =====
     # export
     # =====
@@ -82,6 +85,23 @@ def add_commands(parser):
 
     # Link help commands
     set_subparser_print_help(parser_export, export_subparsers)
+
+
+    # =====
+    # job
+    # =====
+    parser_job = subparsers.add_parser('job', help='Start or manage server jobs')
+    parser_job.set_defaults(config=get_config)
+    parsers['job'] = parser_job
+
+    job_subparsers = parser_job.add_subparsers(title='Available job commands', metavar='')
+
+    parsers['job retry'] = retry_job.add_command(job_subparsers)
+    Config.add_logging_args(parsers['job retry'])
+
+    # Link help commands
+    set_subparser_print_help(parser_job, job_subparsers)
+
 
     # =====
     # help commands

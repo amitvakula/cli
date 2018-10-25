@@ -18,6 +18,8 @@ func (o *opts) job() *cobra.Command {
 	cmd.AddCommand(o.jobWait())
 	cmd.AddCommand(o.jobListGears())
 
+	AddDelegateCommand(cmd, "retry", "Retry failed or completed job(s)")
+
 	return cmd
 }
 

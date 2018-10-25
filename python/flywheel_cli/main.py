@@ -2,6 +2,7 @@
 import argparse
 import logging
 import os
+import platform
 import sys
 
 from .commands import add_commands
@@ -27,7 +28,8 @@ def main():
     if callable(config_fn):
         config_fn(args)
 
-    log.debug('CLI Invocation: %s', sys.argv)
+    log.debug('CLI Args: %s', sys.argv)
+    log.debug('Platform: %s', platform.platform())
 
     func = getattr(args, 'func', None)
     if func is not None:

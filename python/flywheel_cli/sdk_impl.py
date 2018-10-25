@@ -46,7 +46,10 @@ def create_flywheel_client(require=True):
             print('Not logged in, please login using `fw login` and your API key', file=sys.stderr)
             sys.exit(1)
         return None
-    return flywheel.Flywheel(config['key'])
+    result = flywheel.Flywheel(config['key'])
+    log.debug('SDK Version: %s', flywheel.flywheel.SDK_VERSION)
+    log.debug('Flywheel Site URL: %s', result.api_client.configuration.host)
+    return result
 
 """
 For now we skip subjects, replacing them (effectively) with the project layer,

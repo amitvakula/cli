@@ -7,6 +7,8 @@ import sys
 from .commands import add_commands
 from . import monkey
 
+log = logging.getLogger(__name__)
+
 def main():
     # Global exception handler for KeyboardInterrupt
     sys.excepthook = ctrlc_excepthook
@@ -24,6 +26,8 @@ def main():
     config_fn = getattr(args, 'config', None)
     if callable(config_fn):
         config_fn(args)
+
+    log.debug('CLI Invocation: %s', sys.argv)
 
     func = getattr(args, 'func', None)
     if func is not None:

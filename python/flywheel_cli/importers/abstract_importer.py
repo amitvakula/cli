@@ -190,16 +190,17 @@ class AbstractImporter(ABC):
 
         # Sanity check
         if not self.support_subject_mapping and self.deid_profile and self.deid_profile.map_subjects:
-            print('ERROR: Subject mapping not supported with this import type!')
+            log.error('Subject mapping not supported with this import type!')
             sys.exit(1)
 
         try:
             fs_url = util.to_fs_url(folder, self.support_archive_fs)
         except util.UnsupportedFilesystemError as e:
-            print(e)
+            log.exception('Unsupported filesystem')
             sys.exit(1)
 
         try:
+            log.debug('Using source filesystem: %s', fs_url)
             src_fs = util.open_fs(fs_url)
         except fs.errors.CreateFailed:
             log.exception('Could not open filesystem at "{}"'.format(folder))
@@ -210,7 +211,7 @@ class AbstractImporter(ABC):
             self.discover(src_fs)
 
             if self.container_factory.is_empty():
-                print('Nothing found to import!')
+                log.error('Nothing found to import!')
                 sys.exit(1)
 
             # Print summary
@@ -289,12 +290,12 @@ class AbstractImporter(ABC):
                 print('')
                 if self.assume_yes:
                     if retries >= self.max_retries:
-                        print('Maximum number of retries has been reached!')
+                        log.error('Maximum number of retries has been reached!')
                         break
                     retries += 1
                     import time
 
-                    print('Retrying in {} seconds...'.format(self.retry_wait))
+                    log.info('Retrying in {} seconds...'.format(self.retry_wait))
                     time.sleep(self.retry_wait)
 
                 elif not util.confirmation_prompt('One or more errors occurred. Retry?'):

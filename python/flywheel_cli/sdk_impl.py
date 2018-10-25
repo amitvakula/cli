@@ -2,6 +2,7 @@
 import copy
 import flywheel
 import json
+import logging
 import os
 import requests
 import sys
@@ -12,6 +13,8 @@ CONFIG_PATH = '~/.config/flywheel/user.json'
 config = None
 
 TICKETED_UPLOAD_PATH = '/{ContainerType}/{ContainerId}/files'
+
+log = logging.getLogger(__name__)
 
 def pluralize(container_type):
     """ Convert container_type to plural name
@@ -43,7 +46,10 @@ def create_flywheel_client(require=True):
             print('Not logged in, please login using `fw login` and your API key', file=sys.stderr)
             sys.exit(1)
         return None
-    return flywheel.Flywheel(config['key'])
+    result = flywheel.Flywheel(config['key'])
+    log.debug('SDK Version: %s', flywheel.flywheel.SDK_VERSION)
+    log.debug('Flywheel Site URL: %s', result.api_client.configuration.host)
+    return result
 
 """
 For now we skip subjects, replacing them (effectively) with the project layer,
@@ -112,6 +118,7 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
             create_doc[parent.container_type] = parent.id
 
         new_id = create_fn(create_doc)
+        log.debug('Created container: %s as %s', create_doc, new_id)
         return new_id
     
     def upload(self, container, name, fileobj):
@@ -121,6 +128,7 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
             print('Skipping unsupported upload to container: {}'.format(container.container_type))
             return
 
+        log.debug('Uploading file %s to %s=%s', name, container.container_type, container.id)
         if self.supports_signed_url():
             self.signed_url_upload(container, name, fileobj)
         else:
@@ -134,6 +142,9 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
             'ContainerId': container.id
         }
         ticket, upload_url = self.create_upload_ticket(path_params, name)
+
+        log.debug('Upload url for %s on %s=%s: %s (ticket=%s)', name,
+            container.container_type, container.id, ticket, upload_url)
 
         # Perform the upload
         resp = self._upload_session.put(upload_url, data=fileobj)

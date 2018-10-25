@@ -2,10 +2,13 @@
 import argparse
 import logging
 import os
+import platform
 import sys
 
 from .commands import add_commands
 from . import monkey
+
+log = logging.getLogger(__name__)
 
 def main():
     # Global exception handler for KeyboardInterrupt
@@ -24,6 +27,9 @@ def main():
     config_fn = getattr(args, 'config', None)
     if callable(config_fn):
         config_fn(args)
+
+    log.debug('CLI Args: %s', sys.argv)
+    log.debug('Platform: %s', platform.platform())
 
     func = getattr(args, 'func', None)
     if func is not None:

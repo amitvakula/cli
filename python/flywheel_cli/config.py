@@ -94,10 +94,6 @@ class Config(object):
     def configure_logging(self, args):
         root = logging.getLogger()
 
-        # Setup log format
-        formatter = logging.Formatter(fmt='%(asctime)s.%(msecs)03d %(levelname)s %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
-        formatter.converter = time.gmtime
-
         # Propagate all debug logging
         root.setLevel(logging.DEBUG)
 
@@ -107,22 +103,27 @@ class Config(object):
         if not os.path.isdir(log_dir):
             os.makedirs(log_dir)
 
-        fileHandler = logging.handlers.RotatingFileHandler(log_path, maxBytes=CLI_LOG_MAX_BYTES, backupCount=2)
-        fileHandler.setFormatter(formatter)
-        root.addHandler(fileHandler)
+        # Use GMT ISO date for logfile
+        file_formatter = logging.Formatter(fmt='%(asctime)s.%(msecs)03d %(levelname)s %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
+        file_formatter.converter = time.gmtime
+
+        file_handler = logging.handlers.RotatingFileHandler(log_path, maxBytes=CLI_LOG_MAX_BYTES, backupCount=2)
+        file_handler.setFormatter(file_formatter)
+        root.addHandler(file_handler)
 
         # Control how much (if anything) goes to console
-        quiet = getattr(args, 'quiet', False)
-        if not quiet:
-            # Setup level
-            user_log_level = logging.INFO
-            if getattr(args, 'debug', False):
-                user_log_level = logging.DEBUG
+        console_log_level = logging.INFO
+        if getattr(args, 'quiet', False):
+            console_log_level = logging.ERROR
+        elif getattr(args, 'debug', False):
+            console_log_level = logging.DEBUG
 
-            consoleHandler = logging.StreamHandler()
-            consoleHandler.setFormatter(formatter)
-            consoleHandler.setLevel(user_log_level)
-            root.addHandler(consoleHandler)
+        console_formatter = logging.Formatter(fmt='%(levelname)s: %(message)s')
+
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(console_formatter)
+        console_handler.setLevel(console_log_level)
+        root.addHandler(console_handler)
 
         # Finally, capture all warnings to the logging framework
         logging.captureWarnings(True)

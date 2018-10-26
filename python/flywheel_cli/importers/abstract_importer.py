@@ -11,7 +11,6 @@ log = logging.getLogger(__name__)
 
 from .. import util
 from .container_factory import ContainerFactory
-from .template import CompositeNode
 from .upload_queue import UploadQueue
 from .packfile import create_zip_packfile
 

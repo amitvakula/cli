@@ -124,8 +124,12 @@ class FolderImporter(AbstractImporter):
                         else:
                             next_node = template_node.extract_metadata(name, child_context, src_fs)
 
-                    resolve_child = 'packfile' not in context
-                    self.recursive_discover(subdir, child_context, next_node, path, resolve=resolve_child)
+                    if next_node and next_node.node_type == 'scanner':
+                        next_node.scan(src_fs, child_context, self.container_factory)
+                        resolve = False
+                    else:
+                        resolve_child = 'packfile' not in context
+                        self.recursive_discover(subdir, child_context, next_node, path, resolve=resolve_child)
             else:
                 context.setdefault('files', []).append(path)
 

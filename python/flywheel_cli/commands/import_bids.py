@@ -5,8 +5,8 @@ def add_command(subparsers):
     parser.add_argument('folder', metavar='[folder]', help='The path to the folder to import')
     parser.add_argument('group', metavar='[group]', help='The id of the group')
     parser.add_argument('--project', '-p', metavar='<label>', help='Label of project to import into')
-    parser.add_argument('--subject', default=None, help='Only upload data from single subject folder (i.e. sub-01)')
-    parser.add_argument('--session', default=None, help='Only upload data from single session fodler (i.e. ses-01)')
+    parser.add_argument('--subject', default=None, help='Only upload data from single subject folder (e.g. sub-01)')
+    parser.add_argument('--session', default=None, help='Only upload data from single session folder (e.g. ses-01)')
 
     parser.set_defaults(func=import_bids)
     parser.set_defaults(parser=parser)

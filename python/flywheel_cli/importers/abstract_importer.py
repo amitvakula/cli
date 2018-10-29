@@ -29,7 +29,7 @@ class AbstractImporter(ABC):
             context (dict): The optional additional context fields
             config (Config): The config object
         """
-        self.container_factory = ContainerFactory(config.get_resolver())
+        self.container_factory = ContainerFactory(config.get_resolver(), uids=config.use_uids)
 
         self.group = group
         self.project = project

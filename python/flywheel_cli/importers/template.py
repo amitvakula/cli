@@ -30,13 +30,14 @@ class ImportTemplateNode(ABC):
         """
         return None
 
-    def scan(self, src_fs, context, container_factory):
+    def scan(self, src_fs, path_prefix, context, container_factory):
         """Scan directory contents, rather than walking.
 
         Called if this is a scanner node.
 
         Arguments:
             src_fs (fs): The filesystem to scan
+            path_prefix (str): The path prefix
             context (dict): The current context object
             container_factory: The container factory where nodes should be added
         """
@@ -132,17 +133,18 @@ class DicomScannerNode(ImportTemplateNode):
         """Set the next node"""
         raise ValueError('Cannot declare nodes after dicom scanner!')
 
-    def scan(self, src_fs, context, container_factory):
+    def scan(self, src_fs, path_prefix, context, container_factory):
         """Scan directory contents, rather than walking.
 
         Called if this is a scanner node.
 
         Arguments:
             src_fs (fs): The filesystem to scan
+            path_prefix (str): The path prefix
             context (dict): The current context object
             container_factory: The container factory where nodes should be added
         """
-        self.scanner.discover(src_fs, context, container_factory)
+        self.scanner.discover(src_fs, context, container_factory, path_prefix=path_prefix)
 
 
 def parse_template_string(value, config=None):

@@ -76,7 +76,7 @@ class DicomScanner(object):
         if self.subject_map:
             self.subject_map.save()                
 
-    def discover(self, src_fs, context, container_factory):
+    def discover(self, src_fs, context, container_factory, path_prefix=None):
         """Performs discovery of containers to create and files to upload in the given folder.
 
         Arguments:
@@ -125,6 +125,8 @@ class DicomScanner(object):
                             log.error('File "{}" and "{}" conflict!'.format(path, orig_path))
                             log.error('Both files have the same IDs, but contents differ!')
                             sys.exit(1)
+                    elif path_prefix:
+                        acquisition.files[sop_uid] = path_prefix + path
                     else:
                         acquisition.files[sop_uid] = path
 

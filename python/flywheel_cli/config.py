@@ -48,6 +48,9 @@ class Config(object):
         # Set output folder
         self.output_folder = getattr(args, 'output_folder', None)
 
+        # Set use_uids property (default is use uids)
+        self.use_uids = not getattr(args, 'no_uids', False)
+
         # Get de-identification profile
         if getattr(args, 'de_identify', False):
             profile_name = 'minimal'
@@ -159,6 +162,7 @@ class Config(object):
                 help='The compression level to use for packfiles. -1 for default, 0 for store')
         parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
         parser.add_argument('--output-folder', help='Output to the given folder instead of uploading to flywheel')
+        parser.add_argument('--no-uids', action='store_true', help='Ignore UIDs when grouping sessions and acquisitions')
         return parser
 
     @staticmethod

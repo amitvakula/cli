@@ -63,13 +63,14 @@ class ContainerResolver(ABC):
 
 
 class ContainerFactory(object):
-    def __init__(self, resolver):
+    def __init__(self, resolver, uids=True):
         """Manages discovery and creation of containers by looking at context objects.
 
         Arguments:
             resolver (ContainerResolver): The container resolver strategy
         """
         self.resolver = resolver
+        self.uids = uids
 
         # The root container
         self.root = ContainerNode('root', exists=True)
@@ -164,7 +165,7 @@ class ContainerFactory(object):
             if cid and child.id == cid:
                 return child
 
-            if label and child.label == label and child.uid == uid:
+            if label and child.label == label and (not self.uids or child.uid == uid):
                 # In case we resolved this elsewhere, update the child id
                 if cid and not child.id:
                     child.id = cid

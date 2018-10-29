@@ -125,7 +125,7 @@ class FolderImporter(AbstractImporter):
                             next_node = template_node.extract_metadata(name, child_context, src_fs)
 
                     if next_node and next_node.node_type == 'scanner':
-                        next_node.scan(src_fs, child_context, self.container_factory)
+                        next_node.scan(src_fs, curdir, child_context, self.container_factory)
                         resolve = False
                     else:
                         resolve_child = 'packfile' not in context

@@ -19,13 +19,8 @@ VERSION = "7.0.0"
 # prerequisite: setuptools
 # http://pypi.python.org/pypi/setuptools
 
-REQUIRES = [
-    "tzlocal~=1.5.1",
-    "fs~=2.0.23",
-    "flywheel_migration==0.4.0",
-    "flywheel-bids~=0.7.0",
-    "flywheel-sdk>=4.2.0"
-]
+with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
 
 class VerifyVersionCommand(install):
     """Custom command to verify that the git tag matches our version"""
@@ -43,7 +38,8 @@ setup(
     author_email="support@flywheel.io",
     url="",
     keywords=["Flywheel", "flywheel", "CLI"],
-    install_requires=REQUIRES,
+    include_package_data=True,
+    install_requires=requirements,
     packages=find_packages(),
     license="MIT",
     project_urls={

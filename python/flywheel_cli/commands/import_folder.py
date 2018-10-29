@@ -2,11 +2,10 @@ import argparse
 import re
 import textwrap
 
-from ..config import Config
 from ..importers import FolderImporter, StringMatchNode
 
-def add_command(subparsers):
-    parser = subparsers.add_parser('folder', help='Import a structured folder',
+def add_command(subparsers, parents):
+    parser = subparsers.add_parser('folder', parents=parents, help='Import a structured folder',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=textwrap.dedent("""\
             Import a folder with the following structure:
@@ -36,8 +35,6 @@ def add_command(subparsers):
     acq_group = parser.add_mutually_exclusive_group()
     acq_group.add_argument('--dicom', default='dicom', metavar='name', help='The name of dicom subfolders to be zipped prior to upload')
     acq_group.add_argument('--pack-acquisitions', metavar='type', help='Acquisition folders only contain acquisitions of <type> and are zipped prior to upload')
-    
-    Config.add_deid_args(parser)
 
     parser.add_argument('--repack', action='store_true', help='Whether or not to validate, de-identify and repackage zipped packfiles')
 

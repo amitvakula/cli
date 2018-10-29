@@ -30,6 +30,13 @@ def get_config(args):
     args.config = Config(args)
 
 def add_commands(parser):
+    # Setup global configuration args
+    parser.set_defaults(config=get_config)
+
+    global_parser = Config.get_global_parser()
+    import_parser = Config.get_import_parser()
+    deid_parser = Config.get_deid_parser()
+
     # map commands for help function
     parsers = {}
 
@@ -40,30 +47,25 @@ def add_commands(parser):
     # import
     # =====
     parser_import = subparsers.add_parser('import', help='Import data into Flywheel')
-    parser_import.set_defaults(config=get_config)
 
     parsers['import'] = parser_import
 
     import_subparsers = parser_import.add_subparsers(title='Available import commands', metavar='')
 
     # import folder
-    parsers['import folder'] = import_folder.add_command(import_subparsers)
-    Config.add_config_args(parsers['import folder'])
+    parsers['import folder'] = import_folder.add_command(import_subparsers, [global_parser, import_parser, deid_parser])
 
     # import bids
-    parsers['import bids'] = import_bids.add_command(import_subparsers)
+    parsers['import bids'] = import_bids.add_command(import_subparsers, [global_parser])
 
     # import dicom 
-    parsers['import dicom'] = import_dicom.add_command(import_subparsers)
-    Config.add_config_args(parsers['import dicom'])
+    parsers['import dicom'] = import_dicom.add_command(import_subparsers, [global_parser, import_parser, deid_parser])
 
     # import bruker
-    parsers['import bruker'] = import_bruker.add_command(import_subparsers)
-    Config.add_config_args(parsers['import bruker'])
+    parsers['import bruker'] = import_bruker.add_command(import_subparsers, [global_parser, import_parser])
 
     # import template
-    parsers['import template'] = import_template.add_command(import_subparsers)
-    Config.add_config_args(parsers['import template'])
+    parsers['import template'] = import_template.add_command(import_subparsers, [global_parser, import_parser, deid_parser])
 
     # Link help commands
     set_subparser_print_help(parser_import, import_subparsers)
@@ -76,7 +78,7 @@ def add_commands(parser):
 
     export_subparsers = parser_export.add_subparsers(title='Available export commands', metavar='')
 
-    parsers['export bids'] = export_bids.add_command(export_subparsers)
+    parsers['export bids'] = export_bids.add_command(export_subparsers, [global_parser])
 
     # Link help commands
     set_subparser_print_help(parser_export, export_subparsers)
@@ -87,6 +89,3 @@ def add_commands(parser):
     parser_help = subparsers.add_parser('help')
     parser_help.add_argument('subcommands', nargs='*')
     parser_help.set_defaults(func=print_help(parser, parsers))
-
-
-

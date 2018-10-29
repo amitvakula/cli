@@ -12,7 +12,6 @@ from flywheel_migration import deidentify
 from .sdk_impl import create_flywheel_client, SdkUploadWrapper
 from .folder_impl import FSWrapper
 
-CLI_LOG_MAX_BYTES = 5242880 # 5MB
 CLI_LOG_PATH = '~/.cache/flywheel/logs/cli.log'
 
 class Config(object):
@@ -98,7 +97,7 @@ class Config(object):
         root.setLevel(logging.DEBUG)
 
         # Always log to cli log file
-        log_path = os.path.expanduser(CLI_LOG_PATH)
+        log_path = os.path.expanduser(os.environ.get('FW_LOG_FILE_PATH', CLI_LOG_PATH))
         log_dir = os.path.dirname(log_path)
         if not os.path.isdir(log_dir):
             os.makedirs(log_dir)
@@ -107,7 +106,11 @@ class Config(object):
         file_formatter = logging.Formatter(fmt='%(asctime)s.%(msecs)03d %(levelname)s %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
         file_formatter.converter = time.gmtime
 
-        file_handler = logging.handlers.RotatingFileHandler(log_path, maxBytes=CLI_LOG_MAX_BYTES, backupCount=2)
+        # Allow environment overrides for log size and backup count
+        log_file_size = int(os.environ.get('FW_LOG_FILE_SIZE', '5242880')) # Default is 5 MB
+        log_file_backup_count = int(os.environ.get('FW_LOG_FILE_COUNT', '2')) # Default is 2
+
+        file_handler = logging.handlers.RotatingFileHandler(log_path, maxBytes=log_file_size, backupCount=log_file_backup_count)
         file_handler.setFormatter(file_formatter)
         root.addHandler(file_handler)
 
@@ -129,14 +132,18 @@ class Config(object):
         logging.captureWarnings(True)
 
     @staticmethod
-    def add_deid_args(parser):
-        deid_group = parser.add_mutually_exclusive_group()
-        deid_group.add_argument('--de-identify', action='store_true', help='De-identify DICOM files, e-files and p-files prior to upload')
-        deid_group.add_argument('--profile', help='Use the De-identify profile by name or file')
+    def get_global_parser():
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument('-y', '--yes', action='store_true', help='Assume the answer is yes to all prompts')
+
+        log_group = parser.add_mutually_exclusive_group()
+        log_group.add_argument('--debug', action='store_true', help='Turn on debug logging')
+        log_group.add_argument('--quiet', action='store_true', help='Squelch log messages to the console')
+        return parser
 
     @staticmethod
-    def add_config_args(parser):
-        parser.add_argument('-y', '--yes', action='store_true', help='Assume the answer is yes to all prompts')
+    def get_import_parser():
+        parser = argparse.ArgumentParser(add_help=False)
         parser.add_argument('--max-retries', default=3, help='Maximum number of retry attempts, if assume yes')
         parser.add_argument('--jobs', '-j', default=-1, type=int, help='The number of concurrent jobs to run (e.g. compression jobs)')
         parser.add_argument('--concurrent-uploads', default=4, type=int, help='The maximum number of concurrent uploads')
@@ -144,8 +151,12 @@ class Config(object):
                 help='The compression level to use for packfiles. -1 for default, 0 for store')
         parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
         parser.add_argument('--output-folder', help='Output to the given folder instead of uploading to flywheel')
+        return parser
 
-        # Logging configuration
-        log_group = parser.add_mutually_exclusive_group()
-        log_group.add_argument('--debug', action='store_true', help='Turn on debug logging')
-        log_group.add_argument('--quiet', action='store_true', help='Squelch log messages to the console')
+    @staticmethod
+    def get_deid_parser():
+        parser = argparse.ArgumentParser(add_help=False)
+        deid_group = parser.add_mutually_exclusive_group()
+        deid_group.add_argument('--de-identify', action='store_true', help='De-identify DICOM files, e-files and p-files prior to upload')
+        deid_group.add_argument('--profile', help='Use the De-identify profile by name or file')
+        return parser

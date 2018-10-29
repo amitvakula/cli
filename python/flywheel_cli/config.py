@@ -4,6 +4,7 @@ import logging.handlers
 import math
 import multiprocessing
 import os
+import re
 import time
 import zlib
 import zipfile
@@ -12,7 +13,10 @@ from flywheel_migration import deidentify
 from .sdk_impl import create_flywheel_client, SdkUploadWrapper
 from .folder_impl import FSWrapper
 
+DEFAULT_CONFIG_PATH = '~/.config/flywheel/cli.cfg'
 CLI_LOG_PATH = '~/.cache/flywheel/logs/cli.log'
+
+RE_CONFIG_LINE = re.compile(r'^\s*([-_a-zA-Z0-9]+)\s*([:=]\s*(.+?))?\s*$')
 
 class Config(object):
     def __init__(self, args=None):
@@ -134,6 +138,7 @@ class Config(object):
     @staticmethod
     def get_global_parser():
         parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument('--config-file', '-C', help='Specify configuration options via config file')
         parser.add_argument('-y', '--yes', action='store_true', help='Assume the answer is yes to all prompts')
 
         log_group = parser.add_mutually_exclusive_group()
@@ -160,3 +165,46 @@ class Config(object):
         deid_group.add_argument('--de-identify', action='store_true', help='De-identify DICOM files, e-files and p-files prior to upload')
         deid_group.add_argument('--profile', help='Use the De-identify profile by name or file')
         return parser
+
+    @staticmethod
+    def set_defaults(parsers):
+        # Read defaults from:
+        # ~/.config/flywheel/cli.cfg
+        # --config-file, -C
+        defaults = Config.read_config_defaults()
+
+        # Then set defaults for each subparser
+        for key, parser in parsers.items():
+            parser.set_defaults(**defaults)
+
+    @staticmethod
+    def read_config_defaults():
+        """Read config defaults from the default file, and an optional arg file"""
+
+        # Parse config_file argument from command line
+        config_parser = Config.get_global_parser()
+        args, _ = config_parser.parse_known_args()
+
+        defaults = {}
+        for path in [DEFAULT_CONFIG_PATH, args.config_file]:
+            if not path:
+                continue
+
+            path = os.path.expanduser(path)
+            if os.path.isfile(path):
+                Config.read_config_file(path, defaults)
+
+        return defaults
+
+    @staticmethod
+    def read_config_file(path, dest):
+        """Read configuration values from path, into dest"""
+        with open(path) as f:
+            for line in f.readlines():
+                m = RE_CONFIG_LINE.match(line)
+                if m is not None:
+                    key = m.group(1).lower().replace('-', '_')
+                    value = m.group(3)
+                    if value is None:
+                        value = 'true'
+                    dest[key] = value

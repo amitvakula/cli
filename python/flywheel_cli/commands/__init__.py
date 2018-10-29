@@ -89,3 +89,6 @@ def add_commands(parser):
     parser_help = subparsers.add_parser('help')
     parser_help.add_argument('subcommands', nargs='*')
     parser_help.set_defaults(func=print_help(parser, parsers))
+
+    # Finally, set default values for all parsers
+    Config.set_defaults(parsers)

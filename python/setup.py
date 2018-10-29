@@ -23,7 +23,7 @@ REQUIRES = [
     "tzlocal~=1.5.1",
     "fs~=2.0.23",
     "flywheel_migration==0.4.0",
-    "flywheel-bids~=0.6.8",
+    "flywheel-bids~=0.7.0",
     "flywheel-sdk>=4.2.0"
 ]
 

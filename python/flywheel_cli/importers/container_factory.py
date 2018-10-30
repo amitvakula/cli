@@ -11,13 +11,14 @@ def combine_path(path, child):
     return child
 
 class ContainerNode(object):
-    def __init__(self, container_type, cid=None, label=None, uid=None, exists=False):
+    def __init__(self, container_type, cid=None, label=None, uid=None, parent=None, exists=False):
         self.container_type = container_type
         self.id = cid
         self.uid = uid
         self.label = label
         self.children = []
         self.exists = exists
+        self.parent = parent
         self.context = None
         self.files = []
         self.packfiles = []
@@ -173,7 +174,7 @@ class ContainerFactory(object):
                 return child
 
         # Create child
-        child = ContainerNode(container_type, cid=cid, label=label, uid=uid)
+        child = ContainerNode(container_type, cid=cid, label=label, uid=uid, parent=parent)
         child.context = copy.deepcopy(context)
 
         # Check if exists

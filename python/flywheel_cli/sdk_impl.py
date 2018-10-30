@@ -56,11 +56,9 @@ For now we skip subjects, replacing them (effectively) with the project layer,
 and treating them as if they always exist.
 """
 class SdkUploadWrapper(Uploader, ContainerResolver):
-    # TODO: Formalize subjects, please
-    subject_level = 2
-
     def __init__(self, fw):
         self.fw = fw
+        self.fw.api_client.set_default_header('X-Accept-Feature', 'Subject-Container')
         self._supports_signed_url = None
         # Session for signed-url uploads
         self._upload_session = requests.Session()
@@ -74,34 +72,16 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
     def resolve_path(self, container_type, path):
         parts = path.split('/')
 
-        # Remove subject level
-        subject = None
-        if len(parts) > self.subject_level:
-            subject = parts[self.subject_level]
-            del parts[self.subject_level]
-
-        # Determine if subject exists
-        if subject and container_type == 'subject':
-            # Resolve project
-            result = self.fw.resolve(parts)
-            for child in result.children:
-                if 'subject' in child and child.subject.code == subject:
-                    # Return the project id
-                    return result.path[-1].id, None
-
-            return None, None
-
         try:
             result = self.fw.resolve(parts)
             container = result.path[-1]
+            log.debug('Resolve %s: %s - returned: %s', container_type, path, container.id)
             return container.id, container.get('uid')
         except flywheel.ApiException:
+            log.debug('Resolve %s: %s - NOT FOUND', container_type, path)
             return None, None
 
     def create_container(self, parent, container):
-        if container.container_type == 'subject':
-            return parent.id    
-
         # Create container
         create_fn = getattr(self.fw, 'add_{}'.format(container.container_type), None)
         if not create_fn:
@@ -110,10 +90,11 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
 
         if container.container_type == 'session':
             # Add subject to session
-            create_doc['project'] = parent.id
+            create_doc['project'] = parent.parent.id
             create_doc['subject'] = copy.deepcopy(container.context['subject'])
-            # Transpose subject label to code
-            create_doc['subject'].setdefault('code', create_doc['subject'].pop('label', None))
+            create_doc['subject']['_id'] = parent.id
+            # Copy subject label to code
+            create_doc['subject'].setdefault('code', create_doc['subject'].get('label', None))
         elif parent:
             create_doc[parent.container_type] = parent.id
 

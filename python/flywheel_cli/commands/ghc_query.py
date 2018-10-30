@@ -29,7 +29,7 @@ def ghc_query(args):
     print('Running query...')
     fw = SdkUploadWrapper(create_flywheel_client())
     try:
-        resp = fw.call_api('/ghc/query', 'POST', body=payload, response_type=object)
+        resp = fw.call_api('/gcp/hc/query', 'POST', body=payload, response_type=object)
     except ApiException as e:
         print('{} {}: {}'.format(e.status, e.reason, e.detail))
         sys.exit(1)

@@ -38,6 +38,7 @@ var DelegatedCommands = []CommandDesc{
 	{"import", "Import data into Flywheel"},
 	{"export", "Export data from Flywheel"},
 	{"ghc", "Query and import dicom files from GHC"},
+	{"data-view", "Data views"},
 }
 
 var PythonCliCommand = []string{"-m", "flywheel_cli.main"}

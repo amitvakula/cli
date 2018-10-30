@@ -6,6 +6,11 @@ from . import import_bids
 from . import ghc_config
 from . import ghc_query
 from . import ghc_import
+from . import views_run
+from . import views_columns
+from . import views_save
+from . import views_export
+from . import views_list
 
 from . import export_bids
 
@@ -94,6 +99,19 @@ def add_commands(parser):
     parsers['ghc config'] = ghc_config.add_command(ghc_subparsers)
     parsers['ghc query'] = ghc_query.add_command(ghc_subparsers)
     parsers['ghc import'] = ghc_import.add_command(ghc_subparsers)
+
+    # =====
+    # Data view related commands
+    # =====
+    parser_views = subparsers.add_parser('data-view', help='Data views')
+    views_subparsers = parser_views.add_subparsers(title='Available data view commands', metavar='')
+
+    parsers['data-view'] = parser_views
+    parsers['data-view columns'] = views_columns.add_command(views_subparsers)
+    parsers['data-view run'] = views_run.add_command(views_subparsers)
+    parsers['data-view save'] = views_save.add_command(views_subparsers)
+    parsers['data-view export'] = views_export.add_command(views_subparsers)
+    parsers['data-view list'] = views_list.add_command(views_subparsers)
 
     # =====
     # help commands

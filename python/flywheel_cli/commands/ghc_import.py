@@ -37,7 +37,7 @@ def ghc_import(args):
     elif args.query != 'last':
         payload['query_id'] = args.query
     elif 'last_query_id' in ghc_config:
-        payload['query_id'] = config['last_query_id']
+        payload['query_id'] = ghc_config['last_query_id']
     else:
         print('Last query id not found. Did you run `fw ghc query` first?')
         exit(1)
@@ -51,7 +51,7 @@ def ghc_import(args):
     print('Starting import...')
     fw = SdkUploadWrapper(create_flywheel_client())
     try:
-        resp = fw.call_api('/ghc/import', 'POST', body=payload, response_type=object)
+        resp = fw.call_api('/gcp/hc/import', 'POST', body=payload, response_type=object)
     except ApiException as e:
         print('{} {}: {}'.format(e.status, e.reason, e.detail))
         sys.exit(1)

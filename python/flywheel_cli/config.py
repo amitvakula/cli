@@ -138,7 +138,10 @@ class Config(object):
     @staticmethod
     def get_global_parser():
         parser = argparse.ArgumentParser(add_help=False)
-        parser.add_argument('--config-file', '-C', help='Specify configuration options via config file')
+        config_group = parser.add_mutually_exclusive_group()
+        config_group.add_argument('--config-file', '-C', help='Specify configuration options via config file')
+        config_group.add_argument('--no-config', action='store_true', help='Do NOT load the default configuration file')
+
         parser.add_argument('-y', '--yes', action='store_true', help='Assume the answer is yes to all prompts')
 
         log_group = parser.add_mutually_exclusive_group()
@@ -186,13 +189,17 @@ class Config(object):
         args, _ = config_parser.parse_known_args()
 
         defaults = {}
-        for path in [DEFAULT_CONFIG_PATH, args.config_file]:
-            if not path:
-                continue
 
-            path = os.path.expanduser(path)
-            if os.path.isfile(path):
-                Config.read_config_file(path, defaults)
+        if not args.no_config:
+            for path in [DEFAULT_CONFIG_PATH, args.config_file]:
+                if not path:
+                    continue
+
+                path = os.path.expanduser(path)
+                if os.path.isfile(path):
+                    if not args.quiet:
+                        print('Reading config options from: {}'.format(path))
+                    Config.read_config_file(path, defaults)
 
         return defaults
 

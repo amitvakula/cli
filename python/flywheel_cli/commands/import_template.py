@@ -2,12 +2,11 @@ import argparse
 import re
 import textwrap
 
-from ..config import Config
 from ..importers import parse_template_string, FolderImporter
 from ..util import set_nested_attr, split_key_value_argument, METADATA_ALIASES
 
-def add_command(subparsers):
-    parser = subparsers.add_parser('template', help='Import a folder, using a template',
+def add_command(subparsers, parents):
+    parser = subparsers.add_parser('template', parents=parents, help='Import a folder, using a template',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=textwrap.dedent("""\
             A template string can be used to extract metadata from custom folder trees.
@@ -25,8 +24,6 @@ def add_command(subparsers):
 
     parser.add_argument('--group', '-g', metavar='<id>', help='The id of the group, if not in folder structure')
     parser.add_argument('--project', '-p', metavar='<label>', help='The label of the project, if not in folder structure')
-
-    Config.add_deid_args(parser)
 
     parser.add_argument('--repack', action='store_true', help='Whether or not to validate, de-identify and repackage zipped packfiles')
 

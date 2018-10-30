@@ -11,8 +11,12 @@ from ..util import (
     str_to_python_id
 )
 
+from .dicom_scan import DicomScanner
+
 class ImportTemplateNode(ABC):
-    @abstractmethod
+    """The node type, either folder or scanner"""
+    node_type = 'folder'
+
     def extract_metadata(self, name, context, parent_fs=None):
         """Extract metadata from a folder-level node
         
@@ -25,6 +29,19 @@ class ImportTemplateNode(ABC):
             ImportTemplateNode: The next node in the tree if match succeeded, otherwise None
         """
         return None
+
+    def scan(self, src_fs, path_prefix, context, container_factory):
+        """Scan directory contents, rather than walking.
+
+        Called if this is a scanner node.
+
+        Arguments:
+            src_fs (fs): The filesystem to scan
+            path_prefix (str): The path prefix
+            context (dict): The current context object
+            container_factory: The container factory where nodes should be added
+        """
+        pass
 
 class TerminalNode(ImportTemplateNode):
     """Terminal node"""
@@ -106,7 +123,31 @@ class CompositeNode(ImportTemplateNode):
                 return next_node
         return None
 
-def parse_template_string(value):
+class DicomScannerNode(ImportTemplateNode):
+    node_type = 'scanner'
+
+    def __init__(self, config):
+        self.scanner = DicomScanner(config)
+
+    def set_next(self, next_node):
+        """Set the next node"""
+        raise ValueError('Cannot declare nodes after dicom scanner!')
+
+    def scan(self, src_fs, path_prefix, context, container_factory):
+        """Scan directory contents, rather than walking.
+
+        Called if this is a scanner node.
+
+        Arguments:
+            src_fs (fs): The filesystem to scan
+            path_prefix (str): The path prefix
+            context (dict): The current context object
+            container_factory: The container factory where nodes should be added
+        """
+        self.scanner.discover(src_fs, context, container_factory, path_prefix=path_prefix)
+
+
+def parse_template_string(value, config=None):
     """Parses a template string, creating an ImportTemplateNode tree.
 
     Arguments:
@@ -131,12 +172,19 @@ def parse_template_string(value):
 
         # Parse the options
         opts = _parse_optstr(optstr)
+        scan = opts.pop('scan', None)
 
         # Create the next node
         node = StringMatchNode(template=match, **opts)
         if root is None:
             root = last = node
         else:
+            last.set_next(node)
+            last = node
+
+        # Add dicom scanner node
+        if scan == 'dicom':
+            node = DicomScannerNode(config)
             last.set_next(node)
             last = node
 

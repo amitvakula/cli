@@ -1,6 +1,6 @@
 import re
 
-from ..importers import DicomScanner
+from ..importers import DicomScannerImporter
 
 def add_command(subparsers, parents):
     parser = subparsers.add_parser('dicom', parents=parents, help='Import a folder of dicom files')
@@ -18,7 +18,7 @@ def add_command(subparsers, parents):
 
 def import_dicoms(args):
     # Build the importer instance
-    importer = DicomScanner(group=args.group, project=args.project, config=args.config,
+    importer = DicomScannerImporter(group=args.group, project=args.project, config=args.config,
         subject_label=args.subject, session_label=args.session)
 
     # Perform the import

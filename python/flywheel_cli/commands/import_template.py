@@ -58,7 +58,7 @@ def import_folder_with_template(args):
 
     # Build the template string
     try:
-        importer.root_node = parse_template_string(args.template) 
+        importer.root_node = parse_template_string(args.template, args.config) 
     except (ValueError, re.error) as e:
         args.parser.error('Invalid template: {}'.format(e))
 

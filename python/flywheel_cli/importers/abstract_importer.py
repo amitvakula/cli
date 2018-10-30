@@ -11,7 +11,6 @@ log = logging.getLogger(__name__)
 
 from .. import util
 from .container_factory import ContainerFactory
-from .template import CompositeNode
 from .upload_queue import UploadQueue
 from .packfile import create_zip_packfile
 
@@ -30,7 +29,7 @@ class AbstractImporter(ABC):
             context (dict): The optional additional context fields
             config (Config): The config object
         """
-        self.container_factory = ContainerFactory(config.get_resolver())
+        self.container_factory = ContainerFactory(config.get_resolver(), uids=config.use_uids)
 
         self.group = group
         self.project = project

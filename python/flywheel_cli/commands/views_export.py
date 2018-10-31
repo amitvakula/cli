@@ -9,11 +9,16 @@ from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
 def add_command(subparsers):
     parser = subparsers.add_parser('export', help='Export flywheel data view to BigQuery')
-    group = parser.add_mutually_exclusive_group()
+    group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--json', help='Data view spec')
     group.add_argument('--id', help='Saved data view id')
 
-    parser.add_argument('-c', '--container', help='Container id to run against the data view')
+    group2 = parser.add_mutually_exclusive_group(required=True)
+    group2.add_argument('--container-id', help='Container id to run against the data view')
+    group2.add_argument('--container-path', nargs='+', help='Path to the container to run against the data view as '
+                                                            'a list separated by spaces (<project-id> <project-label> '
+                                                            '<subject-label> <session-label> <acquisition-label>)')
+
     parser.add_argument('-t', '--token', help='Google auth token')
     parser.add_argument('-p', '--project', help='Google project id')
     parser.add_argument('--async', action='store_true', help='Do not wait for export job to finish')
@@ -27,15 +32,21 @@ def add_command(subparsers):
 def export_view(args):
     print('Starting export...')
 
+    fw = SdkUploadWrapper(create_flywheel_client())
+
+    if args.container_id:
+        container_id = args.container_id
+    else:
+        resp = fw.fw.resolve_path({'path': args.container_path})
+        container_id = resp['path'][-1]['_id']
+
     payload = {
         'json': args.json,
-        'container_id': args.container,
+        'container_id': container_id,
         'token': args.token,
         'project': args.project,
         'view_id': args.id
     }
-
-    fw = SdkUploadWrapper(create_flywheel_client())
 
     try:
         resp = fw.call_api('/gcp/bq/export', 'POST', body=payload, response_type=object)

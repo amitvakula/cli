@@ -13,6 +13,7 @@ def add_command(subparsers):
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--json', help='Data view spec')
     group.add_argument('--id', help='Saved data view id')
+    group.add_argument('--columns', nargs='+', help='Columns list separated by space to add to the data view spec')
 
     group2 = parser.add_mutually_exclusive_group(required=True)
     group2.add_argument('--container-id', help='Container id to run against the data view')
@@ -40,10 +41,19 @@ def adhoc_view(args):
         resp = fw.resolve_path({'path': args.container_path})
         container_id = resp['path'][-1]['_id']
 
+    view_spec = None
+
     if args.json:
+        view_spec = json.loads(args.json)
+    elif args.columns:
+        view_spec = {'columns': []}
+        for col in args.columns:
+            view_spec['columns'].append({'src': col})
+
+    if view_spec:
         print('Executing adhoc view...')
         data = views_api.evaluate_view_adhoc(container_id,
-                                             body=json.loads(args.json),
+                                             body=view_spec,
                                              format=args.format,
                                              _preload_content=False,
                                              _return_http_data_only=True).content.decode('utf-8')

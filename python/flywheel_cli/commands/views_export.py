@@ -1,6 +1,6 @@
 import sys
 import time
-
+import json
 from flywheel.api import JobsApi
 from flywheel.rest import ApiException
 
@@ -12,6 +12,7 @@ def add_command(subparsers):
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--json', help='Data view spec')
     group.add_argument('--id', help='Saved data view id')
+    group.add_argument('--columns', nargs='+', help='Columns list separated by space to add to the data view spec')
 
     group2 = parser.add_mutually_exclusive_group(required=True)
     group2.add_argument('--container-id', help='Container id to run against the data view')
@@ -40,8 +41,19 @@ def export_view(args):
         resp = fw.fw.resolve_path({'path': args.container_path})
         container_id = resp['path'][-1]['_id']
 
+    view_spec_str = None
+
+    if args.json:
+        view_spec_str = args.json
+    elif args.columns:
+        view_spec = {'columns': []}
+        for col in args.columns:
+            view_spec['columns'].append({'src': col})
+
+        view_spec_str = json.dumps(view_spec)
+
     payload = {
-        'json': args.json,
+        'json': view_spec_str,
         'container_id': container_id,
         'token': args.token,
         'project': args.project,

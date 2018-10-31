@@ -89,6 +89,8 @@ def build_site_packages():
     print('Building package lists')
     builder = PEXBuilder()
     for dist in resolved:
+        if hasattr(dist, 'distribution'):
+            dist = dist.distribution
         builder.add_distribution(dist)
         builder.add_requirement(dist.as_requirement())
 

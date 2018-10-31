@@ -39,7 +39,7 @@ def adhoc_view(args):
         container_id = args.container_id
     else:
         resp = fw.resolve_path({'path': args.container_path})
-        container_id = resp['path'][-1]['_id']
+        container_id = resp['path'][-1].id
 
     view_spec = None
 

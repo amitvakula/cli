@@ -39,7 +39,7 @@ def export_view(args):
         container_id = args.container_id
     else:
         resp = fw.fw.resolve_path({'path': args.container_path})
-        container_id = resp['path'][-1]['_id']
+        container_id = resp['path'][-1].id
 
     view_spec_str = None
 
@@ -56,9 +56,11 @@ def export_view(args):
         'json': view_spec_str,
         'container_id': container_id,
         'token': args.token,
-        'project': args.project,
         'view_id': args.id
     }
+
+    if args.project:
+        payload['project'] = args.project
 
     try:
         resp = fw.call_api('/gcp/bq/export', 'POST', body=payload, response_type=object)

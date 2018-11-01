@@ -83,6 +83,9 @@ func DelegateCommandToPython(command *cobra.Command, args []string) {
 	}
 
 	// Passthrough all args beyond program
+	// NOTE: The args passed into this function are not always complete,
+	// especially in the case of help invocation. Hence the direct use of
+	// os.Args instead.
 	prog = append(prog, PythonCliCommand...)
 	prog = append(prog, os.Args[1:]...)
 

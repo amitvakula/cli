@@ -1,3 +1,4 @@
+import argparse
 import flywheel
 import logging
 import os
@@ -16,8 +17,8 @@ HEADER_FORMAT = '# {:<6}  {:<19}  {:<24}  {:<24}  {:<24}  {}'
 
 log = logging.getLogger(__name__)
 
-def add_command(subparsers):
-    parser = subparsers.add_parser('retry', help='Retry one or more jobs matching the given IDs or filters')
+def add_command(subparsers, parents):
+    parser = subparsers.add_parser('retry', parents=parents, help='Retry one or more jobs matching the given IDs or filters')
     parser.add_argument('--file', help='A file containing ids of jobs to retry, one per line')
 
     parser.add_argument('job_id', nargs='?', action='append', help='One or more job id to reschedule')
@@ -77,14 +78,20 @@ def find_and_retry_jobs(fw, args):
             origin = args.origin
         job_filter.append('origin.id="{}"'.format(origin))
 
+    if args.filter:
+        job_filter.append(args.filter)
+
+    if not job_filter:
+        args.parser.error('Please specify job id(s) or a filter!')
+
+    # Built-in filters
     if args.ignore_state:
         job_filter.append('state=~(failed|cancelled|complete)')
     else:
         job_filter.append('state=failed')
 
-    if args.filter:
-        job_filter.append(args.filter)
-    
+    job_filter.append('retried=null')
+
     job_filter = ','.join(job_filter)
     log.debug('Finding jobs to retry with filter: %s', job_filter)
 

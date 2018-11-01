@@ -96,8 +96,7 @@ def add_commands(parser):
 
     job_subparsers = parser_job.add_subparsers(title='Available job commands', metavar='')
 
-    parsers['job retry'] = retry_job.add_command(job_subparsers)
-    Config.add_logging_args(parsers['job retry'])
+    parsers['job retry'] = retry_job.add_command(job_subparsers, [global_parser])
 
     # Link help commands
     set_subparser_print_help(parser_job, job_subparsers)

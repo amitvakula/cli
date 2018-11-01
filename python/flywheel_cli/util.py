@@ -208,10 +208,11 @@ def args_to_list(items):
     result = []
     if items is not None:
         for item in items:
-            for val in item.split(','):
-                val = val.strip()
-                if val:
-                    result.append(val)
+            if item:
+                for val in item.split(','):
+                    val = val.strip()
+                    if val:
+                        result.append(val)
     return result
 
 def fs_files_equal(src_fs, path1, path2):

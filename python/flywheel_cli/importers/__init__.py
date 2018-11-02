@@ -7,6 +7,4 @@ from .upload_queue import UploadQueue, Uploader
 from .packfile import create_zip_packfile 
 from .template import *
 from .dicom_scan import DicomScanner, DicomScannerImporter
-
-
-
+from .parrec_scan import ParRecScanner, ParRecScannerImporter

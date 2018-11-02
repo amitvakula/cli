@@ -3,6 +3,7 @@ from . import import_template
 from . import import_bruker
 from . import import_dicom
 from . import import_bids
+from . import import_parrec
 
 from . import export_bids
 
@@ -65,6 +66,9 @@ def add_commands(parser):
 
     # import bruker
     parsers['import bruker'] = import_bruker.add_command(import_subparsers, [global_parser, import_parser])
+
+    # import parrec
+    parsers['import parrec'] = import_parrec.add_command(import_subparsers, [global_parser, import_parser])
 
     # import template
     parsers['import template'] = import_template.add_command(import_subparsers, [global_parser, import_parser, deid_parser])

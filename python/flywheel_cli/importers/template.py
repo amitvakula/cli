@@ -12,6 +12,12 @@ from ..util import (
 )
 
 from .dicom_scan import DicomScanner
+from .parrec_scan import ParRecScanner
+
+SCANNER_CLASSES = {
+    'dicom': DicomScanner,
+    'parrec': ParRecScanner
+}
 
 class ImportTemplateNode(ABC):
     """The node type, either folder or scanner"""
@@ -123,11 +129,11 @@ class CompositeNode(ImportTemplateNode):
                 return next_node
         return None
 
-class DicomScannerNode(ImportTemplateNode):
+class ScannerNode(ImportTemplateNode):
     node_type = 'scanner'
 
-    def __init__(self, config):
-        self.scanner = DicomScanner(config)
+    def __init__(self, config, scanner_cls):
+        self.scanner = scanner_cls(config)
 
     def set_next(self, next_node):
         """Set the next node"""
@@ -182,9 +188,12 @@ def parse_template_string(value, config=None):
             last.set_next(node)
             last = node
 
-        # Add dicom scanner node
-        if scan == 'dicom':
-            node = DicomScannerNode(config)
+        # Add scanner node
+        if scan:
+            scanner_cls = SCANNER_CLASSES.get(scan)
+            if not scanner_cls:
+                raise ValueError('Unknown scanner class: {}'.format(scan))
+            node = ScannerNode(config, scanner_cls)
             last.set_next(node)
             last = node
 

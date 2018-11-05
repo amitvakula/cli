@@ -10,11 +10,12 @@ def add_command(subparsers):
     group.add_argument('--json', help='Data view json spec')
     group.add_argument('--columns', nargs='+', help='Columns list separated by space to add to the data view spec')
 
+    parser.add_argument('--label', help='Label of the data view')
     parser.add_argument('--file-container', help='File spec container')
     parser.add_argument('--analysis-label', help='File spec analysis label')
     parser.add_argument('--file-pattern', help='File spec filter pattern')
 
-    parser.add_argument('--parent', help='Parent container id (group, project, user)')
+    parser.add_argument('--parent', help='Parent container id (group, project, user)', required=True)
 
     parser.set_defaults(func=save_view)
     parser.set_defaults(parser=parser)
@@ -42,6 +43,9 @@ def save_view(args):
             view_spec['fileSpec']['analysisFilter'] = {
                 'label': {'value': args.analysis_label}
             }
+
+    if args.label:
+        view_spec['label'] = args.label
 
     data = views_api.add_view(args.parent,
                               view_spec,

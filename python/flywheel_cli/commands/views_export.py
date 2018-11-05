@@ -54,8 +54,6 @@ def export_view(args):
         for col in args.columns:
             view_spec['columns'].append({'src': col})
 
-        view_spec = json.dumps(view_spec)
-
     if view_spec and args.file_container and args.file_pattern:
         view_spec['fileSpec'] = {}
         view_spec['fileSpec']['container'] = args.file_container

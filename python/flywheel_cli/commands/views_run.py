@@ -15,6 +15,10 @@ def add_command(subparsers):
     group.add_argument('--id', help='Saved data view id')
     group.add_argument('--columns', nargs='+', help='Columns list separated by space to add to the data view spec')
 
+    parser.add_argument('--file-container', help='File spec container')
+    parser.add_argument('--analysis-label', help='File spec analysis label')
+    parser.add_argument('--file-pattern', help='File spec filter pattern')
+
     group2 = parser.add_mutually_exclusive_group(required=True)
     group2.add_argument('--container-id', help='Container id to run against the data view')
     group2.add_argument('--container-path', nargs='+', help='Path to the container to run against the data view as '
@@ -51,6 +55,21 @@ def adhoc_view(args):
             view_spec['columns'].append({'src': col})
 
     if view_spec:
+        if args.file_container and args.file_pattern:
+            view_spec['fileSpec'] = {}
+            view_spec['fileSpec']['container'] = args.file_container
+            view_spec['fileSpec']['filter'] = {
+                'value': args.file_pattern
+            }
+            if args.analysis_label:
+                view_spec['fileSpec']['analysisFilter'] = {
+                    'label': {'value': args.analysis_label}
+                }
+
+        elif args.file_container or args.file_pattern:
+            print('ERROR: if --file-container is defined --file-pattern is also required')
+            exit(1)
+
         print('Executing adhoc view...')
         data = views_api.evaluate_view_adhoc(container_id,
                                              body=view_spec,

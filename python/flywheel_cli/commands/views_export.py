@@ -14,6 +14,10 @@ def add_command(subparsers):
     group.add_argument('--id', help='Saved data view id')
     group.add_argument('--columns', nargs='+', help='Columns list separated by space to add to the data view spec')
 
+    parser.add_argument('--file-container', help='File spec container')
+    parser.add_argument('--analysis-label', help='File spec analysis label')
+    parser.add_argument('--file-pattern', help='File spec filter pattern')
+
     group2 = parser.add_mutually_exclusive_group(required=True)
     group2.add_argument('--container-id', help='Container id to run against the data view')
     group2.add_argument('--container-path', nargs='+', help='Path to the container to run against the data view as '
@@ -41,19 +45,30 @@ def export_view(args):
         resp = fw.fw.resolve_path({'path': args.container_path})
         container_id = resp['path'][-1].id
 
-    view_spec_str = None
+    view_spec = None
 
     if args.json:
-        view_spec_str = args.json
+        view_spec = json.loads(args.json)
     elif args.columns:
         view_spec = {'columns': []}
         for col in args.columns:
             view_spec['columns'].append({'src': col})
 
-        view_spec_str = json.dumps(view_spec)
+        view_spec = json.dumps(view_spec)
+
+    if view_spec and args.file_container and args.file_pattern:
+        view_spec['fileSpec'] = {}
+        view_spec['fileSpec']['container'] = args.file_container
+        view_spec['fileSpec']['filter'] = {
+            'value': args.file_pattern
+        }
+        if args.analysis_label:
+            view_spec['fileSpec']['analysisFilter'] = {
+                'label': {'value': args.analysis_label}
+            }
 
     payload = {
-        'json': view_spec_str,
+        'json': json.dumps(view_spec) if view_spec else None,
         'container_id': container_id,
         'token': args.token,
         'view_id': args.id

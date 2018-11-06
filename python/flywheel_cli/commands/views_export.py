@@ -9,7 +9,7 @@ from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
 def add_command(subparsers):
     parser = subparsers.add_parser('export', help='Export flywheel data view to BigQuery')
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group()
     group.add_argument('--json', help='Data view spec')
     group.add_argument('--id', help='Saved data view id')
     group.add_argument('--columns', nargs='+', help='Columns list separated by space to add to the data view spec')
@@ -45,7 +45,7 @@ def export_view(args):
         resp = fw.fw.resolve_path({'path': args.container_path})
         container_id = resp['path'][-1].id
 
-    view_spec = None
+    view_spec = {}
 
     if args.json:
         view_spec = json.loads(args.json)
@@ -54,7 +54,7 @@ def export_view(args):
         for col in args.columns:
             view_spec['columns'].append({'src': col})
 
-    if view_spec and args.file_container and args.file_pattern:
+    if args.file_container and args.file_pattern:
         view_spec['fileSpec'] = {}
         view_spec['fileSpec']['container'] = args.file_container
         view_spec['fileSpec']['filter'] = {
@@ -83,6 +83,7 @@ def export_view(args):
 
     job_id = resp['_id']
     print('Job: ' + job_id)
+    print('Destination table: ' + resp['destination'])
 
     if not args.async:
         jobs_api = JobsApi(fw.fw.api_client)

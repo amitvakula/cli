@@ -10,7 +10,7 @@ from ..sdk_impl import create_flywheel_client
 def add_command(subparsers):
     parser = subparsers.add_parser('run', help='Execute and adhoc or a saved data view')
 
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group()
     group.add_argument('--json', help='Data view spec')
     group.add_argument('--id', help='Saved data view id')
     group.add_argument('--columns', nargs='+', help='Columns list separated by space to add to the data view spec')
@@ -45,7 +45,7 @@ def adhoc_view(args):
         resp = fw.resolve_path({'path': args.container_path})
         container_id = resp['path'][-1].id
 
-    view_spec = None
+    view_spec = {}
 
     if args.json:
         view_spec = json.loads(args.json)
@@ -54,22 +54,22 @@ def adhoc_view(args):
         for col in args.columns:
             view_spec['columns'].append({'src': col})
 
-    if view_spec:
-        if args.file_container and args.file_pattern:
-            view_spec['fileSpec'] = {}
-            view_spec['fileSpec']['container'] = args.file_container
-            view_spec['fileSpec']['filter'] = {
-                'value': args.file_pattern
+    if args.file_container and args.file_pattern:
+        view_spec['fileSpec'] = {}
+        view_spec['fileSpec']['container'] = args.file_container
+        view_spec['fileSpec']['filter'] = {
+            'value': args.file_pattern
+        }
+        if args.analysis_label:
+            view_spec['fileSpec']['analysisFilter'] = {
+                'label': {'value': args.analysis_label}
             }
-            if args.analysis_label:
-                view_spec['fileSpec']['analysisFilter'] = {
-                    'label': {'value': args.analysis_label}
-                }
 
-        elif args.file_container or args.file_pattern:
-            print('ERROR: if --file-container is defined --file-pattern is also required')
-            exit(1)
+    elif args.file_container or args.file_pattern:
+        print('ERROR: if --file-container is defined --file-pattern is also required')
+        exit(1)
 
+    if view_spec:
         print('Executing adhoc view...')
         data = views_api.evaluate_view_adhoc(container_id,
                                              body=view_spec,

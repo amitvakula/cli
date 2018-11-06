@@ -6,11 +6,11 @@ from ..sdk_impl import create_flywheel_client
 
 def add_command(subparsers):
     parser = subparsers.add_parser('save', help='Save a data view specification in Flywheel')
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group()
     group.add_argument('--json', help='Data view json spec')
     group.add_argument('--columns', nargs='+', help='Columns list separated by space to add to the data view spec')
 
-    parser.add_argument('--label', help='Label of the data view')
+    parser.add_argument('--label', help='Label of the data view', required=True)
     parser.add_argument('--file-container', help='File spec container')
     parser.add_argument('--analysis-label', help='File spec analysis label')
     parser.add_argument('--file-pattern', help='File spec filter pattern')
@@ -26,9 +26,11 @@ def add_command(subparsers):
 def save_view(args):
     views_api = ViewsApi(create_flywheel_client().api_client)
 
+    view_spec = {}
+
     if args.json:
         view_spec = json.loads(args.json)
-    else:
+    elif args.columns:
         view_spec = {'columns': []}
         for col in args.columns:
             view_spec['columns'].append({'src': col})

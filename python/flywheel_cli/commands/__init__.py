@@ -3,7 +3,7 @@ from . import import_template
 from . import import_bruker
 from . import import_dicom
 from . import import_bids
-from . import ghc_config
+from . import gcp_config
 from . import ghc_query
 from . import ghc_import
 from . import views_run
@@ -90,13 +90,19 @@ def add_commands(parser):
     set_subparser_print_help(parser_export, export_subparsers)
 
     # =====
+    # Google Cloud Platform related commands
+    # =====
+    parser_gcp = subparsers.add_parser('gcp', help='Google Cloud platform releated commands, set default configs etc.')
+    gcp_subparsers = parser_gcp.add_subparsers(title='Available gcp commands', metavar='')
+    parsers['gcp config'] = gcp_config.add_command(gcp_subparsers)
+
+    # =====
     # Google Healthcare API related commands
     # =====
     parser_ghc = subparsers.add_parser('ghc', help='Query and import dicom files from GHC')
     ghc_subparsers = parser_ghc.add_subparsers(title='Available ghc commands', metavar='')
 
     parsers['ghc'] = parser_ghc
-    parsers['ghc config'] = ghc_config.add_command(ghc_subparsers)
     parsers['ghc query'] = ghc_query.add_command(ghc_subparsers)
     parsers['ghc import'] = ghc_import.add_command(ghc_subparsers)
 

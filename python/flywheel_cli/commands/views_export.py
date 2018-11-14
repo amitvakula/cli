@@ -3,6 +3,7 @@ import time
 import json
 from flywheel.api import JobsApi
 from flywheel.rest import ApiException
+from ..config import GCPConfig
 
 from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
@@ -24,8 +25,6 @@ def add_command(subparsers):
                                                             'a list separated by spaces (<project-id> <project-label> '
                                                             '<subject-label> <session-label> <acquisition-label>)')
 
-    parser.add_argument('-t', '--token', help='Google auth token')
-    parser.add_argument('-p', '--project', help='Google project id')
     parser.add_argument('--async', action='store_true', help='Do not wait for export job to finish')
 
     parser.set_defaults(func=export_view)
@@ -65,15 +64,15 @@ def export_view(args):
                 'label': {'value': args.analysis_label}
             }
 
-    payload = {
-        'json': json.dumps(view_spec) if view_spec else None,
-        'container_id': container_id,
-        'token': args.token,
-        'view_id': args.id
-    }
+    ghc_config = GCPConfig()
+    core_keys = ('project', 'token')
+    payload = {key: ghc_config['core'][key] for key in core_keys if ghc_config.get('core', {}).get(key)}
 
-    if args.project:
-        payload['project'] = args.project
+    payload.update({
+            'json': json.dumps(view_spec) if view_spec else None,
+            'container_id': container_id,
+            'view_id': args.id
+    })
 
     try:
         resp = fw.call_api('/gcp/bq/export', 'POST', body=payload, response_type=object)

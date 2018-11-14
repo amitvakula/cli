@@ -101,12 +101,13 @@ class Config(object):
         parser.add_argument('--output-folder', help='Output to the given folder instead of uploading to flywheel')
 
 
-class GHCConfig(dict):
-    CONFIG_PATH = '~/.config/flywheel/ghc.json'
+class GCPConfig(dict):
+    CONFIG_PATH = '~/.config/flywheel/gcp.json'
 
     def __init__(self):
-        super(GHCConfig, self).__init__()
+        super(GCPConfig, self).__init__()
         self.path = os.path.expanduser(self.CONFIG_PATH)
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
         self.load()
 
     def load(self):
@@ -119,3 +120,9 @@ class GHCConfig(dict):
     def save(self):
         with open(self.path, 'w') as f:
             json.dump(self, f)
+
+    def update_section(self, section, payload):
+        if not self.get(section):
+            self[section] = {}
+
+        self[section].update(payload)

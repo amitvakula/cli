@@ -2,7 +2,7 @@ import sys
 
 from flywheel.rest import ApiException
 from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
-from ..config import GHCConfig
+from ..config import GCPConfig
 
 
 def add_command(subparsers):
@@ -17,12 +17,17 @@ def add_command(subparsers):
 
 
 def ghc_query(args):
-    ghc_config = GHCConfig()
-    keys = ('project', 'token', 'dataset', 'dicomstore')
-    payload = {key: ghc_config[key] for key in keys if ghc_config.get(key)}
-    if 'dicomstore' in payload:
-        # use same bq datastore/table as hc dataset/dicomstore
-        payload['table'] = payload.pop('dicomstore')
+    ghc_config = GCPConfig()
+
+    core_keys = ('project', 'token')
+    bq_keys = ('dataset', 'table')
+
+    payload = {key: ghc_config['core'][key] for key in core_keys if ghc_config.get('core', {}).get(key)}
+    for key in bq_keys:
+        if ghc_config.get('bigquery', {}).get(key):
+            payload[key] = ghc_config['bigquery'][key]
+
+
     if args.where:
         payload['where'] = ' '.join(args.where)
 
@@ -34,7 +39,7 @@ def ghc_query(args):
         print('{} {}: {}'.format(e.status, e.reason, e.detail))
         sys.exit(1)
     print_results(resp, studies_only=args.study)
-    ghc_config['last_query_id'] = resp['query_id']
+    ghc_config.update_section('bigquery', {'last_query_id': resp['query_id']})
     ghc_config.save()
 
 

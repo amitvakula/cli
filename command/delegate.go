@@ -38,6 +38,7 @@ var DelegatedCommands = []CommandDesc{
 	{"import", "Import data into Flywheel"},
 	{"export", "Export data from Flywheel"},
 	{"ghc", "Query and import dicom files from GHC"},
+	{"gcp", "Google Cloud platform releated commands, set default configs etc."},
 	{"data-view", "Data views"},
 }
 

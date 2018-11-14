@@ -3,7 +3,7 @@ import time
 
 from flywheel.api import JobsApi
 from flywheel.rest import ApiException
-from ..config import GHCConfig
+from ..config import GCPConfig
 from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
 
@@ -27,17 +27,23 @@ def add_command(subparsers):
 
 
 def ghc_import(args):
-    ghc_config = GHCConfig()
-    keys = ('project', 'token', 'location', 'dataset', 'dicomstore')
-    payload = {key: ghc_config[key] for key in keys if ghc_config.get(key)}
+    ghc_config = GCPConfig()
+    core_keys = ('project', 'token')
+    hc_keys = ('location', 'dataset', 'dicomstore')
+
+    payload = {key: ghc_config['core'][key] for key in core_keys if ghc_config.get('core', {}).get(key)}
+    for key in hc_keys:
+        if ghc_config.get('healthcare', {}).get(key):
+            payload[key] = ghc_config['healthcare'][key]
+
     if args.study:
         payload['study'] = True
     if args.uids:
         payload['uids'] = args.uids.split(',')
     elif args.query != 'last':
         payload['query_id'] = args.query
-    elif 'last_query_id' in ghc_config:
-        payload['query_id'] = ghc_config['last_query_id']
+    elif 'last_query_id' in ghc_config.get('bigquery', {}):
+        payload['query_id'] = ghc_config['bigquery']['last_query_id']
     else:
         print('Last query id not found. Did you run `fw ghc query` first?')
         exit(1)

@@ -4,6 +4,7 @@ from . import import_bruker
 from . import import_dicom
 from . import import_bids
 from . import gcp_config
+from . import gcp_login
 from . import ghc_query
 from . import ghc_import
 from . import views_run
@@ -95,6 +96,7 @@ def add_commands(parser):
     parser_gcp = subparsers.add_parser('gcp', help='Google Cloud platform releated commands, set default configs etc.')
     gcp_subparsers = parser_gcp.add_subparsers(title='Available gcp commands', metavar='')
     parsers['gcp config'] = gcp_config.add_command(gcp_subparsers)
+    parsers['gcp login'] = gcp_login.add_command(gcp_subparsers)
 
     # =====
     # Google Healthcare API related commands

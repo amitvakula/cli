@@ -16,6 +16,16 @@ func Check(err error) {
 	}
 }
 
+func CheckM(err error, msg string) {
+	if err != nil {
+		Fprintln(os.Stderr, "")
+		Fprintln(os.Stderr, err)
+		Fprintln(os.Stderr, "")
+		Fprintln(os.Stderr, msg)
+		os.Exit(1)
+	}
+}
+
 func Format(x interface{}) string {
 	y, err := json.MarshalIndent(x, "", "\t")
 	if err != nil {

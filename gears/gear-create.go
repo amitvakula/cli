@@ -22,7 +22,7 @@ import (
 func GearCreate(client *api.Client, docker *client.Client, clearCustomList bool, name, author, image string) {
 
 	user, _, err := client.GetCurrentUser()
-	Check(err)
+	CheckM(err, ApiFailedMsg)
 
 	Println("Welcome to gear creation! Let's get started.")
 	Println()
@@ -34,7 +34,7 @@ func GearCreate(client *api.Client, docker *client.Client, clearCustomList bool,
 
 	// Trigger acquisition of image, if needed
 	containerId, cleanup, err := CreateContainerWithCleanup(docker, background, &container.Config{Image: image}, nil, "")
-	Check(err)
+	CheckM(err, CreateContainerFailedMsg)
 	defer cleanup()
 
 	var reader io.ReadCloser
@@ -53,12 +53,12 @@ func GearCreate(client *api.Client, docker *client.Client, clearCustomList bool,
 		Println("Providing an example gear script to get you started...")
 
 		containerId, cleanup, createErr := CreateContainerWithCleanup(docker, background, &container.Config{Image: "flywheel/base-gear-ubuntu"}, nil, "")
-		Check(createErr)
+		CheckM(createErr, CopyFromContainerFailedMsg)
 		defer cleanup()
 
 		reader, stat, err = docker.CopyFromContainer(background, containerId, gearPath)
 	}
-	Check(err)
+	CheckM(err, CopyFromContainerFailedMsg)
 
 	if !stat.Mode.IsDir() {
 		Println("Error: container path", gearPath, "is not a folder!")
@@ -66,7 +66,7 @@ func GearCreate(client *api.Client, docker *client.Client, clearCustomList bool,
 	}
 
 	err = UntarGearFolder(reader)
-	Check(err)
+	CheckM(err, UntarFailedMsg)
 
 	gear := ManifestOrDefaultGear()
 
@@ -91,9 +91,9 @@ func GearCreate(client *api.Client, docker *client.Client, clearCustomList bool,
 	}
 
 	raw, err := json.MarshalIndent(gear, "", "\t")
-	Check(err)
+	CheckM(err, JsonFailedMsg)
 	err = ioutil.WriteFile("manifest.json", raw, 0644)
-	Check(err)
+	CheckM(err, WriteFailedMsg)
 
 	Println()
 	Println()

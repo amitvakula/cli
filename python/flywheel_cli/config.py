@@ -103,6 +103,20 @@ class Config(object):
 
 class GCPConfig(dict):
     CONFIG_PATH = '~/.config/flywheel/gcp.json'
+    AVAILABLE_PROPERTIES = {
+        'core': {
+            'project': 'Google project id'
+        },
+        'healthcare': {
+            'location': 'Healthcare API location (region)',
+            'dataset': 'Healthcare API dataset',
+            'dicomstore': 'Healthcare API dicom store'
+        },
+        'bigquery': {
+            'dataset': 'BigQuery dataset',
+            'table': 'BigQuery table'
+        }
+    }
 
     def __init__(self):
         super(GCPConfig, self).__init__()

@@ -9,7 +9,7 @@ from ..sdk_impl import create_flywheel_client, SdkUploadWrapper
 
 
 def add_command(subparsers):
-    parser = subparsers.add_parser('export', help='Export flywheel data view to BigQuery')
+    parser = subparsers.add_parser('bq', help='Export flywheel data view to BigQuery')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--json', help='Data view spec')
     group.add_argument('--id', help='Saved data view id')
@@ -65,7 +65,7 @@ def export_view(args):
             }
 
     ghc_config = GCPConfig()
-    core_keys = ('project', 'token')
+    core_keys = ('project',)
     payload = {key: ghc_config['core'][key] for key in core_keys if ghc_config.get('core', {}).get(key)}
 
     payload.update({

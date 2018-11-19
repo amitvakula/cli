@@ -6,12 +6,17 @@ from ..config import GCPConfig
 
 
 def add_command(subparsers):
-    parser = subparsers.add_parser('query', help='Query dicom files using BigQuery')
-    parser.add_argument('where', metavar='COND', nargs='*', help='Filter conditions (SQL WHERE clause')
-    parser.add_argument('--study', action='store_true', help='Only show studies')
+    parser = subparsers.add_parser('bq', help='BigQuery related commands')
 
-    parser.set_defaults(func=ghc_query)
-    parser.set_defaults(parser=parser)
+    _subparsers = parser.add_subparsers(title='Available BigQuery commands', metavar='')
+
+    query_parser = _subparsers.add_parser('query', help='Run a BigQuery query')
+
+    query_parser.add_argument('where', metavar='COND', nargs='*', help='Filter conditions (SQL WHERE clause)')
+    query_parser.add_argument('--study', action='store_true', help='Only show studies')
+
+    query_parser.set_defaults(func=ghc_query)
+    query_parser.set_defaults(parser=query_parser)
 
     return parser
 
@@ -19,14 +24,13 @@ def add_command(subparsers):
 def ghc_query(args):
     ghc_config = GCPConfig()
 
-    core_keys = ('project', 'token')
+    core_keys = ('project',)
     bq_keys = ('dataset', 'table')
 
     payload = {key: ghc_config['core'][key] for key in core_keys if ghc_config.get('core', {}).get(key)}
     for key in bq_keys:
         if ghc_config.get('bigquery', {}).get(key):
             payload[key] = ghc_config['bigquery'][key]
-
 
     if args.where:
         payload['where'] = ' '.join(args.where)

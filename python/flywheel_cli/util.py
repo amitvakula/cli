@@ -256,3 +256,23 @@ def sanitize_string_to_filename(value):
     """
     keepcharacters = (' ', '.', '_', '-')
     return "".join([c for c in value if c.isalnum() or c in keepcharacters]).rstrip()
+
+
+def set_subparser_print_help(parser, subparsers):
+    def print_help(args):
+        parser.print_help()
+    parser.set_defaults(func=print_help)
+
+    help_parser = subparsers.add_parser('help', help='Print this help message and exit')
+    help_parser.set_defaults(func=print_help)
+
+
+def print_help(default_parser, parsers):
+    def print_help_fn(args):
+        subcommands = ' '.join(args.subcommands)
+        if subcommands in parsers:
+            parsers[subcommands].print_help()
+        else:
+            default_parser.print_help()
+
+    return print_help_fn

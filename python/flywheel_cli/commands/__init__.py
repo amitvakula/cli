@@ -3,37 +3,21 @@ from . import import_template
 from . import import_bruker
 from . import import_dicom
 from . import import_bids
+from . import import_heathcare
 from . import gcp_config
-from . import gcp_login
-from . import ghc_query
-from . import ghc_import
+from . import gcp_auth
+from . import gcp_bq
 from . import views_run
 from . import views_columns
 from . import views_save
-from . import views_export
 from . import views_list
 
 from . import export_bids
+from . import export_bigquery
 
 from ..config import Config
+from ..util import set_subparser_print_help, print_help
 
-def set_subparser_print_help(parser, subparsers):
-    def print_help(args):
-        parser.print_help()
-    parser.set_defaults(func=print_help)
-
-    help_parser = subparsers.add_parser('help', help='Print this help message and exit')
-    help_parser.set_defaults(func=print_help)
-
-def print_help(default_parser, parsers):
-    def print_help_fn(args):
-        subcommands = ' '.join(args.subcommands)
-        if subcommands in parsers:
-            parsers[subcommands].print_help()
-        else:
-            default_parser.print_help()
-
-    return print_help_fn
 
 def get_config(args):
     args.config = Config(args)
@@ -74,6 +58,9 @@ def add_commands(parser):
     parsers['import template'] = import_template.add_command(import_subparsers)
     Config.add_config_args(parsers['import template'])
 
+    # import from Google Heathcare
+    parsers['import hc'] = import_heathcare.add_command(import_subparsers)
+
     # Link help commands
     set_subparser_print_help(parser_import, import_subparsers)
 
@@ -87,6 +74,9 @@ def add_commands(parser):
 
     parsers['export bids'] = export_bids.add_command(export_subparsers)
 
+    # export Flywheel data-view to BigQuery
+    parsers['export bq'] = export_bigquery.add_command(export_subparsers)
+
     # Link help commands
     set_subparser_print_help(parser_export, export_subparsers)
 
@@ -95,18 +85,14 @@ def add_commands(parser):
     # =====
     parser_gcp = subparsers.add_parser('gcp', help='Google Cloud platform releated commands, set default configs etc.')
     gcp_subparsers = parser_gcp.add_subparsers(title='Available gcp commands', metavar='')
-    parsers['gcp config'] = gcp_config.add_command(gcp_subparsers)
-    parsers['gcp login'] = gcp_login.add_command(gcp_subparsers)
 
-    # =====
-    # Google Healthcare API related commands
-    # =====
-    parser_ghc = subparsers.add_parser('ghc', help='Query and import dicom files from GHC')
-    ghc_subparsers = parser_ghc.add_subparsers(title='Available ghc commands', metavar='')
+    parsers['gcp'] = parser_gcp
+    parsers['gcp config'] = gcp_config.add_commands(gcp_subparsers)
+    parsers['gcp auth'] = gcp_auth.add_commands(gcp_subparsers)
+    parsers['gcp bq'] = gcp_bq.add_command(gcp_subparsers)
 
-    parsers['ghc'] = parser_ghc
-    parsers['ghc query'] = ghc_query.add_command(ghc_subparsers)
-    parsers['ghc import'] = ghc_import.add_command(ghc_subparsers)
+    # Link help commands
+    set_subparser_print_help(parser_gcp, gcp_subparsers)
 
     # =====
     # Data view related commands
@@ -118,8 +104,10 @@ def add_commands(parser):
     parsers['data-view columns'] = views_columns.add_command(views_subparsers)
     parsers['data-view run'] = views_run.add_command(views_subparsers)
     parsers['data-view save'] = views_save.add_command(views_subparsers)
-    parsers['data-view export'] = views_export.add_command(views_subparsers)
     parsers['data-view list'] = views_list.add_command(views_subparsers)
+
+    # Link help commands
+    set_subparser_print_help(parser_views, views_subparsers)
 
     # =====
     # help commands

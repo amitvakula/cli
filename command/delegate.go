@@ -49,6 +49,7 @@ func AddDelegateCommand(parent *cobra.Command, command, description string) {
 		Run:   DelegateCommandToPython,
 	}
 	cmd.SetHelpFunc(DelegateCommandToPython)
+	cmd.DisableFlagParsing = true
 
 	parent.AddCommand(cmd)
 }

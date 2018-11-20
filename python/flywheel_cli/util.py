@@ -106,6 +106,7 @@ def open_fs(path):
         # as a subdirectory
         drive, root_path = os.path.splitdrive(path[7:])
         root_fs = OSFS(drive or '/')
+        root_path = os.path.abspath(root_path)
         return root_fs.opendir(root_path)
     return fs.open_fs(path)
 

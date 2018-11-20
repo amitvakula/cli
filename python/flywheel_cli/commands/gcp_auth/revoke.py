@@ -6,8 +6,8 @@ from ...sdk_impl import create_flywheel_client, SdkUploadWrapper
 
 
 def add_command(subparsers):
-    parser = subparsers.add_parser('revoke', help='Revoke access token. Note: if you revoke an access token while'
-                                                  'import/export jobs are running then possibly they will get wrong'
+    parser = subparsers.add_parser('revoke', help='Revoke access token. Note: if you revoke an access token while '
+                                                  'import/export jobs are running then possibly they will get wrong '
                                                   'credentials.')
 
     parser.set_defaults(func=revoke)

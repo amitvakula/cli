@@ -82,7 +82,6 @@ def export_view(args):
 
     job_id = resp['_id']
     print('Job: ' + job_id)
-    print('Destination table: ' + resp['destination'])
 
     if not args.async:
         jobs_api = JobsApi(fw.fw.api_client)
@@ -98,3 +97,5 @@ def export_view(args):
             if job.state in ['failed', 'complete']:
                 print('Job ' + job.state)
                 break
+
+    print('Data-view exported to: ' + resp['destination'])

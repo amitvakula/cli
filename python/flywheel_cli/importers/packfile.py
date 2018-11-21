@@ -34,7 +34,9 @@ def create_zip_packfile(dst_file, src_fs, packfile_type=None, symlinks=False, pa
         compression = zipfile.ZIP_DEFLATED
 
     with ZipFS(dst_file, write=True, compression=compression) as dst_fs:
-        create_packfile(src_fs, dst_fs, packfile_type, symlinks=symlinks, paths=paths, progress_callback=progress_callback, deid_profile=deid_profile)
+        zip_member_count = create_packfile(src_fs, dst_fs, packfile_type, symlinks=symlinks, paths=paths, progress_callback=progress_callback, deid_profile=deid_profile)
+
+    return zip_member_count
 
 def create_packfile(src_fs, dst_fs, packfile_type, symlinks=False, paths=None, progress_callback=None, deid_profile=None):
     """Create a packfile by copying files from src_fs to dst_fs, possibly validating and/or de-identifying
@@ -65,7 +67,7 @@ def create_packfile(src_fs, dst_fs, packfile_type, symlinks=False, paths=None, p
     handled = False
     if deid_profile:
         if deid_profile.process_packfile(packfile_type, src_fs, dst_fs, paths, callback=progress_fn):
-            return  # Handled by de-id
+            return  len(paths) # Handled by de-id
 
     # Otherwise, just copy files into place
     for path in paths:
@@ -76,3 +78,4 @@ def create_packfile(src_fs, dst_fs, packfile_type, symlinks=False, paths=None, p
         fs.copy.copy_file(src_fs, path, dst_fs, path)
         if callable(progress_fn):
             progress_fn(dst_fs, path)
+    return len(paths)

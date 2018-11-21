@@ -101,8 +101,8 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
         new_id = create_fn(create_doc)
         log.debug('Created container: %s as %s', create_doc, new_id)
         return new_id
-    
-    def upload(self, container, name, fileobj):
+
+    def upload(self, container, name, fileobj, metadata=None):
         upload_fn = getattr(self.fw, 'upload_file_to_{}'.format(container.container_type), None)
 
         if not upload_fn:
@@ -111,18 +111,18 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
 
         log.debug('Uploading file %s to %s=%s', name, container.container_type, container.id)
         if self.supports_signed_url():
-            self.signed_url_upload(container, name, fileobj)
+            self.signed_url_upload(container, name, fileobj, metadata=metadata)
         else:
-            upload_fn(container.id, flywheel.FileSpec(name, fileobj))
+            upload_fn(container.id, flywheel.FileSpec(name, fileobj), metadata=json.dumps(metadata))
 
-    def signed_url_upload(self, container, name, fileobj):
+    def signed_url_upload(self, container, name, fileobj, metadata=None):
         """Upload fileobj to container as name, using signed-urls"""
         # Create ticketed upload
         path_params = {
             'ContainerType': pluralize(container.container_type),
             'ContainerId': container.id
         }
-        ticket, upload_url = self.create_upload_ticket(path_params, name)
+        ticket, upload_url = self.create_upload_ticket(path_params, name, metadata=metadata)
 
         log.debug('Upload url for %s on %s=%s: %s (ticket=%s)', name,
             container.container_type, container.id, ticket, upload_url)
@@ -135,14 +135,14 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
         # Complete the upload
         self.complete_upload_ticket(path_params, ticket)
 
-    def create_upload_ticket(self, path_params, name):
+    def create_upload_ticket(self, path_params, name, metadata=None):
         body = {
-            'metadata': {},
+            'metadata': metadata or {},
             'filenames': [ name ]
         }
 
         response = self.call_api(TICKETED_UPLOAD_PATH, 'POST',
-            path_params=path_params, 
+            path_params=path_params,
             query_params=[('ticket', '')],
             body=body,
             response_type=object

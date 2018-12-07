@@ -1,9 +1,13 @@
 package command
 
 import (
+	"strconv"
+
 	"github.com/spf13/cobra"
 
 	"flywheel.io/fw/gears"
+	. "flywheel.io/fw/util"
+	"flywheel.io/sdk/api"
 )
 
 func (o *opts) gear() *cobra.Command {
@@ -16,53 +20,44 @@ func (o *opts) gear() *cobra.Command {
 	cmd.AddCommand(o.gearRun())
 	cmd.AddCommand(o.gearModify())
 	cmd.AddCommand(o.gearUpload())
+	cmd.AddCommand(o.gearDocs())
 
 	return cmd
 }
 
 func (o *opts) gearCreate() *cobra.Command {
-	var clearCustomList bool = false
-	var name, author, image string
 	cmd := &cobra.Command{
 		Use:    "create",
 		Short:  "Create a new gear in the current folder",
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {
-			gears.GearCreate(o.Client, gears.DockerOrBust(), clearCustomList, name, author, image)
+			gears.GearCreate(o.Client, gears.DockerOrBust())
 		},
 	}
-	cmd.Flags().BoolVar(&clearCustomList, "clear-custom-containers", false, "Clear the custom container list")
-	cmd.Flags().StringVarP(&name, "name", "n", "", "Gear name")
-	cmd.Flags().StringVar(&author, "author", "", "Gear author, defaults to the current user")
-	cmd.Flags().StringVarP(&image, "image", "i", "", "Docker image to start from")
-
 	return cmd
 }
 
 func (o *opts) gearRun() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "run",
-		Short: "Run your gear from the current folder",
-		Args:  cobra.ArbitraryArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			gears.GearRun(o.Client, gears.DockerOrBust(), args)
-		},
-	}
 
-	// This is a silly hack to allow a passthrough -h to the dynamically generated command.
-	// Replacements welcome. Dupe with batch run and etc commands.
-	defaultHelpFunc := cmd.HelpFunc()
-	cmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
-		if len(args) < 2 || args[1] == "-h" || args[1] == "--help" {
-			defaultHelpFunc(cmd, args)
-		} else {
-			gears.GearRun(o.Client, gears.DockerOrBust(), []string{args[1], "-h"})
+	// Use parsed manifest invocation values
+	innerCmd := func(cmd *cobra.Command, args []string, gear *api.Gear, config map[string]interface{}, files map[string]string, apiKeyInputs []string) {
+		if gear == nil {
+			Fatal(gears.ManifestRequired)
 		}
 
-	})
-	cmd.Flags().SetInterspersed(false)
-	//
+		gears.GearRun(o.Client, gears.DockerOrBust(), o.Credentials.Key, gear, config, files, apiKeyInputs)
+	}
 
+	// Dynamically generated command to load the invocation
+	cmd := gears.GenerateCommand(
+		"local",
+		"Run your gear from the current folder",
+		gears.TryToLoadCWDManifest,
+		innerCmd,
+	)
+
+	// Require API key in the event of an API key input type
+	cmd.PreRun = o.RequireClient
 	return cmd
 }
 
@@ -82,24 +77,44 @@ func (o *opts) gearModify() *cobra.Command {
 }
 
 func (o *opts) gearUpload() *cobra.Command {
-	var category string
-	var file string
-	var project string
-
 	cmd := &cobra.Command{
 		Use:    "upload",
 		Short:  "Upload your local gear to Flywheel",
+		Args:   cobra.ExactArgs(0),
 		PreRun: o.RequireClient,
 		Run: func(cmd *cobra.Command, args []string) {
-			gears.GearUpload(o.Client, gears.DockerOrBust(), category, file, project)
+
+			host, port, _, _ := api.ParseApiKey(o.Credentials.Key)
+
+			domain := host
+			if port != 443 {
+				domain += ":" + strconv.Itoa(port)
+			}
+
+			gear := gears.RequireCWDManifest()
+
+			gears.GearUpload(o.Client, gears.DockerOrBust(), o.Credentials.Key, domain, gear)
 		},
 	}
-	cmd.Flags().StringVarP(&category, "category", "c", "converter", "Gear category: converter or analysis")
-	cmd.Flags().StringVarP(&file, "file", "f", "", "Write the result to a gzipped tarball instead of flywheel (-- for stdout)")
 
-	// This feature was canceled:
-	// https://github.com/flywheel-io/core/pull/1213
-	// cmd.Flags().StringVarP(&project, "project", "p", "", "Limit visibility of the gear to a specific project")
+	return cmd
+}
+
+func (o *opts) gearDocs() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "docs",
+		Short: "Show some links to gear building documentation",
+		Args:  cobra.ExactArgs(0),
+		Long: `
+Feeling lost? Try starting with ` + "`fw gear create`" + ` first.
+
+Or, try our story-based documentation online:
+https://docs.flywheel.io/display/EM/Building+Gears
+
+For a technical review of the manifest, check out:
+https://github.com/flywheel-io/gears/tree/master/spec
+`,
+	}
 
 	return cmd
 }

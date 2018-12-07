@@ -2,7 +2,7 @@ package gears
 
 import (
 	"encoding/json"
-	. "fmt"
+	// . "fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -46,11 +46,7 @@ func GearModify(docker *client.Client, quiet bool) {
 	Check(err)
 
 	// Dupe from gear-run; map-struct deserialize and state-map could be of use here
-	gear := TryToLoadManifest()
-	if gear == nil {
-		Println("No gear found! Try `fw gear create` first.")
-		os.Exit(1)
-	}
+	gear := RequireCWDManifest()
 	if gear.Custom == nil || gear.Custom["gear-builder"] == nil || gear.Custom["gear-builder"].(map[string]interface{})["image"] == nil {
 		Println("The gear manifest in this folder does not have the gear-builder information it needs.")
 		Println("Try `fw gear create` first.")
@@ -155,9 +151,9 @@ func GearModify(docker *client.Client, quiet bool) {
 	err = cmd.Wait()
 	Check(err)
 
-	Fprintln(os.Stderr)
+	Println()
 	proceed := prompt.Confirm("Would you like to save your gear changes? (yes/no)")
-	Fprintln(os.Stderr)
+	Println()
 	if !proceed {
 		os.Exit(0)
 	}

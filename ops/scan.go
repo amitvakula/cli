@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	. "fmt"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -117,7 +117,7 @@ func (r *scanRoot) discover(folder string) {
 
 			r.Children = append(r.Children, group)
 		} else {
-			Fprintln(&reportBottom, "File", name, "ignored as attachments to root are not allowed")
+			fmt.Fprintln(&reportBottom, "File", name, "ignored as attachments to root are not allowed")
 		}
 	})
 }
@@ -173,7 +173,7 @@ func (r *scanGroup) discover(folder string, path []string) {
 
 			r.Children = append(r.Children, project)
 		} else {
-			Fprintln(&reportBottom, "File", name, "ignored as attachments to groups are not allowed")
+			fmt.Fprintln(&reportBottom, "File", name, "ignored as attachments to groups are not allowed")
 		}
 	})
 }
@@ -287,7 +287,7 @@ func (r *scanSubject) discover(folder string, path []string) {
 				for j := 0; j < len(resolveResult.Children); j++ {
 					child, ok := resolveResult.Children[j].(*legacy.Session)
 					if ok && child.GetSubjectCode() == r.Subject.Code && child.GetName() == session.Name {
-						s := Sprintf("<id:%s>", child.GetId())
+						s := fmt.Sprintf("<id:%s>", child.GetId())
 						newPath = append(path, s)
 						session.Exists = true
 						session.Id = child.GetId()
@@ -300,7 +300,7 @@ func (r *scanSubject) discover(folder string, path []string) {
 
 			r.Children = append(r.Children, session)
 		} else {
-			Fprintln(&reportBottom, "File", name, "ignored as attachments to subjects are not allowed")
+			fmt.Fprintln(&reportBottom, "File", name, "ignored as attachments to subjects are not allowed")
 		}
 	})
 }

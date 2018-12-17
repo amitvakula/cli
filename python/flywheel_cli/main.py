@@ -30,6 +30,8 @@ def main():
 
     log.debug('CLI Args: %s', sys.argv)
     log.debug('Platform: %s', platform.platform())
+    log.debug('System Encoding: %s', sys.stdout.encoding)
+    log.debug('Python Version: %s', sys.version)
 
     func = getattr(args, 'func', None)
     if func is not None:

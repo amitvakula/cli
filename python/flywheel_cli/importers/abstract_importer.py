@@ -84,13 +84,16 @@ class AbstractImporter(ABC):
 
     def print_summary(self, file=sys.stdout):
         """Print a summary of the import operation in tree format.
-        
+
         Arguments:
             file (fileobj): A file-like object that supports write(string)
         """
         # Generally - Print current container, print files, walk to next child
         spacer_str = '|   '
-        entry_str = '├── '
+        if sys.stdout.encoding == 'UTF-8':
+            entry_str = '├── '
+        else:
+            entry_str = '|--'
 
         def write(level, msg):
             print('{}{}{}'.format(level*spacer_str, entry_str, msg), file=file)

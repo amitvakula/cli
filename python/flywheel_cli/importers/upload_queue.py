@@ -36,39 +36,57 @@ class Uploader(ABC):
 
 class UploadFileWrapper(object):
     """Wrapper around file that measures progress"""
-    def __init__(self, fileobj):
+    def __init__(self, fileobj=None, src_fs=None, path=None):
+        """Initialize a file wrapper, must specify fileobj OR src_fs and path"""
         self.fileobj = fileobj
+        self.src_fs = src_fs
+        self.path = path
         self._sent = 0
+        self._total_size = None
 
-        self.fileobj.seek(0,2)
-        self._total_size = self.fileobj.tell()
-        self.fileobj.seek(0)
+    def _open(self):
+        if not self.fileobj:
+            self.fileobj = self.src_fs.open(self.path, 'rb')
 
     def read(self, size=-1):
+        self._open()
         chunk = self.fileobj.read(size)
         self._sent = self._sent + len(chunk)
         return chunk
 
     def reset(self):
-        self.fileobj.seek(0)
+        if self.fileobj:
+            self.fileobj.seek(0)
 
     @property
     def len(self):
-        return (self._total_size - self._sent)
+        return (self.total_size - self._sent)
+
+    @property
+    def total_size(self):
+        if self._total_size is None:
+            self._open()
+            self.fileobj.seek(0,2)
+            self._total_size = self.fileobj.tell()
+            self.fileobj.seek(0)
+        return self._total_size
 
     def close(self):
-        self.fileobj.close()
+        if self.fileobj:
+            self.fileobj.close()
 
     def get_bytes_sent(self):
         return self._sent
 
+
 class UploadTask(Task):
-    def __init__(self, uploader, container, filename, fileobj):
+    def __init__(self, uploader, container, filename, fileobj=None, src_fs=None, path=None):
+        """Initialize an upload task, must specify fileobj OR src_fs and path"""
         super(UploadTask, self).__init__('upload')
         self.uploader = uploader
         self.container = container
         self.filename = filename
-        self.fileobj = UploadFileWrapper(fileobj)
+        self.fileobj = UploadFileWrapper(fileobj=fileobj, src_fs=src_fs, path=path)
         self._data = None
 
     def execute(self):
@@ -97,7 +115,7 @@ class UploadTask(Task):
         return 'Upload {}'.format(self.filename)
 
 class PackfileTask(Task):
-    def __init__(self, uploader, archive_fs, packfile_type, deid_profile, follow_symlinks, container, filename, paths=None, compression=None):
+    def __init__(self, uploader, archive_fs, packfile_type, deid_profile, follow_symlinks, container, filename, paths=None, compression=None, max_spool=None):
         super(PackfileTask, self).__init__('packfile')
 
         self.uploader = uploader
@@ -110,14 +128,18 @@ class PackfileTask(Task):
         self.filename = filename
         self.paths = paths
         self.compression = compression
+        self.max_spool = max_spool
 
         self._bytes_processed = None
 
     def execute(self):
-        tmpfile = tempfile.TemporaryFile()
+        if self.max_spool:
+            tmpfile = tempfile.SpooledTemporaryFile(max_size=self.max_spool)
+        else:
+            tmpfile = tempfile.TemporaryFile()
 
-        create_zip_packfile(tmpfile, self.archive_fs, packfile_type=self.packfile_type, 
-            symlinks=self.follow_symlinks, paths=self.paths, compression=self.compression, 
+        create_zip_packfile(tmpfile, self.archive_fs, packfile_type=self.packfile_type,
+            symlinks=self.follow_symlinks, paths=self.paths, compression=self.compression,
             progress_callback=self.update_bytes_processed, deid_profile=self.deid_profile)
 
         #Rewind
@@ -130,7 +152,7 @@ class PackfileTask(Task):
             pass
 
         # The next task is an uplad task
-        return UploadTask(self.uploader, self.container, self.filename, tmpfile)
+        return UploadTask(self.uploader, self.container, self.filename, fileobj=tmpfile)
 
     def get_bytes_processed(self):
         if self._bytes_processed is None:
@@ -150,16 +172,17 @@ class UploadQueue(WorkQueue):
         upload_threads = 1
         uploader = config.get_uploader()
         if uploader.supports_signed_url():
-            upload_threads = config.concurrent_uploads 
+            upload_threads = config.concurrent_uploads
 
         super(UploadQueue, self).__init__({
             'upload': upload_threads,
-            'packfile': config.cpu_count 
+            'packfile': config.cpu_count
         })
 
         self.uploader = uploader
         self.compression = config.get_compression_type()
         self.follow_symlinks = config.follow_symlinks
+        self.max_spool = config.max_spool
 
         self._progress_thread = None
         if show_progress:
@@ -198,9 +221,12 @@ class UploadQueue(WorkQueue):
         self.resume_reporting()
 
     def upload(self, container, filename, fileobj):
-        self.enqueue(UploadTask(self.uploader, container, filename, fileobj))
+        self.enqueue(UploadTask(self.uploader, container, filename, fileobj=fileobj))
+
+    def upload_file(self, container, filename, src_fs, path):
+        self.enqueue(UploadTask(self.uploader, container, filename, src_fs=src_fs, path=path))
 
     def upload_packfile(self, archive_fs, packfile_type, deid_profile, container, filename, paths=None):
-        self.enqueue(PackfileTask(self.uploader, archive_fs, packfile_type, deid_profile, self.follow_symlinks, container, 
-            filename, paths=paths, compression=self.compression))
+        self.enqueue(PackfileTask(self.uploader, archive_fs, packfile_type, deid_profile, self.follow_symlinks, container,
+            filename, paths=paths, compression=self.compression, max_spool=self.max_spool))
 

@@ -26,7 +26,7 @@ class Config(object):
         self.configure_logging(args)
 
         # Set the default compression (used by zipfile/ZipFS)
-        self.compression_level = getattr(args, 'compression_level', 1) 
+        self.compression_level = getattr(args, 'compression_level', 1)
         if self.compression_level > 0:
             zlib.Z_DEFAULT_COMPRESSION = self.compression_level
 
@@ -39,6 +39,7 @@ class Config(object):
         self.follow_symlinks = getattr(args, 'symlinks', False)
 
         self.buffer_size = 65536
+        self.max_spool = getattr(args, 'max_tempfile', 50) * (1024 * 1024)  # Max tempfile size before rolling over to disk
 
         # Assume yes option
         self.assume_yes = getattr(args, 'yes', False)
@@ -158,11 +159,12 @@ class Config(object):
         parser.add_argument('--max-retries', default=3, help='Maximum number of retry attempts, if assume yes')
         parser.add_argument('--jobs', '-j', default=-1, type=int, help='The number of concurrent jobs to run (e.g. compression jobs)')
         parser.add_argument('--concurrent-uploads', default=4, type=int, help='The maximum number of concurrent uploads')
-        parser.add_argument('--compression-level', default=1, type=int, choices=range(-1, 9), 
+        parser.add_argument('--compression-level', default=1, type=int, choices=range(-1, 9),
                 help='The compression level to use for packfiles. -1 for default, 0 for store')
         parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
         parser.add_argument('--output-folder', help='Output to the given folder instead of uploading to flywheel')
         parser.add_argument('--no-uids', action='store_true', help='Ignore UIDs when grouping sessions and acquisitions')
+        parser.add_argument('--max-tempfile', default=50, type=int, help='The max in-memory tempfile size, in MB, or 0 to always use disk')
         return parser
 
     @staticmethod

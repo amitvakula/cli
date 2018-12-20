@@ -1,7 +1,6 @@
 package ops
 
 import (
-	. "fmt"
 	"math"
 	"os"
 	"strconv"

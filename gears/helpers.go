@@ -3,11 +3,12 @@ package gears
 import (
 	"archive/tar"
 	"bytes"
-	"encoding/json"
-	. "fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/flosch/pongo2"
@@ -17,6 +18,30 @@ import (
 	"flywheel.io/sdk/api"
 )
 
+var (
+	// Default to OS preference
+	BaseTempDir = ""
+
+	// Easily identified state dirs
+	BaseTempPrefix = "fw-gear-builder-"
+)
+
+func init() {
+	switch runtime.GOOS {
+	case "darwin":
+		// On Mac a default tempdir goes to something on the order of /var/folders/fp/znt3073d3313h1r_sbj9292h0000gn/T/fw-gear-builder594038416
+		// This then causes drama, presumably due to the containers-in-VM situation; pants with suspenders.
+		BaseTempDir = "/tmp/"
+	}
+}
+
+func FetchName(client *api.Client) string {
+	Println("Checking Flywheel connectivity...")
+	user, _, err := client.GetCurrentUser()
+	Check(err)
+	return user.Firstname + " " + user.Lastname
+}
+
 func RenderTemplate(template string, context map[string]interface{}) (string, error) {
 	tpl, err := pongo2.FromString(template)
 	if err != nil {
@@ -25,33 +50,6 @@ func RenderTemplate(template string, context map[string]interface{}) (string, er
 
 	out, err := tpl.Execute(pongo2.Context(context))
 	return out, err
-}
-
-// >:|
-func RenderTemplateStringMap(template string, context map[string]string) (string, error) {
-	x := map[string]interface{}{}
-
-	for key, value := range context {
-		x[key] = value
-	}
-
-	return RenderTemplate(template, x)
-}
-
-func stripCtlFromBytes(str string) string {
-
-	// This has lots of work to do yet. Should try to reuse prior work.
-
-	b := make([]byte, len(str))
-	var bl int
-	for i := 0; i < len(str); i++ {
-		c := str[i]
-		if c >= 32 && c != 127 {
-			b[bl] = c
-			bl++
-		}
-	}
-	return string(b[:bl])
 }
 
 func UntarGearFolder(reader io.Reader) error {
@@ -104,6 +102,12 @@ func UntarGearFolder(reader io.Reader) error {
 			if err == nil {
 				Println("\nFile \"" + header.Name + "\" already exists in this folder and in the gear.")
 				proceed := prompt.Confirm("Replace local file? (yes/no)")
+
+				err = os.Remove(header.Name)
+				if err != nil {
+					return err
+				}
+
 				if !proceed {
 					continue
 				}
@@ -126,47 +130,114 @@ func UntarGearFolder(reader io.Reader) error {
 	}
 }
 
-func TryToLoadManifest() *api.Gear {
-	var gear api.Gear
-
-	plan, err := ioutil.ReadFile("manifest.json")
-	if err == nil {
-		Check(json.Unmarshal(plan, &gear))
-	}
-
+func TarCWD(out io.Writer) error {
+	cwd, err := os.Getwd()
 	if err != nil {
-		return nil
-	} else {
-		return &gear
+		return err
 	}
-}
 
-func ManifestOrDefaultGear() *api.Gear {
-	gear := TryToLoadManifest()
+	tr := tar.NewWriter(out)
+	defer tr.Close()
 
-	if gear != nil {
-		return gear
-	} else {
-		return &api.Gear{
-			Name:        "empty-gear",
-			Label:       "Empty Gear",
-			Description: "An empty gear manifest. Fill out this file!",
-			Version:     "0",
-			Author:      "You!",
-			Maintainer:  "You!",
-			License:     "Other",
-			Source:      "http://example.example",
-			Url:         "http://example.example",
+	err = filepath.Walk(cwd, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
 		}
+
+		header, err := tar.FileInfoHeader(info, info.Name())
+		if err != nil {
+			return err
+		}
+
+		header.Name = strings.TrimPrefix(strings.Replace(path, cwd, GearPath, -1), string(filepath.Separator))
+
+		err = tr.WriteHeader(header)
+		if err != nil {
+			return err
+		}
+
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(tr, file)
+		if err != nil {
+			return err
+		}
+
+		return file.Close()
+	})
+
+	return err
+}
+
+func MakeGearTicket(client *api.Client, doc *api.GearDoc) (string, error) {
+	Println("Checking that gear is ready to upload...")
+	var aerr *api.Error
+
+	ticketMap := &struct {
+		Ticket string `json:"ticket,omitempty"`
+	}{}
+
+	_, err := client.New().Post("gears/prepare-add").BodyJSON(doc).Receive(&ticketMap, &aerr)
+
+	// Exception case: handle version conflicts
+	if err == nil && aerr != nil && strings.Contains(aerr.Message, "already exists") {
+		return "", api.Coalesce(err, aerr)
+	}
+
+	// Other errors are fatal
+	Check(api.Coalesce(err, aerr))
+
+	if ticketMap.Ticket == "" {
+		Fatal("Server response was empty; contact support.")
+	}
+
+	return ticketMap.Ticket, nil
+}
+
+func MakeGearTicketReslient(client *api.Client, doc *api.GearDoc) string {
+	for {
+		ticket, sendErr := MakeGearTicket(client, doc)
+
+		if sendErr == nil {
+			return ticket
+		}
+
+		i, castErr := strconv.Atoi(doc.Gear.Version)
+
+		if castErr != nil {
+			Check(sendErr)
+		}
+
+		runConfirmFatal(createConfirm("Version " + strconv.Itoa(i) + " already exists, bump to " + strconv.Itoa(i+1) + "?"))
+
+		doc.Gear.Version = strconv.Itoa(i + 1)
+
+		err := ioutil.WriteFile(ManifestName, FormatBytes(doc.Gear), 0640)
+		Check(err)
 	}
 }
 
-func PromptOrDefault(promptS, defaultP string) string {
-	result := prompt.String(promptS + " [leave blank for " + defaultP + "]")
-
-	if result == "" {
-		return defaultP
-	} else {
-		return result
+func FinishGearTicket(client *api.Client, ticket, repo, digest string) {
+	ticketMap := &struct {
+		Ticket string `json:"ticket,omitempty"`
+		Repo   string `json:"repo,omitempty"`
+		Digest string `json:"pointer,omitempty"`
+	}{
+		Ticket: ticket,
+		Repo:   repo,
+		Digest: digest,
 	}
+
+	var aerr *api.Error
+	var result map[string]interface{}
+	_, err := client.New().Post("gears/save").BodyJSON(ticketMap).Receive(&result, &aerr)
+	Check(api.Coalesce(err, aerr))
+	// PrintFormat(result)
 }

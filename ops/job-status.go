@@ -1,8 +1,6 @@
 package ops
 
 import (
-	. "fmt"
-
 	"flywheel.io/sdk/api"
 
 	. "flywheel.io/fw/util"

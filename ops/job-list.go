@@ -1,7 +1,7 @@
 package ops
 
 import (
-	. "fmt"
+	"fmt"
 	"sort"
 	"text/tabwriter"
 
@@ -26,7 +26,7 @@ func ListGears(client *api.Client) {
 	w := tabwriter.NewWriter(color.Output, 0, 2, 1, ' ', 0)
 
 	for _, x := range gearsCast {
-		Fprintf(w, "%s\t%s\n", greenBold(x.Gear.Name), x.Gear.Label)
+		fmt.Fprintf(w, "%s\t%s\n", greenBold(x.Gear.Name), x.Gear.Label)
 	}
 
 	w.Flush()

@@ -1,7 +1,6 @@
 package legacy
 
 import (
-	. "fmt"
 	"os"
 	"strconv"
 	"strings"

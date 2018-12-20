@@ -2,34 +2,47 @@ package util
 
 import (
 	"encoding/json"
-	. "fmt"
+	"fmt"
 	"os"
 	"regexp"
 	"runtime/debug"
 )
 
-// :/
-func Check(err error) {
-	if err != nil {
-		Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+// Automatically print to stderr
+func Println(a ...interface{}) {
+	fmt.Fprintln(os.Stderr, a...)
 }
 
-func Format(x interface{}) string {
-	y, err := json.MarshalIndent(x, "", "\t")
-	if err != nil {
-		panic(err)
-	}
-	return string(y)
-}
-
+// Print json blob to stderr
 func PrintFormat(x interface{}) {
 	y, err := json.MarshalIndent(x, "", "\t")
 	if err != nil {
 		panic(err)
 	}
-	Fprintln(os.Stderr, string(y))
+	Println(string(y))
+}
+
+// Unchecked errors
+func Check(err error) {
+	if err != nil {
+		Println(err)
+		os.Exit(1)
+	}
+}
+
+// Exit with message
+func Fatal(a ...interface{}) {
+	Println(a...)
+	os.Exit(1)
+}
+
+// JSON encoding that must succeed
+func FormatBytes(x interface{}) []byte {
+	y, err := json.MarshalIndent(x, "", "\t")
+	if err != nil {
+		panic(err)
+	}
+	return append(y, '\n')
 }
 
 // Aims to match the $GOPATH/src this binary was compiled with, during stack trace output.

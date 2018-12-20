@@ -1,7 +1,6 @@
 package ops
 
 import (
-	. "fmt"
 	"strings"
 
 	"flywheel.io/sdk/api"

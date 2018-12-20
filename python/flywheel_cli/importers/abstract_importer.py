@@ -68,7 +68,7 @@ class AbstractImporter(ABC):
             dict: The initial context
         """
         context = {}
-       
+
         if self.context:
             for key, value in self.context.items():
                 util.set_nested_attr(context, key, value)
@@ -115,7 +115,7 @@ class AbstractImporter(ABC):
             level, current = queue.popleft()
             cname = current.label or current.id
             status = 'using' if current.exists else 'creating'
-            
+
             write(level, '{} ({})'.format(cname, status))
 
             level = level + 1
@@ -260,9 +260,7 @@ class AbstractImporter(ABC):
                                 archive_fs.close()
 
                     # Normal upload
-                    src = src_fs.open(path, 'rb')
-                    # TODO: upload_queue.upload_file()
-                    upload_queue.upload(container, file_name, src)
+                    upload_queue.upload_file(container, file_name, src_fs, path)
 
                 # packfiles
                 for desc in container.packfiles:
@@ -275,7 +273,7 @@ class AbstractImporter(ABC):
                             file_name = '{}.zip'.format(packfile_name)
                         else:
                             file_name = '{}.{}.zip'.format(packfile_name, desc.packfile_type)
-                    
+
                     if isinstance(desc.path, str):
                         packfile_src_fs = src_fs.opendir(desc.path)
                         upload_queue.upload_packfile(packfile_src_fs, desc.packfile_type, self.deid_profile, container, file_name)

@@ -4,3 +4,4 @@ flywheel-bids~=0.7.0
 flywheel_migration>=0.5.0
 flywheel-sdk>=4.2.2
 pyinstaller~=3.3.1
+requests-toolbelt

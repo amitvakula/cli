@@ -9,25 +9,12 @@ from . import export_bids
 
 from . import retry_job
 
+from . import view
+from . import gcp
+
 from ..config import Config
+from ..util import set_subparser_print_help, print_help
 
-def set_subparser_print_help(parser, subparsers):
-    def print_help(args):
-        parser.print_help()
-    parser.set_defaults(func=print_help)
-
-    help_parser = subparsers.add_parser('help', help='Print this help message and exit')
-    help_parser.set_defaults(func=print_help)
-
-def print_help(default_parser, parsers):
-    def print_help_fn(args):
-        subcommands = ' '.join(args.subcommands)
-        if subcommands in parsers:
-            parsers[subcommands].print_help()
-        else:
-            default_parser.print_help()
-
-    return print_help_fn
 
 def get_config(args):
     args.config = Config(args)
@@ -105,6 +92,54 @@ def add_commands(parser):
     # Link help commands
     set_subparser_print_help(parser_job, job_subparsers)
 
+
+    # =====
+    # view
+    # =====
+    parser_view = subparsers.add_parser('view', help='Execute and save Flywheel data-views')
+    parsers['view'] = parser_view
+    view_subparsers = parser_view.add_subparsers(title='Available data-view commands', metavar='')
+
+    parsers['view run'] = view.add_run_command(view_subparsers)
+    parsers['view ls'] = view.add_ls_command(view_subparsers)
+    parsers['view cols'] = view.add_cols_command(view_subparsers)
+
+    # Link help commands
+    set_subparser_print_help(parser_view, view_subparsers)
+
+    # =====
+    # gcp - Google Cloud Platform integration commands
+    # =====
+    parser_gcp_help = 'Google Cloud Platform integration commands'
+    parser_gcp = subparsers.add_parser('gcp', help=parser_gcp_help, description=parser_gcp_help)
+    parsers['gcp'] = parser_gcp
+    gcp_subparsers = parser_gcp.add_subparsers(title='Available gcp commands', metavar='')
+
+    parsers['gcp config'] = gcp.config.add_command(gcp_subparsers)
+    parsers['gcp auth'] = gcp.auth.add_command(gcp_subparsers)
+
+    parser_gcp_query_help = 'Query and display Healthcare API data available on GCP'
+    parser_gcp_query = gcp_subparsers.add_parser('query', help=parser_gcp_query_help, description=parser_gcp_query_help)
+    parsers['gcp query'] = parser_gcp_query
+    gcp_query_subparsers = parser_gcp_query.add_subparsers(title='available gcp query commands', metavar='')
+    parsers['gcp query dicom'] = gcp.query_dicom.add_command(gcp_query_subparsers)
+    set_subparser_print_help(parser_gcp_query, gcp_query_subparsers)
+
+    parser_gcp_import_help = 'Import data from GCP into Flywheel'
+    parser_gcp_import = gcp_subparsers.add_parser('import', help=parser_gcp_import_help, description=parser_gcp_import_help)
+    parsers['gcp import'] = parser_gcp_import
+    gcp_import_subparsers = parser_gcp_import.add_subparsers(title='available gcp import commands', metavar='')
+    parsers['gcp import dicom'] = gcp.import_dicom.add_command(gcp_import_subparsers)
+    set_subparser_print_help(parser_gcp_import, gcp_import_subparsers)
+
+    parser_gcp_export = gcp_subparsers.add_parser('export', help='export data from Flywheel into GCP')
+    parsers['gcp export'] = parser_gcp_export
+    gcp_export_subparsers = parser_gcp_export.add_subparsers(title='Available GCP export commands', metavar='')
+    parsers['gcp export view'] = gcp.export_view.add_command(gcp_export_subparsers)
+    set_subparser_print_help(parser_gcp_export, gcp_export_subparsers)
+
+    # Link help commands
+    set_subparser_print_help(parser_gcp, gcp_subparsers)
 
     # =====
     # help commands

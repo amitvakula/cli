@@ -6,6 +6,7 @@ import platform
 import sys
 
 from .commands import add_commands
+from . import errors
 from . import monkey
 
 log = logging.getLogger(__name__)
@@ -33,8 +34,12 @@ def main():
 
     func = getattr(args, 'func', None)
     if func is not None:
-        # Invoke command
-        rc = args.func(args)
+        try:
+            # Invoke command
+            rc = args.func(args)
+        except errors.CliError as exc:
+            print(exc, file=sys.stderr)
+            rc = 1
         if rc is None:
             rc = 0
     else:

@@ -2,5 +2,5 @@ tzlocal~=1.5.1
 fs~=2.0.23
 flywheel-bids~=0.7.0
 flywheel_migration>=0.5.0
-flywheel-sdk>=4.2.2
+flywheel-sdk>=4.4.0
 pyinstaller~=3.3.1

@@ -53,7 +53,7 @@ def auth_login(args):
         'prompt': 'select_account',
         'access_type': 'offline',
         'scope': SCOPE,
-        'redirect_uri': api_url + '/ghc',
+        'redirect_uri': api_url + '/ghc/',
         'response_type': 'code',
         'client_id': google_auth['client_id']
     })

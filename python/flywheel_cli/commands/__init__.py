@@ -115,8 +115,8 @@ def add_commands(parser):
     parsers['gcp'] = parser_gcp
     gcp_subparsers = parser_gcp.add_subparsers(title='Available gcp commands', metavar='')
 
-    parsers['gcp config'] = gcp.config.add_command(gcp_subparsers)
     parsers['gcp auth'] = gcp.auth.add_command(gcp_subparsers)
+    parsers['gcp profile'] = gcp.profile.add_command(gcp_subparsers)
 
     parser_gcp_query_help = 'Query and display Healthcare API data available on GCP'
     parser_gcp_query = gcp_subparsers.add_parser('query', help=parser_gcp_query_help, description=parser_gcp_query_help)

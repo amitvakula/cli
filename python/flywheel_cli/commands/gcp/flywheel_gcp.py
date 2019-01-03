@@ -165,12 +165,12 @@ class BigQuery(Service):
         return self.post(url, json=payload)
 
     def upload_csv(self, project, dataset, table, csv):
-        upload_url = baseurl.replace('bigquery', 'upload/bigquery')
+        upload_url = self.baseurl.replace('bigquery', 'upload/bigquery')
         url = '{}/projects/{}/jobs?uploadType=multipart'.format(upload_url, project)
         config = {'configuration': {'load': {
             'autodetect': True,
             'destinationTable': {
-                'projectId': self.project,
+                'projectId': project,
                 'datasetId': dataset,
                 'tableId': table},
             'ignoreUnknownValues': False,
@@ -203,7 +203,7 @@ class BigQuery(Service):
         config = {'configuration': {'query': {
             'allowLargeResults': True,
             'destinationTable': {
-                'projectId': self.project,
+                'projectId': project,
                 'datasetId': dataset,
                 'tableId': table},
             'priority': 'INTERACTIVE',

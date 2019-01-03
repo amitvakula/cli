@@ -7,7 +7,7 @@ from ...errors import CliError
 from ...sdk_impl import create_flywheel_session
 from .auth import get_token
 from .flywheel_gcp import GCP, GCPError
-from .config import config
+from .profile import get_profile
 
 
 QUERY_DICOM_DESC = """
@@ -44,15 +44,16 @@ ORDER BY StudyInstanceUID, SeriesInstanceUID
 
 
 def add_command(subparsers):
-    project = config.get('project')
-    location = config.get('hcapi.location')
-    dataset = config.get('hcapi.dataset')
-    dicomstore = config.get('hcapi.dicomstore')
-
     parser = subparsers.add_parser('dicom',
         help='Query dicoms in Healthcare API via BigQuery',
         description=QUERY_DICOM_DESC,
         formatter_class=argparse.RawTextHelpFormatter)
+
+    profile = get_profile()
+    project = profile.get('project')
+    location = profile.get('location')
+    dataset = profile.get('hc_dataset')
+    dicomstore = profile.get('hc_dicomstore')
 
     parser.add_argument('--project', metavar='NAME', default=project,
         help='GCP project (default: {})'.format(project))
@@ -77,6 +78,10 @@ def add_command(subparsers):
 
 
 def query_dicom(args):
+    for param in ['project', 'location', 'dataset', 'dicomstore']:
+        if not getattr(args, param, None):
+            raise CliError(param + ' required')
+
     gcp = GCP(get_token)
     if args.export or args.dicomstore not in gcp.bq.list_tables(args.project, args.dataset):
         print('Exporting Healthcare API dicomstore to BigQuery')
@@ -89,7 +94,8 @@ def query_dicom(args):
     except GCPError as ex:
         raise CliError(str(ex))
     hierarchy = result_to_hierarchy(result)
-    print('Query matched {total_studies} studies, {total_series} series, {total_images} images'.format(**hierarchy))
+    summary = 'Query matched {total_studies} studies, {total_series} series, {total_images} images'.format(**hierarchy)
+    print(summary, file=sys.stderr)
 
     if args.uids:
         print_uids(hierarchy, studies_only=args.studies)

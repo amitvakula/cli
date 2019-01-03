@@ -3,7 +3,7 @@ import sys
 import time
 
 from .auth import get_token_id
-from .config import config
+from .profile import get_profile
 from ...errors import CliError
 from ...sdk_impl import create_flywheel_client, create_flywheel_session
 
@@ -26,10 +26,11 @@ def add_command(subparsers):
         description=IMPORT_DICOM_DESC,
         formatter_class=argparse.RawTextHelpFormatter)
 
-    project = config.get('project')
-    location = config.get('hcapi.location')
-    dataset = config.get('hcapi.dataset')
-    dicomstore = config.get('hcapi.dicomstore')
+    profile = get_profile()
+    project = profile.get('project')
+    location = profile.get('location')
+    dataset = profile.get('hc_dataset')
+    dicomstore = profile.get('hc_dicomstore')
 
     parser.add_argument('--project', metavar='NAME', default=project,
         help='GCP project (default: {})'.format(project))
@@ -39,7 +40,7 @@ def add_command(subparsers):
         help='Dataset (default: {})'.format(dataset))
     parser.add_argument('--dicomstore', metavar='NAME', default=dicomstore,
         help='Dicomstore (default: {})'.format(dicomstore))
-    parser.add_argument('--uid', metavar='UID', dest='uids', default=[],
+    parser.add_argument('--uid', metavar='UID', action='append', dest='uids', default=[],
         help='Study/SeriesInstanceUID to import')
     parser.add_argument('--de-identify', action='store_true',
         help='De-identify dicoms before import')
@@ -56,6 +57,10 @@ def add_command(subparsers):
 def import_dicom(args):
     # TODO fw de-identify profiles
     # TODO gcp de-identify
+    for param in ['project', 'location', 'dataset', 'dicomstore']:
+        if not getattr(args, param, None):
+            raise CliError(param + ' required')
+
     uids = args.uids or sys.stdin.read().split()
     if not uids:
         raise CliError('At least one UID required.')
@@ -68,7 +73,7 @@ def import_dicom(args):
     client = create_flywheel_client()
     # TODO check whether it is a project
     project = client.lookup(args.container)
-    resp = api.post('/jobs', json={
+    job = api.post('/jobs/add', json={
         'gear_id': gear['_id'],
         'destination': {'type': 'project', 'id': project.id},
         'config': {
@@ -82,7 +87,7 @@ def import_dicom(args):
             'project_id': project.id,
         }
     })
-    job_id = resp.json()['_id']
+    job_id = job['_id']
     print('Started ghc-import job ' + job_id)
 
     if not args.async:

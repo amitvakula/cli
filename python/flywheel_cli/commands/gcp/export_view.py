@@ -8,7 +8,7 @@ from ...sdk_impl import create_flywheel_session
 from ..view import lookup, lookup_view
 from .auth import get_token
 from .flywheel_gcp import GCP, GCPError
-from .config import config
+from .profile import get_profile
 
 
 EXPORT_VIEW_DESC = """
@@ -33,11 +33,13 @@ def add_command(subparsers):
     group.add_argument('--label', metavar='VIEW',
         help='Export data-view by label (group[/proj]/label or user/label)')
 
-    parser.add_argument('target_container', metavar='TARGET_CONTAINER',
+    parser.add_argument('container', metavar='CONTAINER',
         help='Container path to run data-view on (group/proj/subj/sess/acq)')
 
-    project = config.get('project')
+    profile = get_profile()
+    project = profile.get('project')
     dataset = 'flywheel_views'
+
     parser.add_argument('--project', metavar='NAME', default=project,
         help='GCP project (default: {})'.format(project))
     parser.add_argument('--dataset', metavar='NAME', default=dataset,
@@ -51,12 +53,16 @@ def add_command(subparsers):
 
 
 def export_view(args):
+    for param in ['project']:
+        if not getattr(args, param, None):
+            raise CliError(param + ' required')
+
     api = create_flywheel_session()
     if args.id:
         view = api.get('/views/' + args.id)
     else:
         view = lookup_view(args.label)
-    params = {'containerId': lookup(args.target_container), 'format': 'csv'}
+    params = {'containerId': lookup(args.container), 'format': 'csv'}
     print('Running saved data-view ' + view['_id'], file=sys.stderr)
     data = api.get('/views/' + view['_id'] + '/data', params=params)
     csv = '\n'.join('{},{}'.format(num or 'num', line) if line else ''

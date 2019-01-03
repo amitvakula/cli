@@ -4,7 +4,6 @@ import urllib.parse
 from ...errors import CliError
 from ...sdk_impl import create_flywheel_session
 from ...util import set_subparser_print_help
-from .config import config
 
 
 # TODO limit cloud-platform scope (healthcare scope not available yet)
@@ -46,6 +45,7 @@ def add_command(subparsers):
 def auth_login(args):
     api = create_flywheel_session()
     api_url = api.baseurl.replace('/api', '')
+    redirect_uri = api_url + '/ghc/'
     google_auth = api.get('/config').get('auth', {}).get('google')
     if not google_auth:
         raise CliError('Google auth not configured on ' + api_url)
@@ -53,14 +53,18 @@ def auth_login(args):
         'prompt': 'select_account',
         'access_type': 'offline',
         'scope': SCOPE,
-        'redirect_uri': api_url + '/ghc/',
+        'redirect_uri': redirect_uri,
         'response_type': 'code',
         'client_id': google_auth['client_id']
     })
     print('Please visit the following URL in your browser:')
     print('  ' + url)
     code = input('Enter the verification code: ')
-    token = api.post('/users/self/tokens', json={'auth_type': 'google', 'code': code})
+    token = api.post('/users/self/tokens', json={
+        'auth_type': 'google',
+        'code': code,
+        'redirect_uri': redirect_uri,
+    })
     print('Added GCP access-token for ' + token['identity']['email'])
 
 

@@ -80,7 +80,7 @@ class UploadFileWrapper(object):
 
 
 class UploadTask(Task):
-    def __init__(self, uploader, container, filename, fileobj=None, src_fs=None, path=None):
+    def __init__(self, uploader, container, filename, fileobj=None, src_fs=None, path=None, metadata=None):
         """Initialize an upload task, must specify fileobj OR src_fs and path"""
         super(UploadTask, self).__init__('upload')
         self.uploader = uploader
@@ -88,6 +88,7 @@ class UploadTask(Task):
         self.filename = filename
         self.fileobj = UploadFileWrapper(fileobj=fileobj, src_fs=src_fs, path=path)
         self._data = None
+        self.metadata = metadata
 
     def execute(self):
         self.fileobj.reset()
@@ -96,9 +97,9 @@ class UploadTask(Task):
         if self.fileobj.len < MAX_IN_MEMORY_XFER:
             if self._data is None:
                 self._data = self.fileobj.read(self.fileobj.len)
-            self.uploader.upload(self.container, self.filename, self._data)
+            self.uploader.upload(self.container, self.filename, self._data, metadata=self.metadata)
         else:
-            self.uploader.upload(self.container, self.filename, self.fileobj)
+            self.uploader.upload(self.container, self.filename, self.fileobj, metadata=self.metadata)
 
         # Safely close the file object
         try:
@@ -138,7 +139,7 @@ class PackfileTask(Task):
         else:
             tmpfile = tempfile.TemporaryFile()
 
-        create_zip_packfile(tmpfile, self.archive_fs, packfile_type=self.packfile_type,
+        zip_member_count = create_zip_packfile(tmpfile, self.archive_fs, packfile_type=self.packfile_type,
             symlinks=self.follow_symlinks, paths=self.paths, compression=self.compression,
             progress_callback=self.update_bytes_processed, deid_profile=self.deid_profile)
 
@@ -151,8 +152,14 @@ class PackfileTask(Task):
         except:
             pass
 
+        metadata = {
+            'name': self.filename,
+            'zip_member_count': zip_member_count
+        }
+
         # The next task is an uplad task
-        return UploadTask(self.uploader, self.container, self.filename, fileobj=tmpfile)
+        return UploadTask(self.uploader, self.container, self.filename,
+                          fileobj=tmpfile, metadata=metadata)
 
     def get_bytes_processed(self):
         if self._bytes_processed is None:
@@ -228,5 +235,4 @@ class UploadQueue(WorkQueue):
 
     def upload_packfile(self, archive_fs, packfile_type, deid_profile, container, filename, paths=None):
         self.enqueue(PackfileTask(self.uploader, archive_fs, packfile_type, deid_profile, self.follow_symlinks, container,
-            filename, paths=paths, compression=self.compression, max_spool=self.max_spool))
-
+                                  filename, paths=paths, compression=self.compression, max_spool=self.max_spool))

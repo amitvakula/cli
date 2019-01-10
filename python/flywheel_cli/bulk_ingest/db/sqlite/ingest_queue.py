@@ -1,3 +1,4 @@
+from ...ingest_item import IngestState
 from ...abstract_ingest_queue import AbstractIngestQueue
 
 class IngestQueue(AbstractIngestQueue):
@@ -34,10 +35,10 @@ class IngestQueue(AbstractIngestQueue):
                 row = None
 
             if row:
-                # Update locally
+                # Update modified fields
                 result = self.deserialize(row)
                 result.actor_id = actor_id
-                result.state = 'running'
+                result.state = IngestState.running
                 return result
 
             return None

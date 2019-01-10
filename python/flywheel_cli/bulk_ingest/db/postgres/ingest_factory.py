@@ -16,3 +16,7 @@ class PostgresIngestFactory(AbstractIngestFactory):
         """Create an IngestQueue object"""
         return IngestQueue(self)
 
+    def autoinc_column(self):
+        """Get the autoincrementing id type for this database"""
+        return 'SERIAL PRIMARY KEY'
+

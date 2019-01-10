@@ -4,7 +4,7 @@ import os
 from flywheel_cli.bulk_ingest import db
 
 DEFAULT_DB = ['sqlite', 'postgres']
-CLEANUP_TABLES = [ 'ingest_items' ]
+CLEANUP_TABLES = [ 'ingest_items', 'ingest_operations' ]
 
 def drop_tables(conn):
     with conn:

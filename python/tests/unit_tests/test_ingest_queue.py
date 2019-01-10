@@ -11,7 +11,6 @@ MOCK_REC = IngestItem(
     scan_hash='e59ff97941044f85df5297e1c302d260'
 )
 
-
 def test_ingest_queue_create(db_type, ingest_factory):
     factory = ingest_factory(db_type)
 

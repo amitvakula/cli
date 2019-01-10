@@ -11,7 +11,7 @@ class AbstractIngestQueue:
 
     # The set of columns in this table
     columns = collections.OrderedDict([
-        ('item_id', 'INT'),
+        ('item_id', 'INT PRIMARY KEY'),
         ('ingest_id', 'INT'),
         ('actor_id', 'VARCHAR(128)'),
         ('path', 'VARCHAR(4096)'),
@@ -41,7 +41,7 @@ class AbstractIngestQueue:
 
     def initialize(self):
         """Ensures that the table and indexes exist"""
-        self.create_table()
+        self._factory.create_autoinc_table('ingest_items', 'item_id', self.columns)
         self.create_indexes()
 
     def insert(self, record):
@@ -123,24 +123,20 @@ class AbstractIngestQueue:
 
             return self.deserialize(row)
 
-    def deserialize(self, row, columns=None):
+    @classmethod
+    def deserialize(cls, row, columns=None):
         """Deserialize a row into IngestItem"""
         if row is None:
             return None
 
         if columns is None:
-            columns = self.columns.keys()
+            columns = cls.columns.keys()
 
         props = {}
         for idx, colname in enumerate(columns):
             props[colname] = row[idx]
 
         return IngestItem.from_map(props)
-
-    @abstractmethod
-    def create_table(self):
-        """Create the table"""
-        pass
 
     @abstractmethod
     def _get(self, actor_id):

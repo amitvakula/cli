@@ -8,8 +8,12 @@ class SqliteIngestFactory(AbstractIngestFactory):
     def connect(self):
         """Create a database connection object"""
         import sqlite3
-        return sqlite3.connect(self._connection_string)
+        return sqlite3.connect(self._connection_string, detect_types=sqlite3.PARSE_DECLTYPES)
 
     def create_queue(self):
         """Create an IngestQueue object"""
         return IngestQueue(self)
+
+    def autoinc_column(self):
+        """Get the autoincrementing id type for this database"""
+        return 'INTEGER PRIMARY KEY'

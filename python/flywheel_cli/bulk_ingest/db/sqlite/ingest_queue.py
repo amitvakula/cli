@@ -6,19 +6,6 @@ class IngestQueue(AbstractIngestQueue):
     select_next_sql = "SELECT * FROM ingest_items WHERE state='ready' ORDER BY item_id LIMIT 1"
     update_next_sql = "UPDATE ingest_items SET state='running', actor_id=? WHERE item_id=?"
 
-    def create_table(self):
-        """Create the table"""
-        columns = self.columns.copy()
-
-        # Use ROWID for item_id
-        columns['item_id'] = 'INTEGER PRIMARY KEY'
-        cols = ','.join(['{} {}'.format(name, spec) for name,spec in columns.items()])
-
-        command = 'CREATE TABLE IF NOT EXISTS ingest_items({})'.format(cols)
-        with self.connect() as conn:
-            c = conn.cursor()
-            c.execute(command)
-
     def _get(self, actor_id):
         """Get the next item from the queue"""
         # Exclusive write lock

@@ -32,8 +32,8 @@ def test_ingest_controller_insert(db_type, ingest_factory):
     # Insert
     rowid = controller.insert(MOCK_REC)
 
-    # Verify pending exists
-    rec = controller.get_pending()
+    # Retrieve by id
+    rec = controller.find(rowid)
     assert rec is not None
     assert rec.ingest_id == rowid
     assert rec.status == 'initial'
@@ -43,7 +43,49 @@ def test_ingest_controller_insert(db_type, ingest_factory):
     assert rec.config == {'foo': 'bar'}
     assert rec.started == MOCK_START_DATE
 
+def test_ingest_controller_update(db_type, ingest_factory):
+    factory = ingest_factory(db_type)
+
+    controller = factory.create_controller()
+    assert controller is not None
+
+    controller.initialize()
+
+    # Insert
+    rowid = controller.insert(MOCK_REC)
+
+    # Update
+    controller.update(rowid, status='pending', config={'bar':'foo'})
+
     # Retrieve by id
-    rec2 = controller.find(rowid)
-    assert rec.__dict__ == rec2.__dict__
+    rec = controller.find(rowid)
+    assert rec is not None
+    assert rec.ingest_id == rowid
+    assert rec.status == 'pending'
+    assert rec.root_fs == 'osfs:///tmp/import'
+    assert rec.version == '1.0.0-dev.1'
+    assert rec.api_key == 'dev.flywheel.io:change-me'
+    assert rec.config == {'bar': 'foo'}
+    assert rec.started == MOCK_START_DATE
+
+def test_ingest_controller_get_pending(db_type, ingest_factory):
+    factory = ingest_factory(db_type)
+
+    controller = factory.create_controller()
+    assert controller is not None
+
+    controller.initialize()
+
+    # Insert
+    rowid = controller.insert(MOCK_REC)
+
+    # Verify pending exists
+    rec = controller.get_pending()
+    assert rec is not None
+    assert rec.ingest_id == rowid
+
+    # Change state to aborted
+    controller.update(rowid, status='aborted')
+    assert controller.get_pending() is None
+
 

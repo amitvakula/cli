@@ -45,7 +45,7 @@ class IngestController:
         """Insert one record, with autoincrement.
 
         Args:
-            record (IngestItem): The item to insert
+            record (IngestOperation): The item to insert
 
         Returns:
             int: The inserted row id
@@ -64,6 +64,31 @@ class IngestController:
             c = conn.cursor()
             c.execute(command, tuple(params))
             return c.lastrowid
+
+    def update(self, ingest_id, **kwargs):
+        """Update one record by ingest_id.
+
+        Args:
+            ingest_id (int): The id of the record to update.
+            **kwargs: The set of fields to update
+        """
+        updates = []
+        params = []
+
+        # Create the update SET clauses
+        for key, value in kwargs.items():
+            if key not in self.columns:
+                raise Exception('Invalid key field')
+            updates.append('{} = ?'.format(key))
+            params.append(IngestOperation.map_field(key, value))
+
+        # WHERE clause argument
+        params.append(ingest_id)
+
+        command = 'UPDATE ingest_operations SET {} WHERE ingest_id = ?'.format(','.join(updates))
+        with self.connect() as conn:
+            c = conn.cursor()
+            c.execute(command, tuple(params))
 
     def find(self, ingest_id):
         """Find an item by item_id"""

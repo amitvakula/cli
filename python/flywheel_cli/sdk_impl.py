@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 def pluralize(container_type):
     """ Convert container_type to plural name
-    
+
     Simplistic logic that supports:
     group,  project,  session, subject, acquisition, analysis, collection
     """
@@ -66,7 +66,13 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
     def supports_signed_url(self):
         if self._supports_signed_url is None:
             config = self.fw.get_config()
-            self._supports_signed_url = config.get('signed_url', False)
+
+            # Support the new and legacy method of feature advertisement, respectively
+            # Ref: https://github.com/flywheel-io/core/pull/1503
+            f1 = config.get('features', {}).get('signed_url', False)
+            f2 = config.get('signed_url', False)
+
+            self._supports_signed_url = f1 or f2
         return self._supports_signed_url
 
     def resolve_path(self, container_type, path):

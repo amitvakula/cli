@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import dateutil.parser
+import logging
 import re
 import os
 import string
@@ -9,6 +10,8 @@ import sys
 
 import fs
 import tzlocal
+
+log = logging.getLogger(__name__)
 
 METADATA_ALIASES = {
     'group': 'group._id',
@@ -81,6 +84,10 @@ def to_fs_url(path, support_archive=True):
         # Likely a filesystem URL
         return path
 
+    # Check if the path actually exists
+    if not os.path.exists(path):
+        raise UnsupportedFilesystemError('File {} does not exist!'.format(path))
+
     if not os.path.isdir(path):
         if support_archive:
             # Specialized path options for tar/zip files
@@ -90,8 +97,9 @@ def to_fs_url(path, support_archive=True):
             if is_zip_file(path):
                 return 'zip://{}'.format(path)
 
+        log.debug('Unknown filesystem type for {}: stat={}'.format(path, os.stat(path)))
         raise UnsupportedFilesystemError('Unknown or unsupported filesystem for: {}'.format(path))
-        
+
     # Default is OSFS pointing at directory
     return 'osfs://{}'.format(path)
 
@@ -111,11 +119,11 @@ def open_fs(path):
     return fs.open_fs(path)
 
 def is_tar_file(path):
-    """Check if path appears to be a tar archive""" 
+    """Check if path appears to be a tar archive"""
     return bool(re.match('^.*(\.tar|\.tgz|\.tar\.gz|\.tar\.bz2)$', path, re.I))
 
 def is_zip_file(path):
-    """Check if path appears to be a zip archive""" 
+    """Check if path appears to be a zip archive"""
     _, ext = fs.path.splitext(path.lower())
     return (ext == '.zip')
 
@@ -125,7 +133,7 @@ def is_archive(path):
 
 def confirmation_prompt(message):
     """Continue prompting at the terminal for a yes/no repsonse
-    
+
     Arguments:
         message (str): The prompt message
 
@@ -171,7 +179,7 @@ def localize_timestamp(timestamp, timezone=None):
     return timezone.localize(timestamp)
 
 def split_key_value_argument(val):
-    """Split value into a key, value tuple. 
+    """Split value into a key, value tuple.
 
     Raises ArgumentTypeError if val is not in key=value form
 
@@ -231,7 +239,7 @@ def fs_files_equal(src_fs, path1, path2):
 
             if chunk1 != chunk2:
                 return False
-            
+
             if not chunk1:
                 return True
 
@@ -249,17 +257,17 @@ def regex_for_property(name):
     if property_type in METADATA_EXPR:
         return METADATA_EXPR[property_type]
     return METADATA_EXPR['default']
-    
+
 def str_to_python_id(val):
     """Convert a string to a valid python id in a reversible way
 
-    Arguments: 
+    Arguments:
         val (str): The value to convert
-    
+
     Returns:
         str: The valid python id
     """
-    result = '' 
+    result = ''
     for c in val:
         if c in string.ascii_letters or c == '_':
             result = result + c
@@ -319,4 +327,4 @@ def edit_file(path):
 
     editor = os.environ.get('EDITOR', default_editor)
     subprocess.call([editor, path])
-    
+

@@ -63,7 +63,9 @@ imports:
 - name: github.com/fatih/color
   version: 62e9147c64a1ed519147b62a56a14e83e2be02c1
 - name: github.com/flosch/pongo2
-  version: 5e81b817a0c48c1c57cdf1a9056cf76bdee02ca9
+  version: 79872a7b27692599b259dc751bed8b03581dd0de
+- name: github.com/juju/errors
+  version: 089d3ea4e4d597bd98acac068193d341983326a3
 - name: github.com/globalsign/mgo
   version: baa28fcb8e7d5dfab92026c0920cb6c9ae72faa2
   repo: https://github.com/globalsign/mgo

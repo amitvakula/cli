@@ -300,7 +300,7 @@ func (docker *D) ExpandFlywheelFolder(imageName, containerId string, defaultMani
 
 		// Write a nice script based on installed language
 		if python {
-			defaultManifest.Command = "./example.py"
+			defaultManifest.Command = "./example.py --age [age] [fast|flag:'--fast']"
 
 			// Write example run script
 			_, err = os.Stat("example.py")
@@ -370,6 +370,15 @@ func (docker *D) SaveCwdIntoContainer(containerID string) {
 	Println("\t Finished packing")
 }
 
+// Map a host path to a mounted guest path.
+func GuestPathForInput(name, hostPath string) string {
+	if hostPath == "" {
+		return filepath.Join(GearInputPath, name)
+	} else {
+		return filepath.Join(GearInputPath, name, filepath.Base(hostPath))
+	}
+}
+
 // Lay out temporary files/directorys and set up a list of mounts needed for a local gear run.
 func PrepareLocalRunFiles(gear *api.Gear, invocation map[string]interface{}, files map[string]string) ([]mount.Mount, func()) {
 	cwd, err := os.Getwd()
@@ -407,7 +416,7 @@ func PrepareLocalRunFiles(gear *api.Gear, invocation map[string]interface{}, fil
 	mounts = append(mounts, mount.Mount{
 		Type:     "bind",
 		Source:   baseInputFolder,
-		Target:   "/flywheel/v0/input",
+		Target:   GearInputPath,
 		ReadOnly: false,
 	})
 
@@ -424,17 +433,20 @@ func PrepareLocalRunFiles(gear *api.Gear, invocation map[string]interface{}, fil
 		Check(err)
 		tempdirs = append(tempdirs, tempdir)
 
+		// Create the folder. Unlike the file itself, this can be written to.
 		mounts = append(mounts, mount.Mount{
 			Type:     "bind",
 			Source:   tempdir,
-			Target:   "/flywheel/v0/input/" + name,
+			Target:   GuestPathForInput(name, ""),
 			ReadOnly: false,
 		})
 
+		// Mount the input file.
+		// Similar logic used in RenderTemplate. Use caution.
 		mounts = append(mounts, mount.Mount{
 			Type:     "bind",
 			Source:   path,
-			Target:   "/flywheel/v0/input/" + name + "/" + filepath.Base(path),
+			Target:   GuestPathForInput(name, path),
 			ReadOnly: true,
 		})
 	}

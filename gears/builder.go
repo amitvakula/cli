@@ -15,9 +15,10 @@ import (
 )
 
 const (
-	GearPath     = "/flywheel/v0"
-	ManifestName = "manifest.json"
-	ConfigName   = "config.json"
+	GearPath      = "/flywheel/v0"
+	GearInputPath = "/flywheel/v0/input"
+	ManifestName  = "manifest.json"
+	ConfigName    = "config.json"
 
 	GearBuilderSectionKey = "custom.gear-builder"
 
@@ -238,8 +239,20 @@ func CreateInvocationComponents(gear *api.Gear, config map[string]interface{}, f
 
 	// Use either the provided command, or default to ./run
 	if gear.Command != "" {
-		templated, err := RenderTemplate(gear.Command, config)
-		Check(err)
+		templated, err := RenderTemplate(gear.Command, config, files)
+		if err != nil {
+			Println()
+			Println("Could not template out the command.")
+			Println("This is probably due to a bad 'command' key in your manifest.")
+			Println()
+			Println("The command key was:")
+			Println(gear.Command)
+			Println()
+			Println("The templating error was:")
+			Println(err)
+			Println()
+			os.Exit(1)
+		}
 
 		command = append(command, templated)
 	} else {

@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/flosch/pongo2"
 	prompt "github.com/segmentio/go-prompt"
 
 	. "flywheel.io/fw/util"
@@ -42,18 +41,7 @@ func FetchName(client *api.Client) string {
 	return user.Firstname + " " + user.Lastname
 }
 
-func RenderTemplate(template string, context map[string]interface{}) (string, error) {
-	tpl, err := pongo2.FromString(template)
-	if err != nil {
-		return "", err
-	}
-
-	out, err := tpl.Execute(pongo2.Context(context))
-	return out, err
-}
-
 func UntarGearFolder(reader io.Reader) error {
-
 	var buffer bytes.Buffer
 
 	_, err := io.Copy(&buffer, reader)
@@ -239,5 +227,4 @@ func FinishGearTicket(client *api.Client, ticket, repo, digest string) {
 	var result map[string]interface{}
 	_, err := client.New().Post("gears/save").BodyJSON(ticketMap).Receive(&result, &aerr)
 	Check(api.Coalesce(err, aerr))
-	// PrintFormat(result)
 }

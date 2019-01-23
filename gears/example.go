@@ -70,7 +70,7 @@ func GenerateExampleManifestAndModifier(label, name, imageName, category string,
 		Environment: map[string]string{
 			"Example_Environment_Variable": "Set gear environment variables here.",
 		},
-		Command:    "./example.sh --age {{age}} --cost {{cost}}",
+		Command:    "./example.sh --age [age] [fast|flag:'--fast']",
 		Author:     realName,
 		Maintainer: realName,
 		Cite:       "List citations here.",
@@ -165,10 +165,14 @@ find /flywheel/v0/input -type f | xargs -r file || true
 
 const ExamplePythonScript = `#!/usr/bin/env python
 
-import json, codecs
+import codecs, json, sys
 
 print('This is an example python script.')
 print('Modify as desired, or set the manifest "command" key to something else entirely.')
+
+print('\nThis script was called with arguments:')
+print(sys.argv)
+print()
 
 invocation  = json.loads(open('config.json').read())
 config      = invocation['config']

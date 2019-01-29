@@ -50,7 +50,7 @@ def auth_login(args):
     if not google_auth:
         raise CliError('Google auth not configured on ' + api_url)
     url = google_auth['auth_endpoint'] + '?' + urllib.parse.urlencode({
-        'prompt': 'select_account',
+        'prompt': 'select_account consent',
         'access_type': 'offline',
         'scope': SCOPE,
         'redirect_uri': redirect_uri,

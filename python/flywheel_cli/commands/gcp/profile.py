@@ -124,7 +124,7 @@ def profile_create(args):
         raise CliError('GCP profile already exists: ' + args.name)
     profiles = [args_to_profile(args)] + profiles
     api = create_flywheel_session()
-    api.patch('/users/self/info', json={'gcp_profiles': profiles})
+    api.post('/users/self/info', json={'set': {'gcp_profiles': profiles}})
     print('Successfully created GCP profile ' + args.name)
 
 
@@ -138,7 +138,7 @@ def profile_update(args):
     profile.update(args_to_profile(args))
     profiles = [profile] + [p for p in profiles if p['name'] != args.name]
     api = create_flywheel_session()
-    api.patch('/users/self/info', json={'gcp_profiles': profiles})
+    api.post('/users/self/info', json={'set': {'gcp_profiles': profiles}})
     print('Successfully created GCP profile ' + args.name)
 
 

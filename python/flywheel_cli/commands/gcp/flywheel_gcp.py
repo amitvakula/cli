@@ -170,7 +170,7 @@ class BigQuery(Service):
         config = {'configuration': {'load': {
             'autodetect': True,
             'destinationTable': {
-                'projectId': project,
+                'projectId': self.project,
                 'datasetId': dataset,
                 'tableId': table},
             'ignoreUnknownValues': False,
@@ -316,6 +316,82 @@ class Healthcare(Service):
         session.request = request
         return client
 
+    def list_hl7_stores(self, project, location, dataset):
+        url = '/projects/{}/locations/{}/datasets/{}/hl7V2Stores'.format(
+            project, location, dataset)
+        return self.get(url).json()
+
+    def create_hl7_store(self, project, location, dataset, hl7_store):
+        url = '/projects/{}/locations/{}/datasets/{}/hl7V2Stores'.format(
+            project, location, dataset)
+        return self.post(url, params={'hl7V2StoreId': hl7_store}).json()
+
+    def get_hl7_store(self, project, location, dataset, hl7_store):
+        url = '/projects/{}/locations/{}/datasets/{}/hl7V2Stores/{}'.format(
+            project, location, dataset, hl7_store)
+        return self.get(url).json()
+
+    def delete_hl7_store(self, project, location, dataset, hl7_store):
+        url = '/projects/{}/locations/{}/datasets/{}/hl7V2Stores/{}'.format(
+            project, location, dataset, hl7_store)
+        return self.delete(url).json()
+
+    def list_hl7_messages(self, project, location, dataset, hl7_store, query=''):
+        url = '/projects/{}/locations/{}/datasets/{}/hl7V2Stores/{}/messages/{}'.format(
+            project, location, dataset, hl7_store, query)
+        return self.get(url).json()
+
+    def create_hl7_message(self, project, location, dataset, hl7_store, msg):
+        url = '/projects/{}/locations/{}/datasets/{}/hl7V2Stores/{}/messages'.format(
+            project, location, dataset, hl7_store)
+        return self.post(url, json={'message': {'data': msg}}).json()
+
+    def get_hl7_message(self, project, location, dataset, hl7_store, msg_id):
+        url = '/projects/{}/locations/{}/datasets/{}/hl7V2Stores/{}/messages/{}'.format(
+            project, location, dataset, hl7_store, msg_id)
+        return self.get(url).json()
+
+    def delete_hl7_message(self, project, location, dataset, hl7_store, msg_id):
+        url = '/projects/{}/locations/{}/datasets/{}/hl7V2Stores/{}/messages/{}'.format(
+            project, location, dataset, hl7_store, msg_id)
+        return self.delete(url).json()
+
+    def list_fhir_stores(self, project, location, dataset):
+        url = '/projects/{}/locations/{}/datasets/{}/fhirStores'.format(
+            project, location, dataset)
+        return self.get(url).json()
+
+    def create_fhir_store(self, project, location, dataset, fhir_store):
+        url = '/projects/{}/locations/{}/datasets/{}/fhirStores'.format(
+            project, location, dataset)
+        return self.post(url, params={'hl7V2StoreId': fhir_store}).json()
+
+    def get_fhir_store(self, project, location, dataset, fhir_store):
+        url = '/projects/{}/locations/{}/datasets/{}/fhirStores/{}'.format(
+            project, location, dataset, fhir_store)
+        return self.get(url).json()
+
+    def delete_fhir_store(self, project, location, dataset, fhir_store):
+        url = '/projects/{}/locations/{}/datasets/{}/fhirStores/{}'.format(
+            project, location, dataset, fhir_store)
+        return self.delete(url).json()
+
+    def list_fhir_resources(self, project, location, dataset, fhir_store, resource_type=None, query=None):
+        query_part = ''
+        if resource_type:
+            query_part += '{}/'.format(resource_type)
+
+        if query:
+            query_part += '?{}'.format(query)
+
+        url = '/projects/{}/locations/{}/datasets/{}/fhirStores/{}/resources/{}'.format(
+            project, location, dataset, fhir_store, query_part)
+        return self.get(url).json()
+
+    def get_fhir_resource(self, project, location, dataset, fhir_store, resource_type, id):
+        url = '/projects/{}/locations/{}/datasets/{}/fhirStores/{}/resources/{}/{}'.format(
+            project, location, dataset, fhir_store, resource_type, id)
+        return self.get(url).json()
 
 class AutoML(Service):
     baseurl = 'https://automl.googleapis.com/v1beta1'

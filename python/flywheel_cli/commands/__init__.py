@@ -123,6 +123,8 @@ def add_commands(parser):
     parsers['gcp query'] = parser_gcp_query
     gcp_query_subparsers = parser_gcp_query.add_subparsers(title='available gcp query commands', metavar='')
     parsers['gcp query dicom'] = gcp.query_dicom.add_command(gcp_query_subparsers)
+    parsers['gcp query fhir'] = gcp.query_fhir.add_command(gcp_query_subparsers)
+    parsers['gcp query hl7'] = gcp.query_hl7.add_command(gcp_query_subparsers)
     set_subparser_print_help(parser_gcp_query, gcp_query_subparsers)
 
     parser_gcp_import_help = 'Import data from GCP into Flywheel'
@@ -130,6 +132,8 @@ def add_commands(parser):
     parsers['gcp import'] = parser_gcp_import
     gcp_import_subparsers = parser_gcp_import.add_subparsers(title='available gcp import commands', metavar='')
     parsers['gcp import dicom'] = gcp.import_dicom.add_command(gcp_import_subparsers)
+    parsers['gcp import fhir'] = gcp.import_fhir.add_command(gcp_import_subparsers)
+    parsers['gcp import hl7'] = gcp.import_hl7.add_command(gcp_import_subparsers)
     set_subparser_print_help(parser_gcp_import, gcp_import_subparsers)
 
     parser_gcp_export = gcp_subparsers.add_parser('export', help='export data from Flywheel into GCP')

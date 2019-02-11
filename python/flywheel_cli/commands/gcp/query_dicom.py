@@ -2,16 +2,13 @@ import argparse
 import itertools
 import sys
 
-
-from ...errors import CliError
-from ...sdk_impl import create_flywheel_session
 from .auth import get_token
 from .flywheel_gcp import GCP, GCPError
 from .profile import get_profile
-
+from ...errors import CliError
 
 QUERY_DICOM_DESC = """
-Run assisted SQL query (only WHERE clase needed) on a BigQuery table exported
+Run assisted SQL query (only WHERE clause needed) on a BigQuery table exported
 from Healthcare API. Assuming that Healthcare API dataset/dicomstore matches
 BigQuery dataset/table name.
 

@@ -2,4 +2,8 @@ from . import auth
 from . import profile
 from . import export_view
 from . import import_dicom
+from . import import_fhir
+from . import import_hl7
 from . import query_dicom
+from . import query_fhir
+from . import query_hl7

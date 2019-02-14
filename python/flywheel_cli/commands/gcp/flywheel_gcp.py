@@ -3,6 +3,7 @@ import collections
 import json
 import time
 
+import mimetypes
 import requests
 
 
@@ -29,18 +30,26 @@ class Service(requests.Session):
 
     def request(self, method, url, **kwargs):
         self.headers['Authorization'] = 'Bearer ' + self.get_token()
+        self.headers['Content-Type'] = 'application/json; charset=utf-8'
         if not url.startswith('http'):
             url = self.baseurl + url
         response = super().request(method, url, **kwargs)
+
+        transient_failure_retries = 0
+        while response.status_code == 429 or 500 <= response.status_code <= 599 and transient_failure_retries <= 5:
+            time.sleep(2 ** transient_failure_retries)
+            response = super().request(method, url, **kwargs)
+            transient_failure_retries += 1
+
         if not response.ok:
             raise GCPError(response=response)
         return response
 
-    def wait(self, url, done, sleep=10, timeout=60):
+    def wait(self, url, done, sleep=10, timeout=None):
         start = time.time()
         response = self.get(url)
         while not done(response):
-            if timeout and time.time() > start + timeout:
+            if timeout is not None and time.time() > start + timeout:
                 message = 'Wait timeout: exceeded {}s for {}'.format(timeout, url)
                 raise GCPError(response=response, message=message)
             time.sleep(sleep)
@@ -59,8 +68,10 @@ class GCPError(Exception):
     def __init__(self, response=None, message=None, status_code=None):
         if response == message == None:
             raise TypeError('response or message required')
-        self.status_code = status_code or (response.status_code if response else 500)
+        self.status_code = status_code or (response.status_code if response else None)
         self.message = message or self.get_message(response)
+        if self.status_code is not None:
+            self.message = '{}: {}'.format(self.status_code, self.message)
         super().__init__(self.message)
 
     @staticmethod
@@ -95,6 +106,20 @@ class Storage(Service):
     def delete_bucket(self, bucket):
         url = '/b/{}'.format(bucket)
         return self.post(url).json()
+
+    def list_objects(self, bucket):
+        url = '/b/{}/o'.format(bucket)
+        return self.get(url).json()
+
+    def upload_object(self, bucket, file_, name=None, mime=None):
+        file_ = file_ if hasattr(file_, 'read') else open(file_, 'rb')
+        if name is None:
+            name = file_.name
+        if mime is None:
+            mime = mimetypes.guess_type(name)[0] or 'application/octet-stream'
+        upload_url = self.baseurl.replace('storage', 'upload/storage')
+        url = '{}/b/{}/o?uploadType=media&name={}'.format(upload_url, bucket, name)
+        return self.post(url, data=file_, headers={'Content-Type': mime}).json()
 
 
 class BigQuery(Service):
@@ -135,13 +160,13 @@ class BigQuery(Service):
         url = '/projects/{}/datasets/{}/tables/{}'.format(project, dataset, table)
         return self.delete(url)
 
-    def import_from_storage(self, project, dataset, table, *gcs_globs):
+    def import_from_storage(self, project, dataset, table, gcs_globs, timeout=None):
         url = '/projects/{}/jobs'.format(project)
         response = self.post(url, json={'configuration': {'load': {
-            'sourceUris': gcs_globs,
+            'sourceUris': gcs_globs if isinstance(gcs_globs, list) else [gcs_globs],
             'destinationTable': {'datasetId': dataset, 'tableId': table},
         }}})
-        return self.wait_job(response)
+        return self.wait_job(response, timeout=timeout)
 
     def wait_job(self, response, timeout=None):
         url = '/projects/{projectId}/jobs/{jobId}'.format(**response.json()['jobReference'])
@@ -164,13 +189,13 @@ class BigQuery(Service):
         url = '/projects/{}/datasets/{}/tables/{}/insertAll'.format(project, dataset, table)
         return self.post(url, json=payload)
 
-    def upload_csv(self, project, dataset, table, csv):
+    def upload_csv(self, project, dataset, table, csv, timeout=None):
         upload_url = self.baseurl.replace('bigquery', 'upload/bigquery')
         url = '{}/projects/{}/jobs?uploadType=multipart'.format(upload_url, project)
         config = {'configuration': {'load': {
             'autodetect': True,
             'destinationTable': {
-                'projectId': self.project,
+                'projectId': project,
                 'datasetId': dataset,
                 'tableId': table},
             'ignoreUnknownValues': False,
@@ -196,9 +221,9 @@ class BigQuery(Service):
         }))
         headers = {'Content-Type': mpre.content_type}
         response = self.post(url, data=mpre, headers=headers)
-        return self.wait_job(response)
+        return self.wait_job(response, timeout=timeout)
 
-    def truncate_table(self, project, dataset, table):
+    def truncate_table(self, project, dataset, table, timeout=None):
         url = '/projects/{}/jobs'.format(project)
         config = {'configuration': {'query': {
             'allowLargeResults': True,
@@ -212,7 +237,7 @@ class BigQuery(Service):
             'useQueryCache': False,
             'writeDisposition': 'WRITE_TRUNCATE'}}}
         response = self.post(url, json=config)
-        return self.wait_job(response)
+        return self.wait_job(response, timeout=timeout)
 
     @staticmethod
     def parse_resultset(resultset):
@@ -277,30 +302,30 @@ class Healthcare(Service):
             project, location, dataset, dicomstore)
         return self.delete(url)
 
-    def import_from_storage(self, project, location, dataset, dicomstore, gcs_glob):
+    def import_from_storage(self, project, location, dataset, dicomstore, gcs_glob, timeout=None):
         url = '/projects/{}/locations/{}/datasets/{}/dicomStores/{}:import'.format(
             project, location, dataset, dicomstore)
         response = self.post(url, json={'inputConfig': {'gcsSource': {'contentUri': gcs_glob}}})
-        return self.wait_operation(response)
+        return self.wait_operation(response, timeout=timeout)
 
-    def export_to_storage(self, project, location, dataset, dicomstore, gcs_prefix, jpeg=False):
+    def export_to_storage(self, project, location, dataset, dicomstore, gcs_prefix, jpeg=False, timeout=None):
         url = '/projects/{}/locations/{}/datasets/{}/dicomStores/{}:export'.format(
             project, location, dataset, dicomstore)
         gcs_destination = {'uriPrefix': gcs_prefix}
         if jpeg:
             gcs_destination['mimeType'] = 'image/jpeg; transfer-syntax=1.2.840.10008.1.2.4.50'
         response = self.post(url, json={'outputConfig': {'gcsDestination': gcs_destination}})
-        return self.wait_operation(response)
+        return self.wait_operation(response, timeout=timeout)
 
     def export_to_bigquery(self, project, location, dataset, dicomstore,
-                           bq_dataset=None, bq_table=None, overwrite=True):
+                           bq_dataset=None, bq_table=None, overwrite=True, timeout=None):
         url = '/projects/{}/locations/{}/datasets/{}/dicomStores/{}:export'.format(
             project, location, dataset, dicomstore)
         bq_destination = {'dataset': bq_dataset or dataset,
                           'table': bq_table or dicomstore,
                           'overwriteTable': overwrite}
         response = self.post(url, json={'outputConfig': {'bigQueryDestination': bq_destination}})
-        return self.wait_operation(response)
+        return self.wait_operation(response, timeout=timeout)
 
     def get_dicomweb_client(self, project, location, dataset, dicomstore):
         url = '/projects/{}/locations/{}/datasets/{}/dicomStores/{}/dicomWeb'.format(
@@ -310,10 +335,11 @@ class Healthcare(Service):
         client = dicomweb_client.api.DICOMwebClient(self.baseurl + url)
         # patch session used in dicomweb client to use tokens
         session = client._session
-        def request(*args, **kwargs):
+        request = session.request
+        def auth_request(*args, **kwargs):
             session.headers['Authorization'] = 'Bearer ' + self.get_token()
-            session.request(*args, **kwargs)
-        session.request = request
+            return request(*args, **kwargs)
+        session.request = auth_request
         return client
 
     def list_hl7_stores(self, project, location, dataset):
@@ -364,7 +390,7 @@ class Healthcare(Service):
     def create_fhir_store(self, project, location, dataset, fhir_store):
         url = '/projects/{}/locations/{}/datasets/{}/fhirStores'.format(
             project, location, dataset)
-        return self.post(url, params={'hl7V2StoreId': fhir_store}).json()
+        return self.post(url, params={'fhirStoreId': fhir_store}).json()
 
     def get_fhir_store(self, project, location, dataset, fhir_store):
         url = '/projects/{}/locations/{}/datasets/{}/fhirStores/{}'.format(
@@ -375,6 +401,11 @@ class Healthcare(Service):
         url = '/projects/{}/locations/{}/datasets/{}/fhirStores/{}'.format(
             project, location, dataset, fhir_store)
         return self.delete(url).json()
+
+    def create_fhir_resource(self, project, location, dataset, fhir_store, payload):
+        url = '/projects/{}/locations/{}/datasets/{}/fhirStores/{}/resources/{}'.format(
+            project, location, dataset, fhir_store, payload['resourceType'])
+        return self.post(url, json=payload).json()
 
     def list_fhir_resources(self, project, location, dataset, fhir_store, resource_type=None, query=None):
         query_part = ''
@@ -393,6 +424,7 @@ class Healthcare(Service):
             project, location, dataset, fhir_store, resource_type, id)
         return self.get(url).json()
 
+
 class AutoML(Service):
     baseurl = 'https://automl.googleapis.com/v1beta1'
 
@@ -406,9 +438,11 @@ class AutoML(Service):
         items = self.get(url).json().get('datasets', [])
         return {item['name'].split('/')[-1]: item for item in items}
 
-    def create_dataset(self, project, location, dataset):
+    def create_dataset(self, project, location, display_name, classification_type='MULTICLASS'):
         url = '/projects/{}/locations/{}/datasets'.format(project, location)
-        return self.post(url, json={'name': dataset}).json()
+        payload = {'displayName': display_name,
+                   'imageClassificationDatasetMetadata': {'classificationType': classification_type}}
+        return self.post(url, json=payload).json()
 
     def get_dataset(self, project, location, dataset):
         url = '/projects/{}/locations/{}/datasets/{}'.format(project, location, dataset)
@@ -418,32 +452,39 @@ class AutoML(Service):
         url = '/projects/{}/locations/{}/datasets/{}'.format(project, location, dataset)
         return self.delete(url)
 
-    def import_from_storage(self, project, location, dataset, inputs):
+    def import_from_storage(self, project, location, dataset, inputs, timeout=None):
         url = '/projects/{}/locations/{}/datasets/{}:importData'.format(project, location, dataset)
-        response = self.post(url, json={'gcsSource': {'inputUris': gcs_glob}})
-        return self.wait_operation(response)
+        response = self.post(url, json={'inputConfig': {'gcsSource': {'inputUris': inputs}}})
+        return self.wait_operation(response, timeout=timeout)
 
     def list_models(self, project, location):
         url = '/projects/{}/locations/{}/models'.format(project, location)
-        items = self.get(url).json().get('models', [])
+        items = self.get(url).json().get('model', [])
         return {item['name'].split('/')[-1]: item for item in items}
 
-    def create_model(self, project, location, dataset, name, train_budget=1):
+    def create_model(self, project, location, dataset, display_name, train_budget=1, timeout=None):
         url = '/projects/{}/locations/{}/models'.format(project, location)
-        payload = {'datasetId': dataset, 'displayName': name,
+        payload = {'datasetId': dataset, 'displayName': display_name,
                    'imageClassificationModelMetadata': {'trainBudget': train_budget}}
         response = self.post(url, json=payload)
-        return self.wait_operation(response)
+        return self.wait_operation(response, timeout=timeout)
 
     def get_model(self, project, location, model):
         url = '/projects/{}/locations/{}/models/{}'.format(project, location, model)
+        return self.get(url).json()
+
+    def get_model_evaluation(self, project, location, dataset, model):
+        url = '/projects/{}/locations/{}/models/{}/modelEvaluations'.format(project, location, model)
         return self.get(url).json()
 
     def delete_model(self, project, location, model):
         url = '/projects/{}/locations/{}/models/{}'.format(project, location, model)
         return self.delete(url)
 
-    def predict(self, project, location, model, jpeg):
+    def predict(self, project, location, model, image, score_threshold=0.5):
         url = '/projects/{}/locations/{}/models/{}:predict'.format(project, location, model)
-        payload = {'payload': {'image': {'imageBytes': base64.b64encode(jpeg)}}}
-        return self.post(url, json=payload)
+        # TODO figure out score_threshold mechanics:
+        # https://cloud.google.com/vision/automl/docs/reference/rest/v1beta1/projects.locations.models/predict
+        # Invalid value at 'params[0].value' (TYPE_STRING), 0.85
+        payload = {'payload': {'image': {'imageBytes': base64.b64encode(image).decode('utf8')}}}
+        return self.post(url, json=payload).json()

@@ -25,7 +25,7 @@ def make_config(resolver):
     return config
 
 def make_importer(resolver, group=None, project=None, no_subjects=False, no_sessions=False):
-    importer = FolderImporter(group=group, project=project, 
+    importer = FolderImporter(group=group, project=project,
         merge_subject_and_session=(no_subjects or no_sessions), config=make_config(resolver))
 
     if not group:
@@ -46,16 +46,16 @@ def make_importer(resolver, group=None, project=None, no_subjects=False, no_sess
 def test_folder_resolver_default():
     # Normal discovery
     mockfs = mock_fs(collections.OrderedDict({
-        'scitran/Anxiety Study': [ 
-            'InformedConsent_MRI.pdf', 'ScreeningForm_MRI.pdf' 
+        'scitran/Anxiety Study': [
+            'InformedConsent_MRI.pdf', 'ScreeningForm_MRI.pdf'
         ],
-        'scitran/Anxiety Study/anx_s1/ses1': [ 
-            'FractionalAnisotropy_Single_Subject.csv', 'MeanDiffusivity_Single_Subject.csv' 
+        'scitran/Anxiety Study/anx_s1/ses1': [
+            'FractionalAnisotropy_Single_Subject.csv', 'MeanDiffusivity_Single_Subject.csv'
         ],
-        'scitran/Anxiety Study/anx_s1/ses1/T1_high-res_inplane_Ret_knk': [ 
+        'scitran/Anxiety Study/anx_s1/ses1/T1_high-res_inplane_Ret_knk': [
             '8403_4_1_t1.dcm.zip'
         ],
-        'scitran/Anxiety Study/anx_s1/ses1/fMRI_Ret_knk/dicom': [ 
+        'scitran/Anxiety Study/anx_s1/ses1/fMRI_Ret_knk/dicom': [
             '001.dcm',
             '002.dcm',
             '003.dcm'
@@ -116,10 +116,10 @@ def test_folder_resolver_default():
 def test_folder_resolver_group_and_project():
     # Normal discovery
     mockfs = mock_fs(collections.OrderedDict({
-        '/': [ 
+        '/': [
             'InformedConsent_MRI.pdf'
         ],
-        'anx_s1/ses1/T1_high-res_inplane_Ret_knk': [ 
+        'anx_s1/ses1/T1_high-res_inplane_Ret_knk': [
             '8403_4_1_t1.dcm.zip'
         ]
     }))
@@ -190,7 +190,7 @@ def test_composite_packfiles():
 
     _, child = next(itr)
     assert child.container_type == 'project'
-    assert child.label == 'project' 
+    assert child.label == 'project'
 
     _, child = next(itr)
     assert child.container_type == 'subject'
@@ -259,7 +259,7 @@ def test_nested_packfiles():
 
     _, child = next(itr)
     assert child.container_type == 'project'
-    assert child.label == 'project' 
+    assert child.label == 'project'
 
     _, child = next(itr)
     assert child.container_type == 'subject'

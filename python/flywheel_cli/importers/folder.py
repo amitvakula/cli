@@ -8,7 +8,7 @@ import sys
 from ..util import set_nested_attr, sorted_container_nodes, METADATA_ALIASES, NO_FILE_CONTAINERS
 from .abstract_importer import AbstractImporter
 from .container_factory import ContainerFactory
-from .template import CompositeNode
+from .template import CompositeNode, TERMINAL_NODE
 from .packfile import PackfileDescriptor
 
 IGNORED_FILE_LIST = [
@@ -26,7 +26,7 @@ def should_ignore_file(name):
     return False
 
 class FolderImporter(AbstractImporter):
-    def __init__(self, group=None, project=None,  repackage_archives=False, 
+    def __init__(self, group=None, project=None,  repackage_archives=False,
             merge_subject_and_session=False, context=None, config=None):
         """Class that handles state for folder import.
 
@@ -57,7 +57,7 @@ class FolderImporter(AbstractImporter):
             last.set_next(next_node)
         else:
             self.root_node = next_node
-            
+
         self._last_added_node = next_node
 
     def add_composite_template_node(self, nodes):
@@ -93,17 +93,17 @@ class FolderImporter(AbstractImporter):
         if not context:
             context = self.initial_context()
 
+        # We only need to query for symlink if we're NOT following them
         info_ns = ['basic']
         if not self.config.follow_symlinks:
             info_ns.append('link')
 
-        # We only need to query for symlink if we're NOT following them
         for name in src_fs.listdir('/'):
             # Check if it's in the exclusion list
             if should_ignore_file(name):
                 continue
 
-            info = src_fs.getinfo(name, info_ns) 
+            info = src_fs.getinfo(name, info_ns)
             if not self.config.follow_symlinks and info.has_namespace('link') and info.target:
                 continue
 
@@ -118,23 +118,27 @@ class FolderImporter(AbstractImporter):
                         child_context = context.copy()
                         child_context.pop('files', None)
 
-                        if template_node is None:
+                        if template_node is None or template_node is TERMINAL_NODE:
                             # Treat as packfile
                             child_context['packfile'] = name
                         else:
                             next_node = template_node.extract_metadata(name, child_context, src_fs)
 
-                    if next_node and next_node.node_type == 'scanner':
-                        next_node.scan(src_fs, curdir, child_context, self.container_factory)
-                        resolve = False
-                    else:
-                        resolve_child = 'packfile' not in context
-                        self.recursive_discover(subdir, child_context, next_node, path, resolve=resolve_child)
+                    if not child_context.get('ignore', False):
+                        if next_node and next_node.node_type == 'scanner':
+                            next_node.scan(src_fs, curdir, child_context, self.container_factory)
+                            resolve = False
+                        else:
+                            resolve_child = 'packfile' not in context
+                            self.recursive_discover(subdir, child_context, next_node, path, resolve=resolve_child)
             else:
                 context.setdefault('files', []).append(path)
 
         # Resolve the container
         if resolve:
+            if self.merge_subject_and_session:
+                self._context_merge_subject_and_session(context)
+
             container = self.container_factory.resolve(context)
 
             files = context.get('files', None)
@@ -149,4 +153,15 @@ class FolderImporter(AbstractImporter):
                         container.files.extend(files)
                 else:
                     self.messages.append(('warn', 'Ignoring files for folder {} because it represents an ambiguous node'.format(curdir)))
+
+    def _context_merge_subject_and_session(self, context):
+        """Merge session & subject labels"""
+        merged = False
+        if 'session' in context and 'label' in context['session']:
+            context.setdefault('subject', {})['label'] = context['session']['label']
+            merged = True
+        if not merged and 'subject' in context and 'label' in context['subject']:
+            context.setdefault('session', {})['label'] = context['subject']['label']
+            merged = True
+        return merged
 

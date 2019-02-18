@@ -1,8 +1,11 @@
 import argparse
+import os
 import re
+import sys
 import textwrap
+import yaml
 
-from ..importers import parse_template_string, FolderImporter
+from ..importers import parse_template_string, parse_template_list, FolderImporter
 from ..util import set_nested_attr, split_key_value_argument, METADATA_ALIASES
 
 def add_command(subparsers, parents):
@@ -31,9 +34,9 @@ def add_command(subparsers, parents):
     no_level_group.add_argument('--no-subjects', action='store_true', help='no subject level (create a subject for every session)')
     no_level_group.add_argument('--no-sessions', action='store_true', help='no session level (create a session for every subject)')
 
-    parser.add_argument('--set-var', '-s', metavar='key=value', action='append', default=[], 
+    parser.add_argument('--set-var', '-s', metavar='key=value', action='append', default=[],
         type=split_key_value_argument, help='Set arbitrary key-value pairs')
-    
+
     parser.add_argument('template', help='The template string')
     parser.add_argument('folder', help='The path to the folder to import')
 
@@ -52,15 +55,25 @@ def build_context(variables):
 
 def import_folder_with_template(args):
     # Build the importer instance
-    importer = FolderImporter(group=args.group, project=args.project, 
-        repackage_archives=args.repack, merge_subject_and_session=(args.no_subjects or args.no_sessions), 
+    importer = FolderImporter(group=args.group, project=args.project,
+        repackage_archives=args.repack, merge_subject_and_session=(args.no_subjects or args.no_sessions),
         context=build_context(args.set_var), config=args.config)
 
-    # Build the template string
-    try:
-        importer.root_node = parse_template_string(args.template, args.config) 
-    except (ValueError, re.error) as e:
-        args.parser.error('Invalid template: {}'.format(e))
+    if os.path.isfile(args.template):
+        import yaml
+        with open(args.template, 'r') as f:
+            try:
+                template_list = yaml.load(f)
+                importer.root_node = parse_template_list(template_list, args.config)
+            except yaml.YAMLError as exc:
+                print('Unable to parse template file (YAML expected)', file=sys.stderr)
+                sys.exit(1)
+    else:
+        # Build the template string
+        try:
+            importer.root_node = parse_template_string(args.template, args.config)
+        except (ValueError, re.error) as e:
+            args.parser.error('Invalid template: {}'.format(e))
 
     # Perform the import
     importer.interactive_import(args.folder)

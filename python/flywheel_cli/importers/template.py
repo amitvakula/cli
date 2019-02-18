@@ -6,8 +6,8 @@ from typing.re import Pattern
 from ..util import (
     METADATA_ALIASES,
     python_id_to_str,
-    regex_for_property, 
-    set_nested_attr, 
+    regex_for_property,
+    set_nested_attr,
     str_to_python_id
 )
 
@@ -21,16 +21,17 @@ SCANNER_CLASSES = {
 
 class ImportTemplateNode(ABC):
     """The node type, either folder or scanner"""
+    ignore = False
     node_type = 'folder'
 
     def extract_metadata(self, name, context, parent_fs=None):
         """Extract metadata from a folder-level node
-        
-        Arguments:
+
+        Args:
             name (str): The current folder name
             context (dict): The context object to update
             parent_fs (fs): The parent fs object, if available
-        
+
         Returns:
             ImportTemplateNode: The next node in the tree if match succeeded, otherwise None
         """
@@ -41,7 +42,7 @@ class ImportTemplateNode(ABC):
 
         Called if this is a scanner node.
 
-        Arguments:
+        Args:
             src_fs (fs): The filesystem to scan
             path_prefix (str): The path prefix
             context (dict): The current context object
@@ -54,23 +55,28 @@ class TerminalNode(ImportTemplateNode):
     def extract_metadata(self, name, context, parent_fs=None):
         return None
 
+    def __repr__(self):
+        return 'TerminalNode'
+
 TERMINAL_NODE = TerminalNode()
 
 class StringMatchNode(ImportTemplateNode):
-    def __init__(self, template=None, packfile_type=None, metadata_fn=None, packfile_name=None):
+    def __init__(self, template=None, packfile_type=None, metadata_fn=None, packfile_name=None, ignore=False):
         """Create a new container-level node.
 
-        Arguments:
+        Args:
             template (str|Pattern): The metavar or regular expression
             packfile_type (str): The optional packfile type if this is a packfile folder
             metadata_fn (function): Optional function to extract additional metadata
             packfile_name (str): The optional packfile name, if not using the default
+            ignore (bool): Whether or not to ignore this node
         """
         self.template = template
-        self.next_node = None
+        self.next_node = TERMINAL_NODE
         self.packfile_type = packfile_type
         self.metadata_fn = metadata_fn
         self.packfile_name = packfile_name
+        self.ignore = ignore
 
     def set_next(self, next_node):
         """Set the next node"""
@@ -86,6 +92,10 @@ class StringMatchNode(ImportTemplateNode):
             groups = m.groupdict()
         else:
             groups[self.template] = name
+
+        if self.ignore:
+            context['ignore'] = True
+            return None
 
         for key, value in groups.items():
             if value:
@@ -106,6 +116,14 @@ class StringMatchNode(ImportTemplateNode):
 
         return self.next_node
 
+    def __repr__(self):
+        if isinstance(self.template, Pattern):
+            tmpl = self.template.pattern
+        else:
+            tmpl = self.template
+        return 'StringMatchNode({}, packfile_type={}, ignore={})'.format(
+            tmpl, self.packfile_type, self.ignore)
+
 class CompositeNode(ImportTemplateNode):
     def __init__(self, children=None):
         """Returns the first node that matches out of children."""
@@ -117,7 +135,7 @@ class CompositeNode(ImportTemplateNode):
     def add_child(self, child):
         """Add a child to the composite node
 
-        Arguments:
+        Args:
             child (ImportTemplateNode): The child to add
         """
         self.children.append(child)
@@ -128,6 +146,12 @@ class CompositeNode(ImportTemplateNode):
             if next_node:
                 return next_node
         return None
+
+    def __repr__(self):
+        result = 'CompositeNode([\n'
+        for child in self.children:
+            result += '  {}\n'.format(child)
+        return result + '])'
 
 class ScannerNode(ImportTemplateNode):
     node_type = 'scanner'
@@ -144,7 +168,7 @@ class ScannerNode(ImportTemplateNode):
 
         Called if this is a scanner node.
 
-        Arguments:
+        Args:
             src_fs (fs): The filesystem to scan
             path_prefix (str): The path prefix
             context (dict): The current context object
@@ -152,11 +176,69 @@ class ScannerNode(ImportTemplateNode):
         """
         self.scanner.discover(src_fs, context, container_factory, path_prefix=path_prefix)
 
+    def __repr__(self):
+        return 'ScannerNode(scanner={})'.format(type(self.scanner))
+
+def parse_list_item(item, last=None, config=None):
+    # Ensure dict, allows shorthand in config file
+    if isinstance(item, str):
+        item = {'pattern': item}
+
+    if 'select' in item:
+        # Composite node
+        children = [parse_list_item(child, config=config) for child in item['select']]
+        node = CompositeNode(children)
+    else:
+
+        # Otherwise, expect a pattern
+        match = compile_regex(item['pattern'])
+
+        # Create a copy to create opts
+        opts = item.copy()
+        opts.pop('pattern')
+
+        #Create the next node
+        scan = opts.pop('scan', None)
+        node = StringMatchNode(template=match, **opts)
+
+        # Add scanner node
+        if scan:
+            scanner_cls = SCANNER_CLASSES.get(scan)
+            if not scanner_cls:
+                raise ValueError('Unknown scanner class: {}'.format(scan))
+            next_node = ScannerNode(config, scanner_cls)
+            node.set_next(node)
+
+    if last is not None:
+        last.set_next(node)
+
+    return node
+
+
+def parse_template_list(value, config=None):
+    """Parses a template list, creating an ImportTemplateNode tree.
+
+    Args:
+        value (list): The list of template values
+
+    Returns:
+        The created ImportTemplateNode tree
+    """
+    root = None
+    last = None
+
+    for item in value:
+        last = parse_list_item(item, last, config)
+        if root is None:
+            root = last
+
+    return root
+
 
 def parse_template_string(value, config=None):
     """Parses a template string, creating an ImportTemplateNode tree.
 
-    Arguments:
+    Args:
         value (str): The template string
 
     Returns:
@@ -204,8 +286,8 @@ IS_PROPERTY_RE = re.compile(r'^[a-z]([-_a-zA-Z0-9\.]+)([a-zA-Z0-9])$')
 
 def compile_regex(value):
     """Compile a regular expression from a template string
-    
-    Arguments:
+
+    Args:
         value (str): The value to compile
 
     Returns:

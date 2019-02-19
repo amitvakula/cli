@@ -19,6 +19,7 @@ CLI_LOG_PATH = '~/.cache/flywheel/logs/cli.log'
 
 RE_CONFIG_LINE = re.compile(r'^\s*([-_a-zA-Z0-9]+)\s*([:=]\s*(.+?))?\s*$')
 
+
 class Config(object):
     def __init__(self, args=None):
         self._resolver = None
@@ -75,7 +76,7 @@ class Config(object):
         self.walk_filters = {
             'filter': getattr(args, 'filter', []),
             'exclude': getattr(args, 'exclude', []),
-            'filter_dirs': getattr(args, 'filter_dirs', []),
+            'include_dirs': getattr(args, 'include_dirs', []),
             'exclude_dirs': getattr(args, 'exclude_dirs', []),
         }
 
@@ -116,7 +117,7 @@ class Config(object):
 
     def get_walker(self, **kwargs):
         # Merge include/exclusion lists
-        for key in ('filter', 'exclude', 'filter_dirs', 'exclude_dirs'):
+        for key in ('filter', 'exclude', 'include_dirs', 'exclude_dirs'):
             kwargs[key] = merge_lists(kwargs.get(key, []), self.walk_filters[key])
 
         return CustomWalker(symlinks=self.follow_symlinks, **kwargs)
@@ -186,7 +187,7 @@ class Config(object):
         parser.add_argument('--compression-level', default=1, type=int, choices=range(-1, 9),
                 help='The compression level to use for packfiles. -1 for default, 0 for store')
         parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
-        parser.add_argument('--include-dirs', action='append', dest='filter_dirs', help='Patterns of directories to include')
+        parser.add_argument('--include-dirs', action='append', dest='include_dirs', help='Patterns of directories to include')
         parser.add_argument('--exclude-dirs', action='append', dest='exclude_dirs', help='Patterns of directories to exclude')
         parser.add_argument('--include', action='append', dest='filter', help='Patterns of filenames to include')
         parser.add_argument('--exclude', action='append', dest='exclude', help='Patterns of filenames to exclude')

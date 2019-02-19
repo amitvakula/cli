@@ -162,7 +162,7 @@ class AbstractImporter(ABC):
                     results.append(('warn', msg))
 
                 for desc in container.packfiles:
-                    msg = '{} pack-file cannot be uploaded to {} {} - files are not supported at this level'.format(fname, container.container_type, cname)
+                    msg = 'pack-file cannot be uploaded to {} {} - files are not supported at this level'.format(container.container_type, cname)
                     results.append(('warn', msg))
 
         return results

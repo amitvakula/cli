@@ -5,6 +5,8 @@ import fs
 import os
 import sys
 
+from queue import Empty, LifoQueue
+
 from ..util import set_nested_attr, sorted_container_nodes, METADATA_ALIASES, NO_FILE_CONTAINERS
 from .abstract_importer import AbstractImporter
 from .container_factory import ContainerFactory
@@ -17,6 +19,14 @@ IGNORED_FILE_LIST = [
     'Thumbs.db',
     'Icon\r'
 ]
+
+class VisitTarget(object):
+    """Represents a single node to visit while scanning"""
+    def __init__(self, path, resolve, context, template_node):
+        self.path = path
+        self.resolve = resolve
+        self.context = context
+        self.template_node = template_node
 
 def should_ignore_file(name):
     """Check if the given filename should be ignored"""
@@ -42,6 +52,8 @@ class FolderImporter(AbstractImporter):
         self.root_node = None
         self._last_added_node = None
         self.merge_subject_and_session = merge_subject_and_session
+        self.walker = config.get_walker(max_depth=1)
+
 
     def add_template_node(self, next_node):
         """Append next_node to the last node that was added (or set the root node)
@@ -70,7 +82,7 @@ class FolderImporter(AbstractImporter):
         self.add_template_node(composite)
         self._last_added_node = nodes[-1]
 
-    def perform_discover(self, src_fs, context):
+    def perform_discover(self, src_fs, context, queue=None, timeout=0):
         """Performs discovery of containers to create and files to upload in the given folder.
 
         Arguments:
@@ -78,61 +90,80 @@ class FolderImporter(AbstractImporter):
             follow_symlinks (bool): Whether or not to follow links (if supported by src_fs). Default is False.
             context (dict): The initial context
         """
-        self.recursive_discover(src_fs, context, self.root_node, '/')
+        if queue is None:
+            queue = LifoQueue()
 
-    def recursive_discover(self, src_fs, context, template_node, curdir, resolve=True):
+        # Add initial item
+        queue.put(VisitTarget('/', True, self.initial_context(), self.root_node))
+
+        while True:
+            try:
+                if timeout:
+                    target = queue.get(timeout=timeout)
+                else:
+                    target = queue.get(False)
+
+                self.visit_dir(src_fs, queue, target)
+                queue.task_done()
+            except Empty:
+                break  # Queue is empty, so stop
+
+    def visit_dir(self, src_fs, queue, target):
         """Performs recursive discovery of containers to create and files to upload in the given folder.
 
         Arguments:
             src_fs (obj): The filesystem to query
-            context (dict): The context object, if this is a recursive call.
-            template_node (ImportTemplateNode): The current template node
-            curdir (str): The current absolute path (from fs root)
-            resolve (bool): Whether or not to resolve the container after discovery. Default is True.
+            queue (Queue): The queue to add paths to
+            target (VisitTarget): Queue entry being visited
         """
-        if not context:
-            context = self.initial_context()
+        context = target.context
+        resolve = target.resolve
 
         # We only need to query for symlink if we're NOT following them
-        info_ns = ['basic']
-        if not self.config.follow_symlinks:
-            info_ns.append('link')
+        for path, dirs, files in self.walker.walk(src_fs, target.path):
 
-        for name in src_fs.listdir('/'):
-            # Check if it's in the exclusion list
-            if should_ignore_file(name):
-                continue
+            for f in files:
+                # Check if it's in the exclusion list
+                if should_ignore_file(f.name):
+                    continue
 
-            info = src_fs.getinfo(name, info_ns)
-            if not self.config.follow_symlinks and info.has_namespace('link') and info.target:
-                continue
+                packfile_desc = context.get('packfile_desc')
+                if packfile_desc is not None:
+                    packfile_desc.count += 1
+                else:
+                    child_path = fs.path.combine(target.path, f.name)
+                    context.setdefault('files', []).append(child_path)
 
-            path = fs.path.combine(curdir, name)
-
-            if info.is_dir:
+            for d in dirs:
                 next_node = None
-                with src_fs.opendir(name) as subdir:
-                    if 'packfile' in context:
-                        child_context = context
+                child_path = fs.path.combine(target.path, d.name)
+
+                if 'packfile' in context:
+                    child_context = context
+                else:
+                    child_context = context.copy()
+                    child_context.pop('files', None)
+
+                    if target.template_node in (None, TERMINAL_NODE):
+                        # Treat as packfile
+                        child_context['packfile'] = d.name
                     else:
-                        child_context = context.copy()
-                        child_context.pop('files', None)
+                        next_node = target.template_node.extract_metadata(d.name, child_context, src_fs)
 
-                        if template_node is None or template_node is TERMINAL_NODE:
-                            # Treat as packfile
-                            child_context['packfile'] = name
-                        else:
-                            next_node = template_node.extract_metadata(name, child_context, src_fs)
+                if not child_context.get('ignore', False):
+                    # Set the packfile descriptor for file collection
+                    packfile_type = child_context.get('packfile')
+                    if packfile_type and 'packfile_desc' not in child_context:
+                        packfile_name = child_context.get('packfile_name')
+                        child_context['packfile_desc'] = PackfileDescriptor(packfile_type,
+                            child_path, 0, name=packfile_name)
 
-                    if not child_context.get('ignore', False):
-                        if next_node and next_node.node_type == 'scanner':
-                            next_node.scan(src_fs, curdir, child_context, self.container_factory)
-                            resolve = False
-                        else:
-                            resolve_child = 'packfile' not in context
-                            self.recursive_discover(subdir, child_context, next_node, path, resolve=resolve_child)
-            else:
-                context.setdefault('files', []).append(path)
+                    if next_node and next_node.node_type == 'scanner':
+                        next_node.scan(src_fs, child_path, child_context, self.container_factory)
+                        resolve = False
+                    else:
+                        resolve_child = 'packfile' not in context
+                        queue.put(VisitTarget(child_path, resolve_child, child_context, next_node))
 
         # Resolve the container
         if resolve:
@@ -140,19 +171,16 @@ class FolderImporter(AbstractImporter):
                 self._context_merge_subject_and_session(context)
 
             container = self.container_factory.resolve(context)
+            if container:
+                files = context.get('files')
+                packfile_desc = context.get('packfile_desc')
 
-            files = context.get('files', None)
-            if files:
-                if container:
-                    if 'packfile' in context:
-                        packfile_name = context.get('packfile_name')
-                        container.packfiles.append(PackfileDescriptor(
-                            context['packfile'], curdir, len(files), name=packfile_name
-                        ))
-                    else:
-                        container.files.extend(files)
-                else:
-                    self.messages.append(('warn', 'Ignoring files for folder {} because it represents an ambiguous node'.format(curdir)))
+                if packfile_desc is not None:
+                    container.packfiles.append(packfile_desc)
+                elif files:
+                    container.files.extend(files)
+            else:
+                self.messages.append(('warn', 'Ignoring files for folder {} because it represents an ambiguous node'.format(target.path)))
 
     def _context_merge_subject_and_session(self, context):
         """Merge session & subject labels"""

@@ -12,7 +12,6 @@ log = logging.getLogger(__name__)
 from .. import util
 from .container_factory import ContainerFactory
 from .upload_queue import UploadQueue
-from .packfile import create_zip_packfile
 
 class AbstractImporter(ABC):
     # Whether or not archive filesystems are supported

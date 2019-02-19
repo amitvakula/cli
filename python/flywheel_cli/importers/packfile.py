@@ -6,7 +6,7 @@ import fs.path
 import fs.copy
 from fs.zipfs import ZipFS
 
-from .custom_walker import CustomWalker
+from ..custom_walker import CustomWalker
 
 log = logging.getLogger(__name__)
 
@@ -40,14 +40,14 @@ def create_zip_packfile(dst_file, src_fs, packfile_type=None, symlinks=False, pa
 
 def create_packfile(src_fs, dst_fs, packfile_type, symlinks=False, paths=None, progress_callback=None, deid_profile=None):
     """Create a packfile by copying files from src_fs to dst_fs, possibly validating and/or de-identifying
-    
+
     Arguments:
         src_fs (fs): The source filesystem
         write_fn (function): Write function that takes path and bytes to write
         symlinks (bool): Whether or not to follow symlinks (default is False)
         progress_callback (function): Function to call with byte totals
         deid_profile: The de-identification profile to use
-    """ 
+    """
     progress = {'total_bytes': 0}
 
     # Report progress as total_bytes

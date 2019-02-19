@@ -7,7 +7,6 @@ import sys
 log = logging.getLogger(__name__)
 
 from .abstract_importer import AbstractImporter
-from .custom_walker import CustomWalker
 from .packfile import PackfileDescriptor
 from .. import util
 
@@ -35,6 +34,8 @@ class ParRecScanner(object):
         self.config = config
         self.sessions = {}
 
+        self.walker = config.get_walker()
+
     def discover(self, src_fs, context, container_factory, path_prefix=None):
         """Performs discovery of containers to create and files to upload in the given folder.
 
@@ -45,11 +46,10 @@ class ParRecScanner(object):
             path_prefix (str): The optional prefix for filenames
         """
         # First step is to walk and sort files
-        walker = CustomWalker(symlinks=self.config.follow_symlinks)
         sys.stdout.write('Scanning directories...'.ljust(80) + '\r')
         sys.stdout.flush()
 
-        files = list(walker.files(src_fs))
+        files = list(self.walker.files(src_fs))
         file_count = len(files)
         files_scanned = 0
 
@@ -75,7 +75,7 @@ class ParRecScanner(object):
                         sys.exit(1)
 
                     acquisition.par_file = real_path
-                    
+
                 except Exception as e:
                     log.exception('Unable parse PAR file: %s', real_path)
             elif fnmatch.fnmatch(lpath, '*.rec'):
@@ -133,7 +133,7 @@ class ParRecScanner(object):
                 'subject': {
                     'label': subject_label
                 }
-            }) 
+            })
         return self.sessions[session_key]
 
     def resolve_acquisition(self, context, par):

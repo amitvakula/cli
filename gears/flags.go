@@ -1,12 +1,11 @@
 package gears
 
 import (
-	"os"
-
 	"github.com/spf13/cobra"
 
-	. "flywheel.io/fw/util"
 	"flywheel.io/sdk/api"
+
+	. "flywheel.io/fw/util"
 )
 
 // Func sig that adds parsed gear information & invocation to standard Cobra sig
@@ -23,6 +22,7 @@ func GenerateCommand(use, short string, gearLookup func() *api.Gear, innerCmd Co
 		// If no manifest is found, this version of the command runs without calling innerCmd
 		Run: func(cmd *cobra.Command, args []string) {
 			Println("No manifest found. This command needs a manifest to function.")
+			Fatal(1)
 		},
 	}
 
@@ -85,7 +85,7 @@ func GenerateCommand(use, short string, gearLookup func() *api.Gear, innerCmd Co
 			defaultC, _ := defaultV.(bool)
 			cmd.Flags().BoolVar(&configBools[i], configName, defaultC, descStr)
 		default:
-			Fatal("Parsed config value " + configName + " is of unknown type " + tyStr)
+			FatalWithMessage("Parsed config value " + configName + " is of unknown type " + tyStr)
 		}
 
 		i++
@@ -104,7 +104,7 @@ func GenerateCommand(use, short string, gearLookup func() *api.Gear, innerCmd Co
 				Println("--"+configKey, "is a required flag. Try --help for more information.")
 				Println()
 				Println("If you'd like to make this config value optional, set a `default` value!")
-				os.Exit(1)
+				Fatal(1)
 			}
 
 			switch configTypes[i] {
@@ -117,7 +117,7 @@ func GenerateCommand(use, short string, gearLookup func() *api.Gear, innerCmd Co
 			case "boolean":
 				config[configKey] = configBools[i]
 			default:
-				Fatal("Read config value " + configKey + " is of unknown type " + configTypes[i])
+
 			}
 		}
 
@@ -149,7 +149,7 @@ func GenerateCommand(use, short string, gearLookup func() *api.Gear, innerCmd Co
 		case "api-key":
 			apiKeyInputs = append(apiKeyInputs, inputName)
 		default:
-			Fatal("Parsed input value " + inputName + " is of unknown type " + baseStr)
+			FatalWithMessage("Parsed input value " + inputName + " is of unknown type " + baseStr)
 		}
 
 		i++
@@ -174,13 +174,13 @@ func GenerateCommand(use, short string, gearLookup func() *api.Gear, innerCmd Co
 				Println()
 				Println("If you'd like to make this file optional, add `\"optional\": \"true\"` to the input!")
 				Println()
-				os.Exit(1)
+				Fatal(1)
 			}
 
 			// Add file if specified
 			if cmd.Flags().Changed(inputKey) {
 				if filePaths[i] == "" {
-					Fatal("Path to", inputKey, "file cannot be blank.")
+					FatalWithMessage("Path to", inputKey, "file cannot be blank.")
 				}
 				files[inputKey] = filePaths[i]
 			}

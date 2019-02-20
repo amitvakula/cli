@@ -12,6 +12,8 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 
 	"golang.org/x/net/context"
+
+	"flywheel.io/fw/util"
 )
 
 //  TODO: Keep this up to date with major release version
@@ -27,7 +29,7 @@ func ImportBids(docker *client.Client, apiKey string, folder string, group_id st
 	bidsDir, err := filepath.Abs(folder)
 	if err != nil {
 		Fprintln(os.Stderr, "Could not resolve source directory:", folder)
-		os.Exit(1)
+		util.Fatal(1)
 	}
 	// If optional project label flag not given, use base directory of folder path
 	if projectLabel == "" {
@@ -49,10 +51,10 @@ func ImportBids(docker *client.Client, apiKey string, folder string, group_id st
 		// Intentionally obtuse error message, ideally we would hide that we're
 		// calling into a container
 		Fprintln(os.Stderr, "Error importing BIDS data --", err.Error())
-		os.Exit(1)
+		util.Fatal(1)
 	} else {
 		if status != 0 {
-			os.Exit(int(status))
+			util.Fatal(int(status))
 		}
 	}
 }
@@ -62,7 +64,7 @@ func ExportBids(docker *client.Client, apiKey string, folder string, projectLabe
 	bidsDir, err := filepath.Abs(folder)
 	if err != nil {
 		Fprintln(os.Stderr, "Could not resolve target directory:", folder)
-		os.Exit(1)
+		util.Fatal(1)
 	}
 
 	// Map The destination dir to /local/bids
@@ -99,10 +101,10 @@ func ExportBids(docker *client.Client, apiKey string, folder string, projectLabe
 		// Intentionally obtuse error message, ideally we would hide that we're
 		// calling into a container
 		Fprintln(os.Stderr, "Error exporting BIDS data --", err.Error())
-		os.Exit(1)
+		util.Fatal(1)
 	} else {
 		if status != 0 {
-			os.Exit(int(status))
+			util.Fatal(int(status))
 		}
 	}
 }
@@ -118,10 +120,10 @@ func ValidateBids(docker *client.Client, folder string) {
 		// Intentionally obtuse error message, ideally we would hide that we're
 		// calling into a container
 		Fprintln(os.Stderr, "Error validating BIDS data --", err.Error())
-		os.Exit(1)
+		util.Fatal(1)
 	} else {
 		if status != 0 {
-			os.Exit(int(status))
+			util.Fatal(int(status))
 		}
 	}
 }

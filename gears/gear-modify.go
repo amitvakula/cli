@@ -50,7 +50,7 @@ func GearModify(docker *client.Client, quiet bool) {
 	if gear.Custom == nil || gear.Custom["gear-builder"] == nil || gear.Custom["gear-builder"].(map[string]interface{})["image"] == nil {
 		Println("The gear manifest in this folder does not have the gear-builder information it needs.")
 		Println("Try `fw gear create` first.")
-		os.Exit(1)
+		Fatal(1)
 	}
 	gearBuilderConfig := gear.Custom["gear-builder"].(map[string]interface{})
 	image := gearBuilderConfig["image"].(string)
@@ -155,7 +155,7 @@ func GearModify(docker *client.Client, quiet bool) {
 	proceed := prompt.Confirm("Would you like to save your gear changes? (yes/no)")
 	Println()
 	if !proceed {
-		os.Exit(0)
+		Fatal(0)
 	}
 
 	// Save changes

@@ -1,7 +1,6 @@
 package legacy
 
 import (
-	"os"
 	"strconv"
 	"strings"
 
@@ -112,7 +111,7 @@ func GenConfigStruct(configs []*GearConfig) map[string]interface{} {
 
 		if c.Default == nil && strVal == "" {
 			Println(c.Name, "is a required field.")
-			os.Exit(1)
+			Fatal(1)
 		} else if strVal == "" {
 			c.Value = c.Default
 			continue
@@ -138,7 +137,7 @@ func GenConfigStruct(configs []*GearConfig) map[string]interface{} {
 			c.Value = strings.Split(strVal, ",")
 		default:
 			Println("Unknown config type", c.CType)
-			os.Exit(1)
+			Fatal(1)
 		}
 	}
 

@@ -2,10 +2,11 @@ package ops
 
 import (
 	. "fmt"
-	"os"
 	"time"
 
 	"flywheel.io/sdk/api"
+
+	"flywheel.io/fw/util"
 )
 
 func JobWait(client *api.Client, id string) {
@@ -36,8 +37,8 @@ func JobWait(client *api.Client, id string) {
 	}
 
 	if state == api.Complete {
-		os.Exit(0)
+		util.Fatal(0)
 	} else {
-		os.Exit(1)
+		util.Fatal(1)
 	}
 }

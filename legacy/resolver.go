@@ -3,7 +3,6 @@ package legacy
 import (
 	. "fmt"
 	"net/http"
-	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -11,6 +10,8 @@ import (
 	"github.com/mitchellh/mapstructure"
 
 	"flywheel.io/sdk/api"
+
+	"flywheel.io/fw/util"
 )
 
 // rawResolveResult represents the json structure of the resolver's results.
@@ -42,20 +43,12 @@ func newDecoderConfig() *mapstructure.DecoderConfig {
 	}
 }
 
-// this should be removed later
-func check(err error) {
-	if err != nil {
-		Println(err)
-		os.Exit(1)
-	}
-}
-
 func decode(config *mapstructure.DecoderConfig, src interface{}) {
 	decoder, err := mapstructure.NewDecoder(config)
-	check(err)
+	util.Check(err)
 
 	err = decoder.Decode(src)
-	check(err)
+	util.Check(err)
 }
 
 // addDynamicNode will take an untyped string map and add it to a slice.

@@ -1,7 +1,6 @@
 package ops
 
 import (
-	"os"
 	"strings"
 
 	. "flywheel.io/fw/util"
@@ -12,7 +11,7 @@ func Status(client *api.Client) {
 	if client == nil {
 		Println("You are not currently logged in.")
 		Println("Try `fw login` to login to Flywheel.")
-		os.Exit(1)
+		Fatal(1)
 	}
 
 	user, _, err := client.GetCurrentUser()
@@ -21,7 +20,7 @@ func Status(client *api.Client) {
 		Println()
 		Println("Could not authenticate - are you sure your API key is up to date?")
 		Println("Try `fw login` to login to Flywheel.")
-		os.Exit(1)
+		Fatal(1)
 	}
 
 	// Shenanigans: grab the URL string and drop the API prefix for a convenient browser URL

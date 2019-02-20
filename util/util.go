@@ -6,6 +6,8 @@ import (
 	"os"
 	"regexp"
 	"runtime/debug"
+
+	"github.com/fatih/color"
 )
 
 // Automatically print to stderr
@@ -26,14 +28,8 @@ func PrintFormat(x interface{}) {
 func Check(err error) {
 	if err != nil {
 		Println(err)
-		os.Exit(1)
+		Fatal(1)
 	}
-}
-
-// Exit with message
-func Fatal(a ...interface{}) {
-	Println(a...)
-	os.Exit(1)
 }
 
 // JSON encoding that must succeed
@@ -59,5 +55,23 @@ func GracefulRecover(postamble ...interface{}) {
 		Println(stack)
 		Println("Crash report:", r)
 		Println(postamble...)
+		Println()
+		Println(VersionString)
 	}
 }
+
+func Fatal(exitCode int) {
+	Println()
+	Println(color.HiBlackString(VersionString))
+	Println()
+	os.Exit(exitCode)
+}
+
+// Exit with message
+func FatalWithMessage(a ...interface{}) {
+	Println(a...)
+	Fatal(1)
+}
+
+// Populated by command.BuildCommand
+var VersionString = ""

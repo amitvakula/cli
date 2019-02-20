@@ -2,13 +2,13 @@ package command
 
 import (
 	. "fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
 	"flywheel.io/sdk/api"
 
 	"flywheel.io/fw/ops"
+	"flywheel.io/fw/util"
 )
 
 var UserAgent = ""
@@ -39,6 +39,7 @@ func BuildCommand(version, buildHash, buildDate string) *cobra.Command {
 
 	cmd.AddCommand(o.legacyCommands())
 	cmd.AddCommand(o.version(version, buildHash, buildDate))
+	util.VersionString = "Flywheel CLI " + version + " build " + buildHash + " on " + buildDate
 
 	return cmd
 }
@@ -95,6 +96,6 @@ func (o *opts) RequireClient(cmd *cobra.Command, args []string) {
 	if o.Client == nil {
 		Println("You are not currently logged in.")
 		Println("Try `fw login` to login to Flywheel.")
-		os.Exit(1)
+		util.Fatal(1)
 	}
 }

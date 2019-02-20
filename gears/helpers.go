@@ -195,7 +195,7 @@ func MakeGearTicket(client *api.Client, doc *api.GearDoc) (string, error) {
 	Check(api.Coalesce(err, aerr))
 
 	if ticketMap.Ticket == "" {
-		Fatal("Server response was empty; contact support.")
+		FatalWithMessage("Server response was empty; contact support.")
 	}
 
 	return ticketMap.Ticket, nil

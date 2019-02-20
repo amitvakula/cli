@@ -2,7 +2,6 @@ package ops
 
 import (
 	"encoding/json"
-	"os"
 	"regexp"
 	"strings"
 
@@ -32,7 +31,7 @@ func BatchRun(client *api.Client, args []string, optionalInputPolicy string) {
 	}
 	if gearDoc == nil {
 		Println("No gear found with name", gearName)
-		os.Exit(1)
+		Fatal(1)
 	}
 	gear := gearDoc.Gear
 
@@ -64,7 +63,7 @@ func BatchRun(client *api.Client, args []string, optionalInputPolicy string) {
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) < 1 {
 				Println("Specify at least one folder to run a batch gear on.")
-				os.Exit(1)
+				Fatal(1)
 			}
 
 			targets := []*api.ContainerReference{}
@@ -78,14 +77,14 @@ func BatchRun(client *api.Client, args []string, optionalInputPolicy string) {
 				wat, ok := last.(legacy.Container)
 				if !ok {
 					Println("Each path must resolve to a container, not a file.")
-					os.Exit(1)
+					Fatal(1)
 				}
 
 				aType := wat.GetType()
 
 				if aType != "session" {
 					Println("Batch run is not currently supported at the", aType, "level. Run at the session level instead.")
-					os.Exit(1)
+					Fatal(1)
 				}
 
 				targets = append(targets, &api.ContainerReference{

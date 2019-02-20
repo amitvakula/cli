@@ -366,12 +366,12 @@ func sort_dicoms(sessions map[string]Session, files *[]DicomFile, related_acq bo
 						equal, err := cmp.CompareFile(existing_file.Path, file.Path)
 						if err != nil {
 							fmt.Printf("Error reading file: %v\n", err)
-							os.Exit(1)
+							Fatal(1)
 						}
 						if !equal {
 							fmt.Printf("File \"%s\" and \"%s\" conflict!\n", existing_file.Path, file.Path)
 							fmt.Printf("Both files have the same IDs, but contents differ!\n")
-							os.Exit(1)
+							Fatal(1)
 						}
 					} else {
 						session.Acquisitions[SeriesInstanceUID].Files[SOPInstanceUID] = file

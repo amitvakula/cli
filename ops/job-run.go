@@ -2,7 +2,6 @@ package ops
 
 import (
 	"encoding/json"
-	"os"
 	"regexp"
 	"strings"
 
@@ -30,7 +29,7 @@ func JobRun(client *api.Client, args []string) {
 	}
 	if gearDoc == nil {
 		Println("No gear found with name", gearName)
-		os.Exit(1)
+		Fatal(1)
 	}
 	gear := gearDoc.Gear
 
@@ -86,7 +85,7 @@ func JobRun(client *api.Client, args []string) {
 				file, ok := last.(*legacy.File)
 				if !ok {
 					Println("Input", inputName, "must resolve to a file.")
-					os.Exit(1)
+					Fatal(1)
 				}
 				parent := result.Path[len(result.Path)-2].(legacy.Container)
 

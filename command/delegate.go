@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"flywheel.io/fw/python/pkgdata"
+	. "flywheel.io/fw/util"
 )
 
 type CommandDesc struct {
@@ -60,14 +61,14 @@ func DelegateCommandToPython(command *cobra.Command, args []string) {
 	cacheDir, err := homedir.Expand(CachePath)
 	if err != nil {
 		fmt.Print("Could not locate cache dir", err)
-		os.Exit(1)
+		Fatal(1)
 	}
 
 	// Extract python and site-packages
 	pythonPathInfo, err := PopulateCache(cacheDir)
 	if err != nil {
 		fmt.Print("Could not delegate command", err)
-		os.Exit(1)
+		Fatal(1)
 	}
 
 	// Build the command string for the current platform
@@ -101,10 +102,10 @@ func DelegateCommandToPython(command *cobra.Command, args []string) {
 
 	err = cmd.Run()
 	if err != nil {
-		os.Exit(1)
+		Fatal(1)
 	}
 
-	os.Exit(0)
+	Fatal(0)
 }
 
 // Extract the python interpreter and site-packages.zip to the cache directory

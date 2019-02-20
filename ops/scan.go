@@ -90,7 +90,7 @@ func retry(fn func() error) {
 			Println()
 			if !proceed {
 				Println("Canceled.")
-				os.Exit(1)
+				Fatal(1)
 			}
 		} else {
 			break

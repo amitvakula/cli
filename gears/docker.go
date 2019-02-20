@@ -2,9 +2,10 @@ package gears
 
 import (
 	. "fmt"
-	"os"
 
 	"github.com/docker/docker/client"
+
+	"flywheel.io/fw/util"
 )
 
 func CheckDocker() (*client.Client, error) {
@@ -30,7 +31,7 @@ func DockerOrBust() *client.Client {
 		Println("https://docs.docker.com/install/#supported-platforms")
 		Println()
 		Println("If you have, check that you can run 'docker ps' successfully.")
-		os.Exit(1)
+		util.Fatal(1)
 	}
 
 	return cli

@@ -1,8 +1,6 @@
 package command
 
 import (
-	"os"
-
 	"github.com/spf13/cobra"
 
 	"flywheel.io/fw/ops"
@@ -93,7 +91,7 @@ func (o *opts) download() *cobra.Command {
 
 			if len(include) > 0 && len(exclude) > 0 {
 				Println("The --include and --exclude filters are mutually exclusive; use one or the other.")
-				os.Exit(1)
+				Fatal(1)
 			}
 
 			ops.Download(o.Client, args[0], output, force, include, exclude)

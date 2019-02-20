@@ -142,11 +142,11 @@ func (docker *D) InspectImage(imageName string) *types.ImageInspect {
 	Check(err)
 
 	if details.Os != "linux" {
-		Fatal("Unrecognized OS", details.Os, "must be linux")
+		FatalWithMessage("Unrecognized OS", details.Os, "must be linux")
 	}
 
 	if details.Architecture != "amd64" {
-		Fatal("Unrecognized architecture", details.Architecture, "must be amd64")
+		FatalWithMessage("Unrecognized architecture", details.Architecture, "must be amd64")
 	}
 
 	Println("\tImage is the correct architecture.")
@@ -281,7 +281,7 @@ func (docker *D) PushImage(imageDst, token string) string {
 	readcloser.Close()
 
 	if digest == "" {
-		Fatal("Pushed image but found no digest; contact support.")
+		FatalWithMessage("Pushed image but found no digest; contact support.")
 	}
 
 	Println("\tImage uploaded.")

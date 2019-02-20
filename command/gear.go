@@ -42,7 +42,7 @@ func (o *opts) gearRun() *cobra.Command {
 	// Use parsed manifest invocation values
 	innerCmd := func(cmd *cobra.Command, args []string, gear *api.Gear, config map[string]interface{}, files map[string]string, apiKeyInputs []string) {
 		if gear == nil {
-			Fatal(gears.ManifestRequired)
+			FatalWithMessage(gears.ManifestRequired)
 		}
 
 		gears.GearRun(o.Client, gears.DockerOrBust(), o.Credentials.Key, gear, config, files, apiKeyInputs)

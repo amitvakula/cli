@@ -60,7 +60,7 @@ func Download(client *api.Client, upath, savePath string, force bool, include []
 
 				if i > 1000000 {
 					Println("Could not find a viable filename for " + sanitize.Name(file.Name) + ".tar, check filesystem permissions?")
-					os.Exit(1)
+					Fatal(1)
 				}
 			} else {
 				break
@@ -72,7 +72,7 @@ func Download(client *api.Client, upath, savePath string, force bool, include []
 
 		if wat.GetType() == "group" {
 			Println("Group downloads are currently not supported. Instead, you can download each project.")
-			os.Exit(1)
+			Fatal(1)
 		}
 
 		ticketRequest := &legacy.ContainerTicketRequest{
@@ -117,7 +117,7 @@ func Download(client *api.Client, upath, savePath string, force bool, include []
 
 				if i > 1000000 {
 					Println("Could not find a viable filename for " + sanitize.Name(wat.GetName()) + ".tar, check filesystem permissions?")
-					os.Exit(1)
+					Fatal(1)
 				}
 			} else {
 				break

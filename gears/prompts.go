@@ -2,13 +2,13 @@ package gears
 
 import (
 	"errors"
-	"os"
 	"regexp"
 
 	"github.com/manifoldco/promptui"
 
-	. "flywheel.io/fw/util"
 	"flywheel.io/sdk/api"
+
+	. "flywheel.io/fw/util"
 )
 
 var (
@@ -98,7 +98,7 @@ func runConfirmFatal(prompt *promptui.Prompt) {
 	if !runConfirm(prompt) {
 		Println("Canceled.")
 		Println()
-		os.Exit(1)
+		Fatal(1)
 	}
 }
 

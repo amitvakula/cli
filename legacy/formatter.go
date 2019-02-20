@@ -2,13 +2,14 @@ package legacy
 
 import (
 	. "fmt"
-	"os"
 	"text/tabwriter"
 	"time"
 
 	"github.com/fatih/color"
 
 	"flywheel.io/sdk/api"
+
+	"flywheel.io/fw/util"
 )
 
 func FindPermissionById(id string, perms []*api.Permission) *api.Permission {
@@ -40,7 +41,7 @@ func resolvePermissions(x interface{}) []*api.Permission {
 		return x.Permissions
 	default:
 		Printf("Error: resolvePermissions: unexpected type %T\n", x)
-		os.Exit(1)
+		util.Fatal(1)
 	}
 
 	return nil
@@ -114,7 +115,7 @@ func PrintResolve(r *ResolveResult, userId string, showDbIds bool) {
 
 		default:
 			Printf("Error: printing unexpected type %T\n", node)
-			os.Exit(1)
+			util.Fatal(1)
 		}
 	}
 

@@ -51,7 +51,7 @@ func ParseGearBuilerInformation(gear *api.Gear) *GearBuilderInfo {
 		Println()
 		Println("There does not appear to be a \"" + GearBuilderSectionKey + "\" section in your manifest.")
 		Println(GearBuilderSectionRectification)
-		os.Exit(1)
+		Fatal(1)
 	}
 
 	var gb *GearBuilderInfo
@@ -71,13 +71,13 @@ func ParseGearBuilerInformation(gear *api.Gear) *GearBuilderInfo {
 	if gb.Image == "" {
 		Println("The \"" + GearBuilderSectionKey + ".image\" key in your manifest is empty, or missing.")
 		Println(GearBuilderSectionRectification)
-		os.Exit(1)
+		Fatal(1)
 	}
 
 	if gb.Category == "" {
 		Println("The \"" + GearBuilderSectionKey + ".category\" key in your manifest is empty, or missing.")
 		Println(GearBuilderSectionRectification)
-		os.Exit(1)
+		Fatal(1)
 	}
 
 	return gb
@@ -143,7 +143,7 @@ func TryToLoadCWDManifest() *api.Gear {
 			Println()
 			Println(GearBuilderCurlyMarks)
 		}
-		os.Exit(1)
+		Fatal(1)
 	}
 
 	return &gear
@@ -154,7 +154,7 @@ const ManifestRequired = "This command requires a manifest. Try `fw gear create`
 func RequireCWDManifest() *api.Gear {
 	gear := TryToLoadCWDManifest()
 	if gear == nil {
-		Fatal(ManifestRequired)
+		FatalWithMessage(ManifestRequired)
 	}
 
 	return gear
@@ -167,7 +167,7 @@ func TranslateEnvArrayToEnv(envA []string) map[string]string {
 		split := strings.SplitN(eStr, "=", 2)
 
 		if len(split) != 2 {
-			Fatal("Docker environment `" + eStr + "` was not split cleanly")
+			FatalWithMessage("Docker environment `" + eStr + "` was not split cleanly")
 		}
 
 		env[split[0]] = split[1]
@@ -229,7 +229,7 @@ func CreateInvocationComponents(gear *api.Gear, config map[string]interface{}, f
 			Println()
 			PrintFormat(config)
 			Println()
-			Fatal("Config", rawKey, "with value", rawValue, "is of unknown type")
+			FatalWithMessage("Config", rawKey, "with value", rawValue, "is of unknown type")
 		}
 	}
 

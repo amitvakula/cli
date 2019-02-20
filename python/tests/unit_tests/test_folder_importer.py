@@ -4,7 +4,8 @@ import re
 import fs
 import pytest
 
-from flywheel_cli.importers import FolderImporter, StringMatchNode
+from flywheel_cli.importers import FolderImporter
+from flywheel_migration.template import StringMatchNode
 from flywheel_cli.config import Config
 from .test_container_factory import MockContainerResolver
 
@@ -291,4 +292,3 @@ def test_nested_packfiles():
         pytest.fail('Unexpected container found')
     except StopIteration:
         pass
-

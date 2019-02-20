@@ -8,7 +8,7 @@ import sys
 from ..util import set_nested_attr, sorted_container_nodes, METADATA_ALIASES, NO_FILE_CONTAINERS
 from .abstract_importer import AbstractImporter
 from .container_factory import ContainerFactory
-from .template import CompositeNode, TERMINAL_NODE
+from flywheel_migration.template import CompositeNode, TERMINAL_NODE
 from .packfile import PackfileDescriptor
 
 IGNORED_FILE_LIST = [
@@ -164,4 +164,3 @@ class FolderImporter(AbstractImporter):
             context.setdefault('session', {})['label'] = context['subject']['label']
             merged = True
         return merged
-

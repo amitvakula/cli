@@ -5,7 +5,7 @@ import sys
 import textwrap
 import yaml
 
-from ..importers import parse_template_string, parse_template_list, FolderImporter
+from flywheel_migration import template
 from ..util import set_nested_attr, split_key_value_argument, METADATA_ALIASES
 
 def add_command(subparsers, parents):
@@ -77,4 +77,3 @@ def import_folder_with_template(args):
 
     # Perform the import
     importer.interactive_import(args.folder)
-

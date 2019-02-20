@@ -4,7 +4,7 @@ import logging
 import re
 
 from .folder import FolderImporter
-from .template import parse_template_string, StringMatchNode
+from flywheel_migration.template import parse_template_string, StringMatchNode
 from ..bruker import extract_bruker_metadata_fn
 
 log = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ def format_timestamp_fn(dst_key):
 
     Arguments:
         dst_key (str): The destination key name
-    
+
     Returns:
         function: The function that will format a datetime
     """
@@ -84,4 +84,3 @@ def create_bruker_scanner(group, project, follow_symlinks, config, folder_templa
     ])
 
     return importer
-

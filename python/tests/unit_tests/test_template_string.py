@@ -1,6 +1,6 @@
-from flywheel_cli.importers import (compile_regex, parse_template_string,
+from flywheel_migration.template import (compile_regex, parse_template_string,
         parse_template_list, StringMatchNode, CompositeNode, TERMINAL_NODE)
-from flywheel_cli.util import METADATA_EXPR
+from flywheel_migration.util import METADATA_EXPR
 
 group_pattern = '(?P<group>{})'.format(METADATA_EXPR['string-id'])
 project_pattern = '(?P<project>{})'.format(METADATA_EXPR['default'])
@@ -131,4 +131,3 @@ def test_parse_template_list():
     assert child.template.pattern == 'Trash'
     assert child.packfile_type == None
     assert child.ignore
-

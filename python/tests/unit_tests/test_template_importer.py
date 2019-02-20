@@ -4,8 +4,8 @@ import fs
 import pytest
 import yaml
 
-from flywheel_cli.importers import compile_regex, parse_template_string, parse_template_list, StringMatchNode, CompositeNode
-from flywheel_cli.util import METADATA_EXPR
+from flywheel_migration.template import compile_regex, parse_template_string, parse_template_list, StringMatchNode, CompositeNode
+from flywheel_migration.util import METADATA_EXPR
 
 from flywheel_cli.importers import FolderImporter, StringMatchNode
 from flywheel_cli.config import Config
@@ -176,4 +176,3 @@ def test_yaml_template1():
         pytest.fail('Unexpected container found')
     except StopIteration:
         pass
-

@@ -84,7 +84,7 @@ preparePkgData() {
 	do
 		srcdir="python/dist/${platform}-x86_64/"
 		dstfile="python/pkgdata/pkgdata_${platform}.go"
-		if [ ! -d ${srcdir} ]; then 
+		if [ ! -d ${srcdir} ]; then
 			echo "Python package-data folder ${srcdir} does not exist! Run 'make.sh buildPython' first!"
 			exit 1
 		fi
@@ -361,6 +361,7 @@ buildPython() {
 	set -u
 	echo "Installing build dependencies..."
 	pip install -q -r python/build-requirements.txt
+	pip install -q -e /home/denesd/Desktop/migration-toolkit/
 	python python/compile.py
 }
 

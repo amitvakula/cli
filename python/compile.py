@@ -121,7 +121,7 @@ def build_site_packages():
                     dst_path += 'c'
 
                     print('Compiling: {}'.format(dst_path))
-                    py_compile.compile(src_path, cfile=cfile_path, dfile=dst_path, optimize=2)
+                    py_compile.compile(src_path, cfile=cfile_path, dfile=dst_path, optimize=1)
                     src_path = cfile_path
 
                 if not dst_path in added_files:
@@ -158,7 +158,7 @@ if __name__ == '__main__':
 
             # Extract to dist folder
             os.makedirs(python_dist_dir)
-        
+
             _, ext = os.path.splitext(package_name)
             if ext == '.tgz':
                 subprocess.check_call(['tar', 'xf', package_path], cwd=python_dist_dir)
@@ -188,7 +188,7 @@ if __name__ == '__main__':
 
         # Copy site-packages
         shutil.copyfile(site_packages_path, os.path.join(dist_dir, 'site-packages.zip'))
-        
+
         # Write build info, which will be used in go to determine whether or not to extract
         # the interpreter and/or the site-packages.zip
         ver_info_path = os.path.join(dist_dir, 'version.json')

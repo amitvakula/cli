@@ -107,7 +107,8 @@ class UploadTask(Task):
         except:
             pass
 
-        return None
+        # No more jobs so no priority
+        return None, None
 
     def get_bytes_processed(self):
         return self.fileobj.get_bytes_sent()
@@ -158,8 +159,11 @@ class PackfileTask(Task):
         }
 
         # The next task is an uplad task
-        return UploadTask(self.uploader, self.container, self.filename,
+        next_task = UploadTask(self.uploader, self.container, self.filename,
                           fileobj=tmpfile, metadata=metadata)
+
+        # Enqueue with higher priority than normal uploads
+        return (next_task, 5)
 
     def get_bytes_processed(self):
         if self._bytes_processed is None:

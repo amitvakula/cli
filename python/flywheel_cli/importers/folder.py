@@ -82,13 +82,14 @@ class FolderImporter(AbstractImporter):
         self.add_template_node(composite)
         self._last_added_node = nodes[-1]
 
-    def perform_discover(self, src_fs, context, queue=None, timeout=0):
+    def perform_discover(self, fs_url, context, queue=None, timeout=0):
         """Performs discovery of containers to create and files to upload in the given folder.
 
         Arguments:
-            src_fs (obj): The filesystem to query
-            follow_symlinks (bool): Whether or not to follow links (if supported by src_fs). Default is False.
+            fs_url (src): The path to the filesystem to query
             context (dict): The initial context
+            queue (Queue): The work queue
+            timeout (float): The max time to wait for work, in seconds
         """
         if queue is None:
             queue = LifoQueue()
@@ -96,17 +97,18 @@ class FolderImporter(AbstractImporter):
         # Add initial item
         queue.put(VisitTarget('/', True, self.initial_context(), self.root_node))
 
-        while True:
-            try:
-                if timeout:
-                    target = queue.get(timeout=timeout)
-                else:
-                    target = queue.get(False)
+        with self.open_fs(fs_url) as src_fs:
+            while True:
+                try:
+                    if timeout:
+                        target = queue.get(timeout=timeout)
+                    else:
+                        target = queue.get(False)
 
-                self.visit_dir(src_fs, queue, target)
-                queue.task_done()
-            except Empty:
-                break  # Queue is empty, so stop
+                    self.visit_dir(src_fs, queue, target)
+                    queue.task_done()
+                except Empty:
+                    break  # Queue is empty, so stop
 
     def visit_dir(self, src_fs, queue, target):
         """Performs recursive discovery of containers to create and files to upload in the given folder.

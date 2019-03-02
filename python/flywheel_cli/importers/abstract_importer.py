@@ -167,24 +167,28 @@ class AbstractImporter(ABC):
 
         return results
 
-    def discover(self, src_fs):
+    def discover(self, fs_url):
         """Performs discovery of containers to create and files to upload in the given folder.
 
         Arguments:
-            src_fs (obj): The filesystem to query
+            fs_url (src): The path to the filesystem to query
         """
         context = self.initial_context()
-        self.perform_discover(src_fs, context)
+        self.perform_discover(fs_url, context)
 
     @abstractmethod
-    def perform_discover(src_fs, context):
+    def perform_discover(fs_url, context):
         """Performs discovery of containers to create and files to upload in the given folder.
 
         Arguments:
-            src_fs (obj): The filesystem to query
+            fs_url (src): The path to the filesystem to query
             context (dict): The initial context for discovery
         """
         pass
+
+    def open_fs(self, fs_url):
+        """Open the filesystem at fs_url"""
+        return util.open_fs(fs_url)
 
     def interactive_import(self, folder):
         """Performs interactive import of the discovered hierarchy"""
@@ -202,114 +206,112 @@ class AbstractImporter(ABC):
 
         try:
             log.debug('Using source filesystem: %s', fs_url)
-            src_fs = util.open_fs(fs_url)
+            util.open_fs(fs_url)
         except fs.errors.CreateFailed:
             log.exception('Could not open filesystem at "{}"'.format(folder))
             sys.exit(1)
 
-        with src_fs:
-            # Perform discovery on target filesystem
-            self.discover(src_fs)
+        # Perform discovery on target filesystem
+        self.discover(fs_url)
 
-            if self.container_factory.is_empty():
-                log.error('Nothing found to import!')
-                sys.exit(1)
+        if self.container_factory.is_empty():
+            log.error('Nothing found to import!')
+            sys.exit(1)
 
-            # Print summary
-            print('The following data hierarchy was found:\n')
-            counts = self.print_summary()
+        # Print summary
+        print('The following data hierarchy was found:\n')
+        counts = self.print_summary()
 
-            # Print warnings
-            print('')
-            for severity, msg in self.verify():
-                print('{} - {}'.format(severity.upper(), msg))
-            print('')
+        # Print warnings
+        print('')
+        for severity, msg in self.verify():
+            print('{} - {}'.format(severity.upper(), msg))
+        print('')
 
-            if not self.assume_yes and not util.confirmation_prompt('Confirm upload?'):
-                return
+        if not self.assume_yes and not util.confirmation_prompt('Confirm upload?'):
+            return
 
-            self.before_begin_upload()
+        self.before_begin_upload()
 
-            # Initialize profile
-            if self.deid_profile:
-                self.deid_profile.initialize()
+        # Initialize profile
+        if self.deid_profile:
+            self.deid_profile.initialize()
 
-            # Create containers
-            self.container_factory.create_containers()
+        # Create containers
+        self.container_factory.create_containers()
 
-            # Walk the hierarchy, uploading files
-            upload_queue = UploadQueue(self.config, upload_count=counts['file'], packfile_count=counts['packfile'])
-            upload_queue.start()
+        # Walk the hierarchy, uploading files
+        upload_queue = UploadQueue(self.config, upload_count=counts['file'], packfile_count=counts['packfile'])
+        upload_queue.start()
 
-            for _, container in self.container_factory.walk_containers():
-                cname = container.label or container.id
-                packfiles = copy.copy(container.packfiles)
+        for _, container in self.container_factory.walk_containers():
+            cname = container.label or container.id
+            packfiles = copy.copy(container.packfiles)
 
-                for path in container.files:
-                    file_name = fs.path.basename(path)
+            for path in container.files:
+                file_name = fs.path.basename(path)
 
-                    if self.repackage_archives and util.is_archive(path):
-                        archive_fs = util.open_archive_fs(src_fs, path)
-                        if archive_fs:
-                            if util.contains_dicoms(archive_fs):
-                                # Repackage upload
-                                upload_queue.upload_packfile(archive_fs, 'dicom', self.deid_profile, container, file_name)
-                                continue
-                            else:
-                                archive_fs.close()
-
-                    # Normal upload
-                    upload_queue.upload_file(container, file_name, src_fs, path)
-
-                # packfiles
-                for desc in container.packfiles:
-                    if desc.name:
-                        file_name = desc.name
-                    else:
-                        # Don't call things foo.zip.zip
-                        packfile_name = util.str_to_filename(cname)
-                        if desc.packfile_type == 'zip':
-                            file_name = '{}.zip'.format(packfile_name)
+                if self.repackage_archives and util.is_archive(path):
+                    archive_fs = util.open_archive_fs(fs_url, path)
+                    if archive_fs:
+                        if util.contains_dicoms(archive_fs):
+                            # Repackage upload
+                            upload_queue.upload_packfile(archive_fs, 'dicom', self.deid_profile, container, file_name)
+                            continue
                         else:
-                            file_name = '{}.{}.zip'.format(packfile_name, desc.packfile_type)
+                            archive_fs.close()
 
-                    if isinstance(desc.path, str):
-                        packfile_src_fs = src_fs.opendir(desc.path)
-                        upload_queue.upload_packfile(packfile_src_fs, desc.packfile_type, self.deid_profile, container, file_name)
+                # Normal upload
+                upload_queue.upload_file(container, file_name, fs_url, path)
+
+            # packfiles
+            for desc in container.packfiles:
+                if desc.name:
+                    file_name = desc.name
+                else:
+                    # Don't call things foo.zip.zip
+                    packfile_name = util.str_to_filename(cname)
+                    if desc.packfile_type == 'zip':
+                        file_name = '{}.zip'.format(packfile_name)
                     else:
-                        packfile_src_fs = src_fs.opendir('/')
-                        upload_queue.upload_packfile(packfile_src_fs, desc.packfile_type, self.deid_profile, container, file_name, paths=desc.path)
+                        file_name = '{}.{}.zip'.format(packfile_name, desc.packfile_type)
 
-            upload_queue.wait_for_finish()
-            # Retry loop for errored jobs
-            retries = 0
-            while upload_queue.has_errors():
+                if isinstance(desc.path, str):
+                    packfile_fs_url = fs.path.join(fs_url, desc.path)
+                    upload_queue.upload_packfile(packfile_fs_url, desc.packfile_type, self.deid_profile, container, file_name)
+                else:
+                    upload_queue.upload_packfile(fs_url, desc.packfile_type, self.deid_profile, container, file_name, paths=desc.path)
 
-                upload_queue.suspend_reporting()
-                print('')
-                if self.assume_yes:
-                    if retries >= self.max_retries:
-                        log.error('Maximum number of retries has been reached!')
-                        break
-                    retries += 1
-                    import time
+        upload_queue.wait_for_finish()
+        # Retry loop for errored jobs
+        retries = 0
+        while upload_queue.has_errors():
 
-                    log.info('Retrying in {} seconds...'.format(self.retry_wait))
-                    time.sleep(self.retry_wait)
-
-                elif not util.confirmation_prompt('One or more errors occurred. Retry?'):
+            upload_queue.suspend_reporting()
+            print('')
+            if self.assume_yes:
+                if retries >= self.max_retries:
+                    log.error('Maximum number of retries has been reached!')
                     break
+                retries += 1
+                import time
 
-                # Requeue and wait for finish
-                upload_queue.requeue_errors()
-                upload_queue.resume_reporting()
-                upload_queue.wait_for_finish()
+                log.info('Retrying in {} seconds...'.format(self.retry_wait))
+                time.sleep(self.retry_wait)
 
-            # Shutdown de-id profile
-            if self.deid_profile:
-                self.deid_profile.finalize()
+            elif not util.confirmation_prompt('One or more errors occurred. Retry?'):
+                break
 
-            upload_queue.shutdown()
+            # Requeue and wait for finish
+            upload_queue.requeue_errors()
+            upload_queue.resume_reporting()
+            upload_queue.wait_for_finish()
+
+        # Shutdown de-id profile
+        if self.deid_profile:
+            self.deid_profile.finalize()
+
+        upload_queue.shutdown()
 
     def before_begin_upload(self):
         """Called before actual upload begins"""

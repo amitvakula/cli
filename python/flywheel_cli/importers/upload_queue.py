@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from .work_queue import Task, WorkQueue
 from .packfile import create_zip_packfile
 from .progress_reporter import ProgressReporter
+from .. import util
 
 log = logging.getLogger(__name__)
 MAX_IN_MEMORY_XFER = 32 * (2 ** 20) # Files under 32mb send as one chunk
@@ -50,17 +51,20 @@ class Uploader(ABC):
 
 class UploadFileWrapper(object):
     """Wrapper around file that measures progress"""
-    def __init__(self, fileobj=None, src_fs=None, path=None):
-        """Initialize a file wrapper, must specify fileobj OR src_fs and path"""
+    def __init__(self, fileobj=None, fs_url=None, path=None):
+        """Initialize a file wrapper, must specify fileobj OR fs_url and path"""
         self.fileobj = fileobj
-        self.src_fs = src_fs
+        self.fs_url = fs_url
         self.path = path
         self._sent = 0
         self._total_size = None
+        self._src_fs = None
 
     def _open(self):
         if not self.fileobj:
-            self.fileobj = self.src_fs.open(self.path, 'rb')
+            if not self._src_fs:
+                self._src_fs = util.open_fs(self.fs_url)
+            self.fileobj = self._src_fs.open(self.path, 'rb')
 
     def read(self, size=-1):
         self._open()
@@ -88,20 +92,23 @@ class UploadFileWrapper(object):
     def close(self):
         if self.fileobj:
             self.fileobj.close()
+        if self._src_fs:
+            self._src_fs.close()
         self.fileobj = None
+        self._src_fs = None
 
     def get_bytes_sent(self):
         return self._sent
 
 
 class UploadTask(Task):
-    def __init__(self, uploader, container, filename, fileobj=None, src_fs=None, path=None, metadata=None):
+    def __init__(self, uploader, container, filename, fileobj=None, fs_url=None, path=None, metadata=None):
         """Initialize an upload task, must specify fileobj OR src_fs and path"""
         super(UploadTask, self).__init__('upload')
         self.uploader = uploader
         self.container = container
         self.filename = filename
-        self.fileobj = UploadFileWrapper(fileobj=fileobj, src_fs=src_fs, path=path)
+        self.fileobj = UploadFileWrapper(fileobj=fileobj, fs_url=fs_url, path=path)
         self._data = None
         self.metadata = metadata
 
@@ -133,11 +140,11 @@ class UploadTask(Task):
         return 'Upload {}'.format(self.filename)
 
 class PackfileTask(Task):
-    def __init__(self, uploader, archive_fs, packfile_type, deid_profile, follow_symlinks, container, filename, paths=None, compression=None, max_spool=None):
+    def __init__(self, uploader, archive_fs_url, packfile_type, deid_profile, follow_symlinks, container, filename, paths=None, compression=None, max_spool=None):
         super(PackfileTask, self).__init__('packfile')
 
         self.uploader = uploader
-        self.archive_fs = archive_fs
+        self.archive_fs_url = archive_fs_url
         self.packfile_type = packfile_type
         self.deid_profile = deid_profile
         self.follow_symlinks = follow_symlinks
@@ -156,18 +163,13 @@ class PackfileTask(Task):
         else:
             tmpfile = tempfile.TemporaryFile()
 
-        zip_member_count = create_zip_packfile(tmpfile, self.archive_fs, packfile_type=self.packfile_type,
-            symlinks=self.follow_symlinks, paths=self.paths, compression=self.compression,
-            progress_callback=self.update_bytes_processed, deid_profile=self.deid_profile)
+        with util.open_fs(self.archive_fs_url) as archive_fs:
+            zip_member_count = create_zip_packfile(tmpfile, archive_fs, packfile_type=self.packfile_type,
+                symlinks=self.follow_symlinks, paths=self.paths, compression=self.compression,
+                progress_callback=self.update_bytes_processed, deid_profile=self.deid_profile)
 
         #Rewind
         tmpfile.seek(0)
-
-        try:
-            # Close the filesystem
-            self.archive_fs.close()
-        except:
-            log.exception('Cannot close archive_fs')
 
         metadata = {
             'name': self.filename,
@@ -265,7 +267,7 @@ class UploadQueue(WorkQueue):
             self.skip_task(group='upload')
             return
 
-        self.enqueue(UploadTask(self.uploader, container, filename, src_fs=src_fs, path=path))
+        self.enqueue(UploadTask(self.uploader, container, filename, fs_url=fs_url, path=path))
 
     def upload_packfile(self, archive_fs, packfile_type, deid_profile, container, filename, paths=None):
         if self.skip_existing and self.uploader.file_exists(container, filename):
@@ -275,5 +277,5 @@ class UploadQueue(WorkQueue):
             self.skip_task(group='packfile')
             return
 
-        self.enqueue(PackfileTask(self.uploader, archive_fs, packfile_type, deid_profile, self.follow_symlinks, container,
+        self.enqueue(PackfileTask(self.uploader, archive_fs_url, packfile_type, deid_profile, self.follow_symlinks, container,
                                   filename, paths=paths, compression=self.compression, max_spool=self.max_spool))

@@ -196,11 +196,12 @@ class ParRecScannerImporter(AbstractImporter):
 
         return context
 
-    def perform_discover(self, src_fs, context):
+    def perform_discover(self, fs_url, context):
         """Performs discovery of containers to create and files to upload in the given folder.
 
         Arguments:
-            src_fs (obj): The filesystem to query
+            fs_url (src): The path to the filesystem to query
             context (dict): The initial context
         """
-        self.scanner.discover(src_fs, context, self.container_factory)
+        with self.open_fs(fs_url) as src_fs:
+            self.scanner.discover(src_fs, context, self.container_factory)

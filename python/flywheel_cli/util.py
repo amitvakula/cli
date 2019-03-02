@@ -155,22 +155,23 @@ def contains_dicoms(src_fs):
         return True
     return False
 
-def open_archive_fs(src_fs, path):
+def open_archive_fs(fs_url, path):
     """Open the given path as a sub fs
 
     Arguments:
-        src_fs (fs): The source filesystem
+        fs_url (str): The filesystem url
         path (str): The path to the file to open
 
     Returns:
         fs: Path opened as a sub filesystem
     """
-    if is_tar_file(path):
-        import fs.tarfs
-        return fs.tarfs.TarFS(src_fs.open(path, 'rb'))
-    if is_zip_file(path):
-        import fs.zipfs
-        return fs.zipfs.ZipFS(src_fs.open(path, 'rb'))
+    with open_fs(fs_url) as src_fs:
+        if is_tar_file(path):
+            import fs.tarfs
+            return fs.tarfs.TarFS(src_fs.open(path, 'rb'))
+        if is_zip_file(path):
+            import fs.zipfs
+            return fs.zipfs.ZipFS(src_fs.open(path, 'rb'))
     return None
 
 def localize_timestamp(timestamp, timezone=None):

@@ -122,6 +122,15 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
         else:
             upload_fn(container.id, flywheel.FileSpec(name, fileobj), metadata=json.dumps(metadata))
 
+    def file_exists(self, container, name):
+        cont = self.fw.get(container.id)
+        if not cont:
+            return False
+        for file_entry in cont.get('files', []):
+            if file_entry['name'] == name:
+                return True
+        return False
+
     def signed_url_upload(self, container, name, fileobj, metadata=None):
         """Upload fileobj to container as name, using signed-urls"""
         # Create ticketed upload

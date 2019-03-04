@@ -59,6 +59,9 @@ class Config(object):
         # Set output folder
         self.output_folder = getattr(args, 'output_folder', None)
 
+        # Skip existing files
+        self.skip_existing_files = getattr(args, 'skip_existing', False)
+
         # Set use_uids property (default is use uids)
         self.use_uids = not getattr(args, 'no_uids', False)
 
@@ -194,6 +197,7 @@ class Config(object):
         parser.add_argument('--output-folder', help='Output to the given folder instead of uploading to flywheel')
         parser.add_argument('--no-uids', action='store_true', help='Ignore UIDs when grouping sessions and acquisitions')
         parser.add_argument('--max-tempfile', default=50, type=int, help='The max in-memory tempfile size, in MB, or 0 to always use disk')
+        parser.add_argument('--skip-existing', action='store_true', help='Skip import of existing files')
         return parser
 
     @staticmethod

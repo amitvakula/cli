@@ -1,3 +1,4 @@
+import logging
 import tempfile
 
 from abc import ABC, abstractmethod
@@ -6,25 +7,38 @@ from .work_queue import Task, WorkQueue
 from .packfile import create_zip_packfile
 from .progress_reporter import ProgressReporter
 
+log = logging.getLogger(__name__)
 MAX_IN_MEMORY_XFER = 32 * (2 ** 20) # Files under 32mb send as one chunk
 
 class Uploader(ABC):
+    """Abstract uploader class, that can upload files"""
     verb = 'Uploading'
 
-    """Abstract uploader class, that can upload files"""
     @abstractmethod
-    def upload(self, container, name, fileobj):
+    def upload(self, container, name, fileobj, metadata=None):
         """Upload the given file-like object to the given container as name.
 
         Arguments:
             container (ContainerNode): The destination container
             name (str): The file name
             fileobj (obj): The file-like object, which supports read()
+            metadata (dict): Container metadata
 
         Yields:
             int: Number of bytes uploaded (periodically)
         """
-        pass
+
+    @abstractmethod
+    def file_exists(self, container, name):
+        """Check if the given file object already exists on the given container.
+
+        Arguments:
+            container (ContainerNode): The destination container
+            name (str): The file name
+
+        Returns:
+            bool: True if the file already exists, otherwise False
+        """
 
     def supports_signed_url(self):
         """Check if signed url upload is supported.
@@ -195,6 +209,8 @@ class UploadQueue(WorkQueue):
         self.follow_symlinks = config.follow_symlinks
         self.max_spool = config.max_spool
 
+        self.skip_existing = config.skip_existing_files
+
         self._progress_thread = None
         if show_progress:
             self._progress_thread = ProgressReporter(self)
@@ -232,11 +248,30 @@ class UploadQueue(WorkQueue):
         self.resume_reporting()
 
     def upload(self, container, filename, fileobj):
+        if self.skip_existing and self.uploader.file_exists(container, filename):
+            log.debug('Skipping existing file "%s" on %s %s', filename,
+                    container.container_type, container.id)
+            self.skip_task(group='upload')
+            return
+
         self.enqueue(UploadTask(self.uploader, container, filename, fileobj=fileobj))
 
     def upload_file(self, container, filename, src_fs, path):
+        if self.skip_existing and self.uploader.file_exists(container, filename):
+            log.debug('Skipping existing file "%s" on %s %s', filename,
+                    container.container_type, container.id)
+            self.skip_task(group='upload')
+            return
+
         self.enqueue(UploadTask(self.uploader, container, filename, src_fs=src_fs, path=path))
 
     def upload_packfile(self, archive_fs, packfile_type, deid_profile, container, filename, paths=None):
+        if self.skip_existing and self.uploader.file_exists(container, filename):
+            log.debug('Skipping existing packfile "%s" on %s %s', filename,
+                    container.container_type, container.id)
+            self.skip_task(group='upload')
+            self.skip_task(group='packfile')
+            return
+
         self.enqueue(PackfileTask(self.uploader, archive_fs, packfile_type, deid_profile, self.follow_symlinks, container,
                                   filename, paths=paths, compression=self.compression, max_spool=self.max_spool))

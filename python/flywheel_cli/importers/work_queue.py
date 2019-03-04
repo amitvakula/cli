@@ -47,6 +47,8 @@ class WorkQueue(object):
         self.completed = []
         # List of errored jobs
         self.errors = []
+        # Count of skipped jobs
+        self.skipped = { group: 0 for group in groups.keys() }
 
         self.groups = groups
 
@@ -80,6 +82,12 @@ class WorkQueue(object):
             count = next(self._counter)
             heapq.heappush(self.waiting[task.group], (priority, count, task))
             cond.notify()
+
+    def skip_task(self, task=None, group=None):
+        if group is None:
+            group = task.group
+        with self._lock:
+            self.skipped[group] += 1
 
     def take(self, group):
         result = None
@@ -153,7 +161,8 @@ class WorkQueue(object):
             for group in self.groups.keys():
                 results[group] = {
                     'completed': 0,
-                    'completed_bytes': 0
+                    'completed_bytes': 0,
+                    'skipped': self.skipped[group]
                 }
 
             for task in self.completed:

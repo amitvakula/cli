@@ -88,6 +88,7 @@ class UploadFileWrapper(object):
     def close(self):
         if self.fileobj:
             self.fileobj.close()
+        self.fileobj = None
 
     def get_bytes_sent(self):
         return self._sent
@@ -119,6 +120,7 @@ class UploadTask(Task):
         try:
             self.fileobj.close()
         except:
+            log.exception('Cannot close file object')
             pass
 
         # No more jobs so no priority
@@ -163,9 +165,9 @@ class PackfileTask(Task):
 
         try:
             # Close the filesystem
-            archive_fs.close()
+            self.archive_fs.close()
         except:
-            pass
+            log.exception('Cannot close archive_fs')
 
         metadata = {
             'name': self.filename,

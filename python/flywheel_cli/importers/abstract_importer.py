@@ -278,7 +278,7 @@ class AbstractImporter(ABC):
                         upload_queue.upload_packfile(packfile_src_fs, desc.packfile_type, self.deid_profile, container, file_name)
                     else:
                         packfile_src_fs = src_fs.opendir('/')
-                        upload_queue.upload_packfile(src_fs, desc.packfile_type, self.deid_profile, container, file_name, paths=desc.path)
+                        upload_queue.upload_packfile(packfile_src_fs, desc.packfile_type, self.deid_profile, container, file_name, paths=desc.path)
 
             upload_queue.wait_for_finish()
             # Retry loop for errored jobs

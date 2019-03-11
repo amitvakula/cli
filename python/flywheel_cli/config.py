@@ -46,6 +46,14 @@ class Config(object):
         self.max_retries = getattr(args, 'max_retries', 3)
         self.retry_wait = 5 # Wait 5 seconds between retries
 
+        # Certificates
+        ca_certs = getattr(args, 'ca_certs', None)
+        if ca_certs is not None:
+            # Monkey patch certifi.where()
+            import certifi
+            certifi.where = lambda: ca_certs
+            logging.info('Using certificates override: %s', certifi.where())
+
         # Set output folder
         self.output_folder = getattr(args, 'output_folder', None)
 
@@ -147,6 +155,7 @@ class Config(object):
         config_group.add_argument('--no-config', action='store_true', help='Do NOT load the default configuration file')
 
         parser.add_argument('-y', '--yes', action='store_true', help='Assume the answer is yes to all prompts')
+        parser.add_argument('--ca-certs', help='The file to use for SSL Certificate Validation')
 
         log_group = parser.add_mutually_exclusive_group()
         log_group.add_argument('--debug', action='store_true', help='Turn on debug logging')

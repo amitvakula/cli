@@ -66,10 +66,10 @@ func GenerateExampleManifestAndModifier(label, name, imageName, category string,
 				"type":        "string",
 				"description": "String regex example: any phone number, no area code.",
 			},
-			"extra": {
+			"show-example": {
 				"default":     false,
 				"type":        "boolean",
-				"description": "Show extra information in the gear script!",
+				"description": "Show example features in the gear script!",
 			},
 		},
 		Environment: map[string]string{
@@ -193,8 +193,8 @@ display(destination)
 print('\nInputs:')
 display(inputs)
 
-# Check a config value to see if extra information was requested
-if not config['extra']:
+# Check a config value to see if example features were requested
+if not config['show-example']:
 	exit(1)
 
 # Check if the flywheel SDK is installed

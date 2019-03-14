@@ -43,13 +43,23 @@ func FetchName(client *api.Client) string {
 }
 
 func RenderTemplate(template string, context map[string]interface{}) (string, error) {
+
+	// This is disabled server-side pending a threat model review.
+	// Further, this restricts the range of valid config values beyond what the gear spec allows.
+	// Ref pongo2/context.go/checkForValidIdentifiers.
+	//
+	// Example:
+	// [Error (where: checkForValidIdentifiers)] Context-key 'whatever-it-takes' (value: 'false') is not a valid identifier.
+	//
+	// Disabled with imports active to leave the code path hot.
+
 	tpl, err := pongo2.FromString(template)
 	if err != nil {
 		return "", err
 	}
 
-	out, err := tpl.Execute(pongo2.Context(context))
-	return out, err
+	_, _ = tpl.Execute(pongo2.Context(context))
+	return template, nil
 }
 
 func UntarGearFolder(reader io.Reader) error {

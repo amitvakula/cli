@@ -66,6 +66,11 @@ func GenerateExampleManifestAndModifier(label, name, imageName, category string,
 				"type":        "string",
 				"description": "String regex example: any phone number, no area code.",
 			},
+			"extra": {
+				"default":     false,
+				"type":        "boolean",
+				"description": "Show extra information in the gear script!",
+			},
 		},
 		Environment: map[string]string{
 			"Example_Environment_Variable": "Set gear environment variables here.",
@@ -165,7 +170,7 @@ find /flywheel/v0/input -type f | xargs -r file || true
 
 const ExamplePythonScript = `#!/usr/bin/env python
 
-import json, codecs
+import codecs, json
 
 print('This is an example python script.')
 print('Modify as desired, or set the manifest "command" key to something else entirely.')
@@ -188,6 +193,9 @@ display(destination)
 print('\nInputs:')
 display(inputs)
 
+# Check a config value to see if extra information was requested
+if not config['extra']:
+	exit(1)
 
 # Check if the flywheel SDK is installed
 try:

@@ -69,7 +69,8 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
 
             # Support the new and legacy method of feature advertisement, respectively
             # Ref: https://github.com/flywheel-io/core/pull/1503
-            f1 = config.get('features', {}).get('signed_url', False)
+            features = config.get('features')
+            f1 = features.get('signed_url', False) if features else False
             f2 = config.get('signed_url', False)
 
             self._supports_signed_url = f1 or f2

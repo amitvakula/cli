@@ -10,7 +10,7 @@ from flywheel_cli.util import METADATA_EXPR
 from flywheel_cli.importers import FolderImporter, StringMatchNode
 from flywheel_cli.config import Config
 from .test_container_factory import MockContainerResolver
-from .test_folder_importer import mock_fs, make_config
+from .test_folder_importer import make_config
 from .test_template_string import project_pattern, session_pattern
 
 def make_importer(resolver, template='', **kwargs):
@@ -96,9 +96,9 @@ def test_parse_yaml_template():
     assert result.children[2].packfile_type == None
     assert result.children[2].ignore
 
-def test_yaml_template1():
+def test_yaml_template1(mock_fs):
     # Normal discovery
-    mockfs = mock_fs(collections.OrderedDict({
+    mockfs, mockfs_url = mock_fs(collections.OrderedDict({
         'archive/ASST_12345/arc001/001001/SCANS/110/DICOM': [
             '001.dcm',
             '002.dcm',
@@ -133,7 +133,7 @@ def test_yaml_template1():
 
     assert importer.merge_subject_and_session
 
-    importer.discover(mockfs)
+    importer.discover(mockfs_url)
 
     itr = iter(importer.container_factory.walk_containers())
 

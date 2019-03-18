@@ -22,7 +22,7 @@ def test_compile_regex():
 
     # Ignore backslashes
     result = compile_regex(r'\w+')
-    assert result.pattern == '\w+'
+    assert result.pattern == r'\w+'
 
     # Escaped groupings
     result = compile_regex(r'\{foo\}')
@@ -30,7 +30,7 @@ def test_compile_regex():
 
     # Fix groups
     result = compile_regex(r'(?P<project._id>\w+)')
-    assert result.pattern == '(?P<project__2e___id>\w+)'
+    assert result.pattern == r'(?P<project__2e___id>\w+)'
 
 def test_parse_template_string():
     result = parse_template_string('{group}')
@@ -52,7 +52,7 @@ def test_parse_template_string():
     assert result.packfile_type == None
     assert result.next_node == TERMINAL_NODE
 
-    result = parse_template_string('{group}:{project}:(?P<session>[a-zA-Z0-9]+)-(?P<subject>\d+):scans,packfile_type=pv5')
+    result = parse_template_string(r'{group}:{project}:(?P<session>[a-zA-Z0-9]+)-(?P<subject>\d+):scans,packfile_type=pv5')
 
     assert result
     assert result.template.pattern == group_pattern
@@ -65,7 +65,7 @@ def test_parse_template_string():
 
     result = result.next_node
     assert result
-    assert result.template.pattern == '(?P<session>[a-zA-Z0-9]+)-(?P<subject>\d+)'
+    assert result.template.pattern == r'(?P<session>[a-zA-Z0-9]+)-(?P<subject>\d+)'
     assert result.packfile_type == None
 
     result = result.next_node
@@ -78,7 +78,7 @@ def test_parse_template_list():
     tmpl = [
         '{group}',
         {'pattern': '{project}'},
-        {'pattern': '(?P<session>[a-zA-Z0-9]+)-(?P<subject>\d+)' },
+        {'pattern': r'(?P<session>[a-zA-Z0-9]+)-(?P<subject>\d+)' },
         {'select': [
             {'pattern': 'scans', 'packfile_type': 'dicom'},
             'stim',
@@ -100,7 +100,7 @@ def test_parse_template_list():
 
     result = result.next_node
     assert result
-    assert result.template.pattern == '(?P<session>[a-zA-Z0-9]+)-(?P<subject>\d+)'
+    assert result.template.pattern == r'(?P<session>[a-zA-Z0-9]+)-(?P<subject>\d+)'
     assert result.packfile_type == None
 
     result = result.next_node

@@ -8,17 +8,6 @@ from flywheel_cli.importers import FolderImporter, StringMatchNode
 from flywheel_cli.config import Config
 from .test_container_factory import MockContainerResolver
 
-def mock_fs(structure):
-    mockfs = fs.open_fs('mem://')
-
-    for path, files in structure.items():
-        with mockfs.makedirs(path, recreate=True) as subdir:
-            for name in files:
-                with subdir.open(name, 'w') as f:
-                    f.write('Hello World!')
-
-    return mockfs
-
 def make_config(resolver):
     config = Config()
     config._resolver = resolver
@@ -43,9 +32,9 @@ def make_importer(resolver, group=None, project=None, no_subjects=False, no_sess
     importer.add_template_node(StringMatchNode('acquisition'))
     return importer
 
-def test_folder_resolver_default():
+def test_folder_resolver_default(mock_fs):
     # Normal discovery
-    mockfs = mock_fs(collections.OrderedDict({
+    mockfs, mockfs_url = mock_fs(collections.OrderedDict({
         'scitran/Anxiety Study': [
             'InformedConsent_MRI.pdf', 'ScreeningForm_MRI.pdf'
         ],
@@ -65,7 +54,7 @@ def test_folder_resolver_default():
     resolver = MockContainerResolver()
     importer = make_importer(resolver)
 
-    importer.discover(mockfs)
+    importer.discover(mockfs_url)
 
     itr = iter(importer.container_factory.walk_containers())
 
@@ -115,9 +104,9 @@ def test_folder_resolver_default():
     except StopIteration:
         pass
 
-def test_folder_resolver_group_and_project():
+def test_folder_resolver_group_and_project(mock_fs):
     # Normal discovery
-    mockfs = mock_fs(collections.OrderedDict({
+    mockfs, mockfs_url = mock_fs(collections.OrderedDict({
         '/': [
             'InformedConsent_MRI.pdf'
         ],
@@ -129,7 +118,7 @@ def test_folder_resolver_group_and_project():
     resolver = MockContainerResolver()
     importer = make_importer(resolver, group='psychology', project='Anxiety Study')
 
-    importer.discover(mockfs)
+    importer.discover(mockfs_url)
 
     itr = iter(importer.container_factory.walk_containers())
 
@@ -161,8 +150,8 @@ def test_folder_resolver_group_and_project():
     except StopIteration:
         pass
 
-def test_composite_packfiles():
-    mockfs = mock_fs(collections.OrderedDict({
+def test_composite_packfiles(mock_fs):
+    mockfs, mockfs_url = mock_fs(collections.OrderedDict({
         'subject/session/pv5': [
             'file1.txt',
             'file2.txt'
@@ -182,7 +171,7 @@ def test_composite_packfiles():
         StringMatchNode('acquisition')
     ])
 
-    importer.discover(mockfs)
+    importer.discover(mockfs_url)
 
     itr = iter(importer.container_factory.walk_containers())
 
@@ -219,8 +208,8 @@ def test_composite_packfiles():
     except StopIteration:
         pass
 
-def test_nested_packfiles():
-    mockfs = mock_fs(collections.OrderedDict({
+def test_nested_packfiles(mock_fs):
+    mockfs, mockfs_url = mock_fs(collections.OrderedDict({
         'subject/session/pv5': [
             'file1.txt',
             'file2.txt'
@@ -251,7 +240,7 @@ def test_nested_packfiles():
         StringMatchNode('acquisition')
     ])
 
-    importer.discover(mockfs)
+    importer.discover(mockfs_url)
 
     itr = iter(importer.container_factory.walk_containers())
 

@@ -120,7 +120,7 @@ def open_fs(path):
 
 def is_tar_file(path):
     """Check if path appears to be a tar archive"""
-    return bool(re.match('^.*(\.tar|\.tgz|\.tar\.gz|\.tar\.bz2)$', path, re.I))
+    return bool(re.match(r'^.*(\.tar|\.tgz|\.tar\.gz|\.tar\.bz2)$', path, re.I))
 
 def is_zip_file(path):
     """Check if path appears to be a zip archive"""

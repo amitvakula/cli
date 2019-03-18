@@ -1,5 +1,9 @@
-import pytest
+import tempfile
 import os
+import shutil
+
+import fs
+import pytest
 
 from flywheel_cli.bulk_ingest import db
 
@@ -21,6 +25,29 @@ def pytest_generate_tests(metafunc):
         if not db_opt:
             db_opt = DEFAULT_DB
         metafunc.parametrize('db_type', db_opt)
+
+@pytest.fixture(scope="function")
+def mock_fs():
+    temp_path = tempfile.mkdtemp()
+    temp_url = 'osfs://{}'.format(temp_path)
+    mockfs = None
+
+    def create_fn(structure):
+        mockfs = fs.open_fs(temp_url)
+        for path, files in structure.items():
+            with mockfs.makedirs(path, recreate=True) as subdir:
+                for name in files:
+                    with subdir.open(name, 'w') as f:
+                        f.write('Hello World!')
+
+        return mockfs, temp_url
+
+    yield create_fn
+
+    if mockfs is not None:
+        mockfs.close()
+
+    shutil.rmtree(temp_path)
 
 @pytest.fixture(scope="function")
 def ingest_factory():

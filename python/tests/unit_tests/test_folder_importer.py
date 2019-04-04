@@ -91,21 +91,23 @@ def test_folder_resolver_default():
     assert '/scitran/Anxiety Study/anx_s1/ses1/FractionalAnisotropy_Single_Subject.csv' in child.files
     assert '/scitran/Anxiety Study/anx_s1/ses1/MeanDiffusivity_Single_Subject.csv' in child.files
 
-    _, child = next(itr)
-    assert child.container_type == 'acquisition'
-    assert child.label == 'T1_high-res_inplane_Ret_knk'
-    assert len(child.files) == 1
-    assert '/scitran/Anxiety Study/anx_s1/ses1/T1_high-res_inplane_Ret_knk/8403_4_1_t1.dcm.zip' in child.files
+    # Order is not guaranteed
+    for i in range(2):
+        _, child = next(itr)
 
-    _, child = next(itr)
-    assert child.container_type == 'acquisition'
-    assert child.label == 'fMRI_Ret_knk'
-    assert len(child.files) == 0
-    assert len(child.packfiles) == 1
-    desc = child.packfiles[0]
-    assert desc.packfile_type == 'dicom'
-    assert desc.path == '/scitran/Anxiety Study/anx_s1/ses1/fMRI_Ret_knk/dicom'
-    assert desc.count == 3
+        if child.label == 'T1_high-res_inplane_Ret_knk':
+            assert child.container_type == 'acquisition'
+            assert len(child.files) == 1
+            assert '/scitran/Anxiety Study/anx_s1/ses1/T1_high-res_inplane_Ret_knk/8403_4_1_t1.dcm.zip' in child.files
+        else:
+            assert child.container_type == 'acquisition'
+            assert child.label == 'fMRI_Ret_knk'
+            assert len(child.files) == 0
+            assert len(child.packfiles) == 1
+            desc = child.packfiles[0]
+            assert desc.packfile_type == 'dicom'
+            assert desc.path == '/scitran/Anxiety Study/anx_s1/ses1/fMRI_Ret_knk/dicom'
+            assert desc.count == 3
 
     try:
         next(itr)

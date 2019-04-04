@@ -69,7 +69,8 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
 
             # Support the new and legacy method of feature advertisement, respectively
             # Ref: https://github.com/flywheel-io/core/pull/1503
-            f1 = config.get('features', {}).get('signed_url', False)
+            features = config.get('features')
+            f1 = features.get('signed_url', False) if features else False
             f2 = config.get('signed_url', False)
 
             self._supports_signed_url = f1 or f2
@@ -120,6 +121,15 @@ class SdkUploadWrapper(Uploader, ContainerResolver):
             self.signed_url_upload(container, name, fileobj, metadata=metadata)
         else:
             upload_fn(container.id, flywheel.FileSpec(name, fileobj), metadata=json.dumps(metadata))
+
+    def file_exists(self, container, name):
+        cont = self.fw.get(container.id)
+        if not cont:
+            return False
+        for file_entry in cont.get('files', []):
+            if file_entry['name'] == name:
+                return True
+        return False
 
     def signed_url_upload(self, container, name, fileobj, metadata=None):
         """Upload fileobj to container as name, using signed-urls"""

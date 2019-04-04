@@ -12,7 +12,6 @@ log = logging.getLogger(__name__)
 from .. import util
 from .container_factory import ContainerFactory
 from .upload_queue import UploadQueue
-from .packfile import create_zip_packfile
 
 class AbstractImporter(ABC):
     # Whether or not archive filesystems are supported
@@ -163,7 +162,7 @@ class AbstractImporter(ABC):
                     results.append(('warn', msg))
 
                 for desc in container.packfiles:
-                    msg = '{} pack-file cannot be uploaded to {} {} - files are not supported at this level'.format(fname, container.container_type, cname)
+                    msg = 'pack-file cannot be uploaded to {} {} - files are not supported at this level'.format(container.container_type, cname)
                     results.append(('warn', msg))
 
         return results
@@ -279,7 +278,7 @@ class AbstractImporter(ABC):
                         upload_queue.upload_packfile(packfile_src_fs, desc.packfile_type, self.deid_profile, container, file_name)
                     else:
                         packfile_src_fs = src_fs.opendir('/')
-                        upload_queue.upload_packfile(src_fs, desc.packfile_type, self.deid_profile, container, file_name, paths=desc.path)
+                        upload_queue.upload_packfile(packfile_src_fs, desc.packfile_type, self.deid_profile, container, file_name, paths=desc.path)
 
             upload_queue.wait_for_finish()
             # Retry loop for errored jobs

@@ -12,11 +12,13 @@ import zipfile
 from flywheel_migration import deidentify
 from .sdk_impl import create_flywheel_client, SdkUploadWrapper
 from .folder_impl import FSWrapper
+from .custom_walker import CustomWalker
 
 DEFAULT_CONFIG_PATH = '~/.config/flywheel/cli.cfg'
 CLI_LOG_PATH = '~/.cache/flywheel/logs/cli.log'
 
 RE_CONFIG_LINE = re.compile(r'^\s*([-_a-zA-Z0-9]+)\s*([:=]\s*(.+?))?\s*$')
+
 
 class Config(object):
     def __init__(self, args=None):
@@ -57,6 +59,9 @@ class Config(object):
         # Set output folder
         self.output_folder = getattr(args, 'output_folder', None)
 
+        # Skip existing files
+        self.skip_existing_files = getattr(args, 'skip_existing', False)
+
         # Set use_uids property (default is use uids)
         self.use_uids = not getattr(args, 'no_uids', False)
 
@@ -70,6 +75,13 @@ class Config(object):
             profile_name = 'none'
 
         self.deid_profile = self.load_deid_profile(profile_name, args=args)
+
+        self.walk_filters = {
+            'filter': getattr(args, 'filter', []),
+            'exclude': getattr(args, 'exclude', []),
+            'include_dirs': getattr(args, 'include_dirs', []),
+            'exclude_dirs': getattr(args, 'exclude_dirs', []),
+        }
 
     def get_compression_type(self):
         if self.compression_level == 0:
@@ -105,6 +117,13 @@ class Config(object):
     def get_uploader(self):
         # Currently all resolvers are uploaders
         return self.get_resolver()
+
+    def get_walker(self, **kwargs):
+        # Merge include/exclusion lists
+        for key in ('filter', 'exclude', 'include_dirs', 'exclude_dirs'):
+            kwargs[key] = merge_lists(kwargs.get(key, []), self.walk_filters[key])
+
+        return CustomWalker(symlinks=self.follow_symlinks, **kwargs)
 
     def configure_logging(self, args):
         root = logging.getLogger()
@@ -171,9 +190,14 @@ class Config(object):
         parser.add_argument('--compression-level', default=1, type=int, choices=range(-1, 9),
                 help='The compression level to use for packfiles. -1 for default, 0 for store')
         parser.add_argument('--symlinks', action='store_true', help='follow symbolic links that resolve to directories')
+        parser.add_argument('--include-dirs', action='append', dest='include_dirs', help='Patterns of directories to include')
+        parser.add_argument('--exclude-dirs', action='append', dest='exclude_dirs', help='Patterns of directories to exclude')
+        parser.add_argument('--include', action='append', dest='filter', help='Patterns of filenames to include')
+        parser.add_argument('--exclude', action='append', dest='exclude', help='Patterns of filenames to exclude')
         parser.add_argument('--output-folder', help='Output to the given folder instead of uploading to flywheel')
         parser.add_argument('--no-uids', action='store_true', help='Ignore UIDs when grouping sessions and acquisitions')
         parser.add_argument('--max-tempfile', default=50, type=int, help='The max in-memory tempfile size, in MB, or 0 to always use disk')
+        parser.add_argument('--skip-existing', action='store_true', help='Skip import of existing files')
         return parser
 
     @staticmethod
@@ -230,3 +254,11 @@ class Config(object):
                     if value is None:
                         value = 'true'
                     dest[key] = value
+
+
+def merge_lists(a, b):
+    """Merge lists a and b, returning the result or None if the result is empty"""
+    result = (a or []) + (b or [])
+    if result:
+        return result
+    return None

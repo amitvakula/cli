@@ -13,6 +13,7 @@ class GroupStats(object):
         self.total_count = total_count
         self.completed = 0
         self.completed_bytes = 0
+        self.skipped = 0
 
         self.samples = collections.deque()
         self.bytes_per_sec = 0
@@ -88,6 +89,7 @@ class ProgressReporter(ABC):
         for group, stats in current_stats.items():
             # Take a sample from each group for averaging
             group_stats = self.groups[group]
+            group_stats.skipped = stats.get('skipped', 0)
             group_stats.completed = stats.get('completed', 0)
             group_stats.completed_bytes = stats.get('completed_bytes', 0)
             group_stats.samples.append((sample_time, group_stats.completed_bytes))
@@ -110,12 +112,13 @@ class ProgressReporter(ABC):
         messages = []
 
         for group in self.groups.values():
-            if group.total_count:
-                if group.completed == group.total_count:
+            total_count = group.total_count - group.skipped
+            if total_count > 0:
+                if group.completed == total_count:
                     bps = 'DONE'
                 else:
                     bps = fs.filesize.traditional(group.bytes_per_sec) + '/s'
-                messages.append('{} {}/{} - {}'.format(group.desc, group.completed, group.total_count, bps))
+                messages.append('{} {}/{} - {}'.format(group.desc, group.completed, total_count, bps))
 
         message = ', '.join(messages).ljust(self.columns) + newline
 

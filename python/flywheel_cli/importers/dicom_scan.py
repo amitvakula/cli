@@ -5,7 +5,6 @@ import os
 import sys
 
 from .abstract_importer import AbstractImporter
-from .custom_walker import CustomWalker
 from .packfile import PackfileDescriptor
 from .. import util
 
@@ -72,9 +71,11 @@ class DicomScanner(object):
 
         self.sessions = {}
 
+        self.walker = config.get_walker()
+
     def save_subject_map(self):
         if self.subject_map:
-            self.subject_map.save()                
+            self.subject_map.save()
 
     def discover(self, src_fs, context, container_factory, path_prefix=None):
         """Performs discovery of containers to create and files to upload in the given folder.
@@ -91,14 +92,13 @@ class DicomScanner(object):
             tags += [ Tag(tag_for_keyword(keyword)) for keyword in subject_cfg.fields ]
 
         # First step is to walk and sort files
-        walker = CustomWalker(symlinks=self.config.follow_symlinks)
         sys.stdout.write('Scanning directories...'.ljust(80) + '\r')
         sys.stdout.flush()
 
-        files = list(walker.files(src_fs))
+        files = list(self.walker.files(src_fs))
         file_count = len(files)
         files_scanned = 0
-        
+
         for path in files:
             sys.stdout.write('Scanning {}/{} files...'.format(files_scanned, file_count).ljust(80) + '\r')
             sys.stdout.flush()
@@ -113,7 +113,7 @@ class DicomScanner(object):
 
                     # Don't decode while scanning, stop as early as possible
                     # TODO: will we ever rely on fields after stack id for subject mapping
-                    dcm = DicomFile(f, parse=False, session_label_key=self.session_label_key, 
+                    dcm = DicomFile(f, parse=False, session_label_key=self.session_label_key,
                         decode=False, stop_when=_at_stack_id, update_in_place=False, specific_tags=tags)
                     acquisition = self.resolve_acquisition(context, dcm)
 

@@ -1,4 +1,5 @@
-import collections
+import heapq
+import itertools
 import logging
 import threading
 import tempfile
@@ -39,16 +40,18 @@ class WorkQueue(object):
             groups (list): List of tuples of group tag to maximum concurrent jobs per group
         """
         # Queue of waiting jobs, by group
-        self.waiting = {key: collections.deque() for key in groups.keys()}
+        self.waiting = {key: [] for key in groups.keys()}
         # Queue of pending jobs
         self.pending = []
         # Queue of completed jobs
         self.completed = []
         # List of errored jobs
         self.errors = []
+        # Count of skipped jobs
+        self.skipped = { group: 0 for group in groups.keys() }
 
         self.groups = groups
-    
+
         self.running = False
         self._finish_called = False
 
@@ -57,6 +60,7 @@ class WorkQueue(object):
         self._complete_cond = threading.Condition()
 
         self._work_threads = []
+        self._counter = itertools.count()
 
     def start(self):
         self.running = True
@@ -72,11 +76,18 @@ class WorkQueue(object):
                 t.start()
                 self._work_threads.append(t)
 
-    def enqueue(self, task):
+    def enqueue(self, task, priority=10):
         cond = self._cond[task.group]
         with cond:
-            self.waiting[task.group].append(task)
+            count = next(self._counter)
+            heapq.heappush(self.waiting[task.group], (priority, count, task))
             cond.notify()
+
+    def skip_task(self, task=None, group=None):
+        if group is None:
+            group = task.group
+        with self._lock:
+            self.skipped[group] += 1
 
     def take(self, group):
         result = None
@@ -85,10 +96,10 @@ class WorkQueue(object):
             while self.running:
                 queue = self.waiting[group]
                 if queue:
-                    result = queue.popleft()
+                    _, _, result = heapq.heappop(queue)
                     break
                 cond.wait()
-            
+
             if not self.running:
                 return None
 
@@ -150,7 +161,8 @@ class WorkQueue(object):
             for group in self.groups.keys():
                 results[group] = {
                     'completed': 0,
-                    'completed_bytes': 0
+                    'completed_bytes': 0,
+                    'skipped': self.skipped[group]
                 }
 
             for task in self.completed:
@@ -206,7 +218,7 @@ class WorkQueue(object):
                 return # Shutdown
 
             try:
-                next_job = job.execute()
+                next_job, priority = job.execute()
             except Exception:
                 # Add to errors list
                 self.log_exception(job)
@@ -214,7 +226,7 @@ class WorkQueue(object):
                 continue
 
             if next_job:
-                self.enqueue(next_job)
+                self.enqueue(next_job, priority=priority)
 
             # Complete the job
             self.complete(job)

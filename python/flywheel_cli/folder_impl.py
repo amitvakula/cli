@@ -13,13 +13,17 @@ class FSWrapper(Uploader, ContainerResolver):
 
         self.dst_fs = fs.osfs.OSFS(path)
 
-    def upload(self, container, name, fileobj):
+    def upload(self, container, name, fileobj, metadata=None):
         # Save to disk
         path = fs.path.join(container.id, name)
         if hasattr(fileobj, 'read'):
             self.dst_fs.setfile(path, fileobj)
         else:
             self.dst_fs.setbytes(path, fileobj)
+
+    def file_exists(self, container, name):
+        path = fs.path.join(container.id, name)
+        return self.dst_fs.exists(path)
 
     def path_el(self, container):
         if container.container_type == 'group':

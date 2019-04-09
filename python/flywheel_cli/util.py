@@ -340,3 +340,9 @@ def edit_file(path):
     editor = os.environ.get('EDITOR', default_editor)
     subprocess.call([editor, path])
 
+def package_root():
+    """Get a path to the package root folder"""
+    pkg_dir = os.path.dirname(__file__)
+    root_dir = os.path.join(pkg_dir, '..')
+    return os.path.abspath(root_dir)
+

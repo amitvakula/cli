@@ -31,6 +31,12 @@ def add_commands(subparsers, parsers):
     status_parser.set_defaults(parser=status_parser)
     parsers['status'] = status_parser
 
+    # Version
+    version_parser = subparsers.add_parser('version', help='Print the CLI version and exit')
+    version_parser.set_defaults(func=version)
+    version_parser.set_defaults(parser=version_parser)
+    parsers['version'] = version_parser
+
     # Copy
     cp_parser = subparsers.add_parser('cp', help='Copy a local file to a remote location, or vice-a-versa')
     cp_parser.add_argument('src', help='The source path, either a local file or a flywheel file (e.g. fw://)')
@@ -92,6 +98,19 @@ def status(args):
         print('Could not authenticate - are you sure your API key is up to date?')
         print('Try `fw login` to login to Flywheel.')
         sys.exit(1)
+
+
+def version(args):
+    pkg_root = util.package_root()
+    print('pkg_root: {}'.format(pkg_root))
+
+    version_path = os.path.join(pkg_root, 'VERSION')
+    with open(version_path, 'r') as f:
+        version = f.read().strip()
+
+    print('flywheel-cli')
+    print('  version: {}'.format(version))
+    print('')
 
 
 def copy_file(args):

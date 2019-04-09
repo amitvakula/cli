@@ -311,6 +311,18 @@ def sanitize_string_to_filename(value):
     keepcharacters = (' ', '.', '_', '-')
     return "".join([c for c in value if c.isalnum() or c in keepcharacters]).rstrip()
 
+def hrsize(size):
+    """Return human-readable size from size value"""
+    if size < 1000:
+        return '%d%s' % (size, 'B')
+    for suffix in 'KMGTPEZY':
+        size /= 1024.
+        if size < 10.:
+            return '%.1f%sB' % (size, suffix)
+        if size < 1000.:
+            return '%.0f%sB' % (size, suffix)
+    return '%.0f%sB' % (size, 'Y')
+
 def edit_file(path):
     """
     Open the given path in a file editor, wait for the editor to exit.

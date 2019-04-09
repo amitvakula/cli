@@ -1,3 +1,4 @@
+from . import essentials
 from . import import_folder
 from . import import_template
 from . import import_bruker
@@ -47,6 +48,11 @@ def add_commands(parser):
     subparsers = parser.add_subparsers(title='Available commands', metavar='')
 
     # =====
+    # Essentials
+    # =====
+    essentials.add_commands(subparsers, parsers)
+
+    # =====
     # import
     # =====
     parser_import = subparsers.add_parser('import', help='Import data into Flywheel')
@@ -61,7 +67,7 @@ def add_commands(parser):
     # import bids
     parsers['import bids'] = import_bids.add_command(import_subparsers, [global_parser])
 
-    # import dicom 
+    # import dicom
     parsers['import dicom'] = import_dicom.add_command(import_subparsers, [global_parser, import_parser, deid_parser])
 
     # import bruker

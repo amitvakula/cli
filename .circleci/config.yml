@@ -138,10 +138,11 @@ jobs:
 
             - run:
                 name: Build Wheel
-                command: python setup.py bdist_wheel
+                command: cd python; python setup.py bdist_wheel
 
             - run:
                 name: Deploy wheel
                 command: |
+                  cd python
                   pip install -qq twine
                   twine upload -u $PYPI_USER -p $PYPI_PASS dist/*

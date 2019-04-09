@@ -28,6 +28,7 @@ def pluralize(container_type):
         return container_type + 's'
     return container_type
 
+
 def load_config():
     global config
     if config is None:
@@ -38,6 +39,7 @@ def load_config():
         except:
             pass
     return config
+
 
 def create_flywheel_client(require=True):
     config = load_config()
@@ -50,6 +52,55 @@ def create_flywheel_client(require=True):
     log.debug('SDK Version: %s', flywheel.flywheel.SDK_VERSION)
     log.debug('Flywheel Site URL: %s', result.api_client.configuration.host)
     return result
+
+
+def save_api_key(api_key):
+    """Save the given api key to the user's config file.
+
+    If api_key is None, then remove it from the file.
+    """
+    config = load_config()
+    if config is None:
+        config = {}
+
+    if api_key is None:
+        config.pop('key', None)
+    else:
+        config['key'] = api_key
+
+    path = os.path.expanduser(CONFIG_PATH)
+    with open(path, 'w') as f:
+        json.dump(config, f)
+
+
+def parse_resolver_path(path):
+    """Split out a string path, keeping analyses and files paths"""
+    # TODO: Port this to SDK?
+    if not path:
+        return []
+
+    if path.startswith('fw://'):
+        path = path[5:]
+
+    path = (path or '').strip('/')
+
+    if '/files/' in path:
+        path, file_path = path.split('/files/')
+        file_path = ['files', file_path]
+    else:
+        file_path = []
+
+    if '/analyses/' in path:
+        path, analysis_path = path.split('/analyses/')
+        analysis_path = ['analyses', analysis_path]
+    else:
+        analysis_path = []
+
+    path = path.split('/') or []
+    path = path + analysis_path + file_path
+
+    return [path_el for path_el in path if path_el]
+
 
 """
 For now we skip subjects, replacing them (effectively) with the project layer,

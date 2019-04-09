@@ -49,7 +49,7 @@ jobs:
                 name: Set python VERSION
                 command: |
                   if [ "$CIRCLE_TAG" ]; then
-                    echo "$CIRCLE_TAG" >> python/VERSION
+                    echo "$CIRCLE_TAG" > python/flywheel_cli/VERSION
                   fi
 
             - run:
@@ -137,11 +137,16 @@ jobs:
                 at: ./
 
             - run:
+                name: Set python VERSION
+                command: echo "$CIRCLE_TAG" > python/flywheel_cli/VERSION
+
+            - run:
                 name: Build Wheel
-                command: python setup.py bdist_wheel
+                command: cd python; python setup.py bdist_wheel
 
             - run:
                 name: Deploy wheel
                 command: |
+                  cd python
                   pip install -qq twine
                   twine upload -u $PYPI_USER -p $PYPI_PASS dist/*

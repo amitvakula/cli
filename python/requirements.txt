@@ -4,3 +4,4 @@ flywheel-bids~=0.8.0
 flywheel_migration>=0.6.0
 flywheel-sdk>=4.4.0
 pyinstaller~=3.3.1
+sty==1.0.0b9

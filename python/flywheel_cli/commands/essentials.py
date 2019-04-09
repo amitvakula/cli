@@ -246,21 +246,13 @@ def _get_row_for_container(cont, parent, user):
     if cont.container_type == 'group':
         name = cont.id
     elif cont.container_type == 'analysis':
-        name = _green_bold('analyses/{}'.format(cont.label))
+        name = console.green_bold('analyses/{}'.format(cont.label))
     elif cont.container_type == 'file':
         name = 'files/{}'.format(cont.name)
     else:
-        name = _blue_bold(cont.get('label') or cont.get('code') or cont.get('_id'))
+        name = console.blue_bold(cont.get('label') or cont.get('code') or cont.get('_id'))
 
     return (level, size, modified, name)
-
-
-def _green_bold(s):
-    return sty.fg.green + sty.ef.bold + s + sty.rs.bold_dim + sty.rs.fg
-
-
-def _blue_bold(s):
-    return sty.fg.blue + sty.ef.bold + s + sty.rs.bold_dim + sty.rs.fg
 
 
 def _get_level(cont, uid):

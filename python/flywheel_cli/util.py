@@ -343,6 +343,5 @@ def edit_file(path):
 def package_root():
     """Get a path to the package root folder"""
     pkg_dir = os.path.dirname(__file__)
-    root_dir = os.path.join(pkg_dir, '..')
-    return os.path.abspath(root_dir)
+    return os.path.abspath(pkg_dir)
 

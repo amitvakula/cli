@@ -149,4 +149,8 @@ jobs:
                 command: |
                   cd python
                   pip install -qq twine
-                  twine upload -u $PYPI_USER -p $PYPI_PASS dist/*
+                  echo twine upload -u $PYPI_USER -p $PYPI_PASS dist/*
+
+            - store_artifacts:
+                path: "/workspace/src/flywheel.io/fw/python/dist"
+                destination: build

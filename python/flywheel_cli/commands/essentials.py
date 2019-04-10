@@ -101,12 +101,7 @@ def status(args):
 
 
 def version(args):
-    pkg_root = util.package_root()
-    print('pkg_root: {}'.format(pkg_root))
-
-    version_path = os.path.join(pkg_root, 'VERSION')
-    with open(version_path, 'r') as f:
-        version = f.read().strip()
+    version = util.get_cli_version()
 
     print('flywheel-cli')
     print('  version: {}'.format(version))

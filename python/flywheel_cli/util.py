@@ -345,3 +345,12 @@ def package_root():
     pkg_dir = os.path.dirname(__file__)
     return os.path.abspath(pkg_dir)
 
+def get_cli_version():
+    """Get the installed CLI version"""
+    version_path = os.path.join(package_root(), 'VERSION')
+    try:
+        with open(version_path, 'r') as f:
+            version = f.read().strip()
+    except:
+        version = 'undetermined'
+    return version

@@ -6,7 +6,7 @@ import platform
 import sys
 
 from .commands import add_commands
-from . import monkey
+from . import monkey, util
 
 log = logging.getLogger(__name__)
 
@@ -19,15 +19,16 @@ def main():
 
     # Add commands from commands module
     add_commands(parser)
-    
+
     # Parse arguments
     args = parser.parse_args()
-    
+
     # Additional configuration
     config_fn = getattr(args, 'config', None)
     if callable(config_fn):
         config_fn(args)
 
+    log.debug('CLI Version: %s', util.get_cli_version())
     log.debug('CLI Args: %s', sys.argv)
     log.debug('Platform: %s', platform.platform())
     log.debug('System Encoding: %s', sys.stdout.encoding)

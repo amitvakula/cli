@@ -17,9 +17,9 @@ class FSWrapper(Uploader, ContainerResolver):
         # Save to disk
         path = fs.path.join(container.id, name)
         if hasattr(fileobj, 'read'):
-            self.dst_fs.setfile(path, fileobj)
+            self.dst_fs.writefile(path, fileobj)
         else:
-            self.dst_fs.setbytes(path, fileobj)
+            self.dst_fs.writebytes(path, fileobj)
 
     def file_exists(self, container, name):
         path = fs.path.join(container.id, name)

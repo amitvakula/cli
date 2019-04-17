@@ -70,6 +70,7 @@ class DicomScanner(object):
             self.profile = self.deid_profile.get_file_profile('dicom')
 
         self.sessions = {}
+        self.messages = []
 
         self.walker = config.get_walker()
 
@@ -129,9 +130,9 @@ class DicomScanner(object):
                         orig_path = acquisition.files[sop_uid]
 
                         if not util.fs_files_equal(src_fs, full_path, orig_path):
-                            log.error('File "{}" and "{}" conflict!'.format(path, orig_path))
-                            log.error('Both files have the same IDs, but contents differ!')
-                            sys.exit(1)
+                            message = ('File "{}" and "{}" conflict!\n  Both files have the '
+                                'same IDs, but contents differ!').format(path, orig_path)
+                            self.messages.append(('error', message))
                     elif path_prefix:
                         acquisition.files[sop_uid] = path_prefix + path
                     else:
@@ -297,3 +298,4 @@ class DicomScannerImporter(AbstractImporter):
             context (dict): The initial context
         """
         self.scanner.discover(src_fs, context, self.container_factory)
+        self.messages += self.scanner.messages

@@ -15,6 +15,7 @@ from abc import ABC, abstractmethod
 class Task(ABC):
     def __init__(self, group):
         self.group = group
+        self.skipped = False
 
     @abstractmethod
     def execute(self):

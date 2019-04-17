@@ -1,4 +1,5 @@
 import logging
+import os
 import tempfile
 
 from abc import ABC, abstractmethod
@@ -57,6 +58,10 @@ class UploadFileWrapper(object):
         self.path = path
         self._sent = 0
         self._total_size = None
+        if fileobj and fileobj.name:
+            self.name = fileobj.name
+        else:
+            self.name = path
 
     def _open(self):
         if not self.fileobj:
@@ -95,10 +100,11 @@ class UploadFileWrapper(object):
 
 
 class UploadTask(Task):
-    def __init__(self, uploader, container, filename, fileobj=None, src_fs=None, path=None, metadata=None):
+    def __init__(self, uploader, audit_log, container, filename, fileobj=None, src_fs=None, path=None, metadata=None):
         """Initialize an upload task, must specify fileobj OR src_fs and path"""
         super(UploadTask, self).__init__('upload')
         self.uploader = uploader
+        self.audit_log = audit_log
         self.container = container
         self.filename = filename
         self.fileobj = UploadFileWrapper(fileobj=fileobj, src_fs=src_fs, path=path)
@@ -109,7 +115,13 @@ class UploadTask(Task):
         self.fileobj.reset()
 
         # Under 32 MB, just read the entire file
-        if self.fileobj.len < MAX_IN_MEMORY_XFER:
+        if self.fileobj.len == 0:
+            # Skip and log 0-byte files
+            log.info('Skipping 0-byte file upload: %s', self.fileobj.name)
+            self.audit_log.add_log(self.fileobj.name, self.container, self.filename,
+                    failed=True, message='Skipped 0-byte file')
+            self.skipped = True
+        elif self.fileobj.len < MAX_IN_MEMORY_XFER:
             if self._data is None:
                 self._data = self.fileobj.read(self.fileobj.len)
             self.uploader.upload(self.container, self.filename, self._data, metadata=self.metadata)
@@ -133,10 +145,11 @@ class UploadTask(Task):
         return 'Upload {}'.format(self.filename)
 
 class PackfileTask(Task):
-    def __init__(self, uploader, archive_fs, packfile_type, deid_profile, follow_symlinks, container, filename, paths=None, compression=None, max_spool=None):
+    def __init__(self, uploader, audit_log, archive_fs, packfile_type, deid_profile, follow_symlinks, container, filename, paths=None, compression=None, max_spool=None):
         super(PackfileTask, self).__init__('packfile')
 
         self.uploader = uploader
+        self.audit_log = audit_log
         self.archive_fs = archive_fs
         self.packfile_type = packfile_type
         self.deid_profile = deid_profile
@@ -175,8 +188,9 @@ class PackfileTask(Task):
         }
 
         # The next task is an uplad task
-        next_task = UploadTask(self.uploader, self.container, self.filename,
-                          fileobj=tmpfile, metadata=metadata)
+        next_task = UploadTask(self.uploader, self.audit_log, self.container, self.filename,
+                          fileobj=tmpfile, metadata=metadata,
+                          path=os.path.dirname(self.paths[0]))
 
         # Enqueue with higher priority than normal uploads
         return (next_task, 5)
@@ -194,7 +208,7 @@ class PackfileTask(Task):
 
 
 class UploadQueue(WorkQueue):
-    def __init__(self, config, packfile_count=0, upload_count=0, show_progress=True):
+    def __init__(self, config, audit_log, packfile_count=0, upload_count=0, show_progress=True):
         # Detect signed-url upload and start multiple upload threads
         upload_threads = 1
         uploader = config.get_uploader()
@@ -210,6 +224,7 @@ class UploadQueue(WorkQueue):
         self.compression = config.get_compression_type()
         self.follow_symlinks = config.follow_symlinks
         self.max_spool = config.max_spool
+        self.audit_log = audit_log
 
         self.skip_existing = config.skip_existing_files
 
@@ -225,6 +240,17 @@ class UploadQueue(WorkQueue):
 
         if self._progress_thread:
             self._progress_thread.start()
+
+    def add_audit_log(self, task, failed=False, message=None):
+        """Add audit log, if this is not a packfile task"""
+        if not isinstance(task, PackfileTask):
+            self.audit_log.add_log(task.fileobj.name, task.container, task.filename,
+                    failed=failed, message=message)
+
+    def complete(self, task):
+        if not task.skipped:
+            self.add_audit_log(task)
+        super(UploadQueue, self).complete(task)
 
     def shutdown(self):
         # Shutdown reporting thread
@@ -242,6 +268,10 @@ class UploadQueue(WorkQueue):
         if self._progress_thread:
             self._progress_thread.resume()
 
+    def error(self, task):
+        self.add_audit_log(task, failed=True, message='Upload error')
+        super(UploadQueue, self).error(task)
+
     def log_exception(self, job):
         self.suspend_reporting()
 
@@ -254,18 +284,20 @@ class UploadQueue(WorkQueue):
             log.debug('Skipping existing file "%s" on %s %s', filename,
                     container.container_type, container.id)
             self.skip_task(group='upload')
+            self.audit_log.add_log(fileobj.name, container, filename, message='Skipped existing')
             return
 
-        self.enqueue(UploadTask(self.uploader, container, filename, fileobj=fileobj))
+        self.enqueue(UploadTask(self.uploader, self.audit_log, container, filename, fileobj=fileobj))
 
     def upload_file(self, container, filename, src_fs, path):
         if self.skip_existing and self.uploader.file_exists(container, filename):
             log.debug('Skipping existing file "%s" on %s %s', filename,
                     container.container_type, container.id)
             self.skip_task(group='upload')
+            self.audit_log.add_log(path, container, filename, message='Skipped existing')
             return
 
-        self.enqueue(UploadTask(self.uploader, container, filename, src_fs=src_fs, path=path))
+        self.enqueue(UploadTask(self.uploader, self.audit_log, container, filename, src_fs=src_fs, path=path))
 
     def upload_packfile(self, archive_fs, packfile_type, deid_profile, container, filename, paths=None):
         if self.skip_existing and self.uploader.file_exists(container, filename):
@@ -273,7 +305,10 @@ class UploadQueue(WorkQueue):
                     container.container_type, container.id)
             self.skip_task(group='upload')
             self.skip_task(group='packfile')
+            if paths:
+                self.audit_log.add_log(paths[0], container, filename, message='Skipped existing')
             return
 
-        self.enqueue(PackfileTask(self.uploader, archive_fs, packfile_type, deid_profile, self.follow_symlinks, container,
-                                  filename, paths=paths, compression=self.compression, max_spool=self.max_spool))
+        self.enqueue(PackfileTask(self.uploader, self.audit_log, archive_fs, packfile_type,
+            deid_profile, self.follow_symlinks, container, filename, paths=paths,
+            compression=self.compression, max_spool=self.max_spool))

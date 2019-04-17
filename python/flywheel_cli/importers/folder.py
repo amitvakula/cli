@@ -54,7 +54,6 @@ class FolderImporter(AbstractImporter):
         self.merge_subject_and_session = merge_subject_and_session
         self.walker = config.get_walker(max_depth=1)
 
-
     def add_template_node(self, next_node):
         """Append next_node to the last node that was added (or set the root node)
 
@@ -159,7 +158,8 @@ class FolderImporter(AbstractImporter):
                             child_path, 0, name=packfile_name)
 
                     if next_node and next_node.node_type == 'scanner':
-                        next_node.scan(src_fs, child_path, child_context, self.container_factory)
+                        messages = next_node.scan(src_fs, child_path, child_context, self.container_factory)
+                        self.messages += messages
                         resolve = False
                     else:
                         resolve_child = 'packfile' not in context
@@ -192,4 +192,3 @@ class FolderImporter(AbstractImporter):
             context.setdefault('session', {})['label'] = context['subject']['label']
             merged = True
         return merged
-

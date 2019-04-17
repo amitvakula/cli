@@ -47,8 +47,11 @@ class ImportTemplateNode(ABC):
             path_prefix (str): The path prefix
             context (dict): The current context object
             container_factory: The container factory where nodes should be added
+
+        Returns:
+            list: The list of warning/error messages
         """
-        pass
+        return []
 
 class TerminalNode(ImportTemplateNode):
     """Terminal node"""
@@ -174,9 +177,13 @@ class ScannerNode(ImportTemplateNode):
             path_prefix (str): The path prefix
             context (dict): The current context object
             container_factory: The container factory where nodes should be added
+
+        Returns:
+            list: The list of warning/error messages
         """
         scanner = self.scanner_cls(self.config)
         scanner.discover(src_fs, context, container_factory, path_prefix=path_prefix)
+        return scanner.messages
 
     def __repr__(self):
         return 'ScannerNode(scanner={})'.format(type(self.scanner_cls))

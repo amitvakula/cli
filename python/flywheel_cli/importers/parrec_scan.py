@@ -35,6 +35,7 @@ class ParRecScanner(object):
         self.sessions = {}
 
         self.walker = config.get_walker()
+        self.messages = []
 
     def discover(self, src_fs, context, container_factory, path_prefix=None):
         """Performs discovery of containers to create and files to upload in the given folder.
@@ -70,9 +71,9 @@ class ParRecScanner(object):
 
                     acquisition = self.resolve_acquisition(context, par)
                     if acquisition.par_file and not util.fs_files_equal(src_fs, path, acquisition.par_file):
-                        log.error('File "{}" and "{}" conflict!'.format(path, orig_path))
-                        log.error('Both files appear to belong to the same acquisition, but contents differ!')
-                        sys.exit(1)
+                        message = ('File "{}" and "{}" conflict!\n  Both files appear to belong to '
+                            'the same acquisition, but contents differ!').format(path, orig_path)
+                        self.messages.append(('error', message))
 
                     acquisition.par_file = real_path
 
@@ -204,3 +205,4 @@ class ParRecScannerImporter(AbstractImporter):
             context (dict): The initial context
         """
         self.scanner.discover(src_fs, context, self.container_factory)
+        self.messages += self.scanner.messages

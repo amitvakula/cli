@@ -12,6 +12,7 @@ log = logging.getLogger(__name__)
 from .. import util
 from .container_factory import ContainerFactory
 from .upload_queue import UploadQueue
+from .audit_log import AuditLog
 
 class AbstractImporter(ABC):
     # Whether or not archive filesystems are supported
@@ -41,6 +42,8 @@ class AbstractImporter(ABC):
             self.deid_profile = config.deid_profile
         else:
             self.deid_profile = None
+
+        self.audit_log = self._init_audit_log(config.audit_log)
 
     @property
     def assume_yes(self):
@@ -221,9 +224,16 @@ class AbstractImporter(ABC):
 
             # Print warnings
             print('')
+            have_errors = False
             for severity, msg in self.verify():
-                print('{} - {}'.format(severity.upper(), msg))
+                severity = severity.upper()
+                if severity == 'ERROR':
+                    have_errors = True
+                print('{} - {}'.format(severity, msg))
             print('')
+
+            if have_errors:
+                sys.exit(1)
 
             if not self.assume_yes and not util.confirmation_prompt('Confirm upload?'):
                 return
@@ -238,7 +248,7 @@ class AbstractImporter(ABC):
             self.container_factory.create_containers()
 
             # Walk the hierarchy, uploading files
-            upload_queue = UploadQueue(self.config, upload_count=counts['file'], packfile_count=counts['packfile'])
+            upload_queue = UploadQueue(self.config, self.audit_log, upload_count=counts['file'], packfile_count=counts['packfile'])
             upload_queue.start()
 
             for _, container in self.container_factory.walk_containers():
@@ -314,3 +324,8 @@ class AbstractImporter(ABC):
     def before_begin_upload(self):
         """Called before actual upload begins"""
         pass
+
+    def _init_audit_log(self, audit_log_path):
+        if audit_log_path is None:
+            audit_log_path = 'audit_log.csv'
+        return AuditLog(audit_log_path)

@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 from setuptools.command.install import install
 
 NAME = "flywheel-cli"
-VERSION = "7.4.0"
+VERSION = "7.4.1.dev1"
 
 # To install the library, run the following
 #

@@ -95,7 +95,13 @@ class DicomScanner(object):
         sys.stdout.write('Scanning directories...'.ljust(80) + '\r')
         sys.stdout.flush()
 
-        files = list(self.walker.files(src_fs))
+        # Discover files first
+        if path_prefix is not None:
+            sub_fs = src_fs.opendir(path_prefix)
+        else:
+            sub_fs = src_fs
+
+        files = list(self.walker.files(sub_fs))
         file_count = len(files)
         files_scanned = 0
 
@@ -105,7 +111,7 @@ class DicomScanner(object):
             files_scanned = files_scanned+1
 
             try:
-                with src_fs.open(path, 'rb', buffering=self.config.buffer_size) as f:
+                with sub_fs.open(path, 'rb', buffering=self.config.buffer_size) as f:
                     # Unzip gzipped files
                     _, ext = os.path.splitext(path)
                     if ext.lower() == '.gz':
@@ -119,9 +125,10 @@ class DicomScanner(object):
 
                     sop_uid = self.get_value(dcm, 'SOPInstanceUID')
                     if sop_uid in acquisition.files:
+                        full_path = path_prefix + path if path_prefix else path
                         orig_path = acquisition.files[sop_uid]
 
-                        if not util.fs_files_equal(src_fs, path, orig_path):
+                        if not util.fs_files_equal(src_fs, full_path, orig_path):
                             log.error('File "{}" and "{}" conflict!'.format(path, orig_path))
                             log.error('Both files have the same IDs, but contents differ!')
                             sys.exit(1)

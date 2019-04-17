@@ -157,7 +157,8 @@ class ScannerNode(ImportTemplateNode):
     node_type = 'scanner'
 
     def __init__(self, config, scanner_cls):
-        self.scanner = scanner_cls(config)
+        self.config = config
+        self.scanner_cls = scanner_cls
 
     def set_next(self, next_node):
         """Set the next node"""
@@ -174,10 +175,11 @@ class ScannerNode(ImportTemplateNode):
             context (dict): The current context object
             container_factory: The container factory where nodes should be added
         """
-        self.scanner.discover(src_fs, context, container_factory, path_prefix=path_prefix)
+        scanner = self.scanner_cls(self.config)
+        scanner.discover(src_fs, context, container_factory, path_prefix=path_prefix)
 
     def __repr__(self):
-        return 'ScannerNode(scanner={})'.format(type(self.scanner))
+        return 'ScannerNode(scanner={})'.format(type(self.scanner_cls))
 
 def parse_list_item(item, last=None, config=None):
     # Ensure dict, allows shorthand in config file
@@ -207,7 +209,7 @@ def parse_list_item(item, last=None, config=None):
             if not scanner_cls:
                 raise ValueError('Unknown scanner class: {}'.format(scan))
             next_node = ScannerNode(config, scanner_cls)
-            node.set_next(node)
+            node.set_next(next_node)
 
     if last is not None:
         last.set_next(node)

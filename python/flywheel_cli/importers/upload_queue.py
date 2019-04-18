@@ -176,6 +176,14 @@ class PackfileTask(Task):
         #Rewind
         tmpfile.seek(0)
 
+        # store the packfile path
+        audit_path = None
+        if not self.paths:
+            try:
+                audit_path = self.archive_fs.delegate_path('/')[1]
+            except:
+                log.warn('Could not determine packfile path for audit log')
+
         try:
             # Close the filesystem
             self.archive_fs.close()
@@ -190,7 +198,7 @@ class PackfileTask(Task):
         # The next task is an uplad task
         next_task = UploadTask(self.uploader, self.audit_log, self.container, self.filename,
                           fileobj=tmpfile, metadata=metadata,
-                          path=os.path.dirname(self.paths[0]))
+                          path=os.path.dirname(self.paths[0]) if self.paths else audit_path)
 
         # Enqueue with higher priority than normal uploads
         return (next_task, 5)

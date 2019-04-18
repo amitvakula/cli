@@ -13,6 +13,7 @@ from flywheel_migration import deidentify
 from .sdk_impl import create_flywheel_client, SdkUploadWrapper
 from .folder_impl import FSWrapper
 from .custom_walker import CustomWalker
+from .private_tags import add_private_tags
 
 DEFAULT_CONFIG_PATH = '~/.config/flywheel/cli.cfg'
 CLI_LOG_PATH = '~/.cache/flywheel/logs/cli.log'
@@ -75,6 +76,11 @@ class Config(object):
             profile_name = 'none'
 
         self.deid_profile = self.load_deid_profile(profile_name, args=args)
+
+        # Add private dicom tags
+        dicom_tags_file = getattr(args, 'private_dicom_tags', None)
+        if dicom_tags_file is not None:
+            add_private_tags(dicom_tags_file)
 
         # An audit file to track which files are being uploaded to where
         self.audit_log = getattr(args, 'audit_log', False)
@@ -202,6 +208,7 @@ class Config(object):
         parser.add_argument('--max-tempfile', default=50, type=int, help='The max in-memory tempfile size, in MB, or 0 to always use disk')
         parser.add_argument('--skip-existing', action='store_true', help='Skip import of existing files')
         parser.add_argument('--audit-log', default=False, help='Log file of file disk path to flywheel resolver path')
+        parser.add_argument('--private-dicom-tags', help='Path to a private dicoms csv file')
         return parser
 
     @staticmethod

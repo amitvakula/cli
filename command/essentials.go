@@ -16,11 +16,11 @@ func (o *opts) login() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			client, err := MakeClientWithCreds(args[0], insecure)
 			Check(err)
-			user, _, err := client.GetCurrentUser()
+			id, err := ops.GetLoginId(client)
 			Check(err)
 			creds := &Creds{Key: args[0], Insecure: insecure}
 			creds.Save()
-			Println("You are now logged in as", user.Firstname, user.Lastname+"!")
+			Println("You are now logged in as", id+"!")
 		},
 	}
 

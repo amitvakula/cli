@@ -1,6 +1,6 @@
 imports:
 - name: flywheel.io/sdk
-  version: b4bb6e2457b88f1f17b33578be445fe7b973f5e2
+  version: 027125f38e8067989c9c050a8e0adcc943b316d9
   repo: https://github.com/flywheel-io/sdk
   subpackages:
   - api
@@ -133,7 +133,7 @@ imports:
 - name: github.com/segmentio/go-prompt
   version: eb423f47b3338983141e73ddd1a30470287faec5
   repo: https://github.com/kofalt/go-prompt
-- name: github.com/Sirupsen/logrus
+- name: github.com/sirupsen/logrus
   version: 5e5dc898656f695e2a086b8e12559febbfc01562
 - name: github.com/spf13/cobra
   version: 2df9a531813370438a4d79bfc33e21f58063ed87

@@ -1,6 +1,8 @@
 package ops
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	. "flywheel.io/fw/util"
@@ -14,7 +16,7 @@ func Status(client *api.Client) {
 		Fatal(1)
 	}
 
-	user, _, err := client.GetCurrentUser()
+	id, err := GetLoginId(client)
 	if err != nil {
 		Println(err)
 		Println()
@@ -29,5 +31,28 @@ func Status(client *api.Client) {
 	hostname := strings.TrimSuffix(req.URL.String(), "/api/")
 	hostname = strings.TrimSuffix(hostname, ":443")
 
-	Println("You are currently logged in as", user.Firstname, user.Lastname, "to", hostname)
+	Println("You are currently logged in as", id, "to", hostname)
+}
+
+func GetLoginId(client *api.Client) (string, error) {
+	if client == nil {
+		return "", errors.New("Not logged in")
+	}
+
+	// Get auth status to determine if we're device or user
+	status, _, err := client.GetAuthStatus()
+	if err != nil {
+		return "", err
+	}
+
+	if status.Device != nil && *status.Device {
+		// If we're a device, return the device id
+		return fmt.Sprintf("Device(%s)", status.Origin.Id), nil
+	} else {
+		user, _, err := client.GetCurrentUser()
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%s %s", user.Firstname, user.Lastname), nil
+	}
 }

@@ -137,30 +137,14 @@ def confirmation_prompt(message):
             return responses[choice]
         print('Please respond with "yes" or "no".')
 
-def contains_dicoms(src_fs):
-    """Check if the given filesystem contains dicoms"""
+def contains_dicoms(walker):
+    """Check if the given walker contains dicoms"""
     # If we encounter a single dicom, assume true
-    for path in src_fs.walk.files(filter=['*.dcm']):
-        return True
+    for root, _, files in walker.walk():
+        for file_info in files:
+            if file_info.name.endswith('.dcm') or file_info.name.endswith('.dcm.gz'):
+                return True
     return False
-
-def open_archive_fs(src_fs, path):
-    """Open the given path as a sub fs
-
-    Arguments:
-        src_fs (fs): The source filesystem
-        path (str): The path to the file to open
-
-    Returns:
-        fs: Path opened as a sub filesystem
-    """
-    if is_tar_file(path):
-        import fs.tarfs
-        return fs.tarfs.TarFS(src_fs.open(path, 'rb'))
-    if is_zip_file(path):
-        import fs.zipfs
-        return fs.zipfs.ZipFS(src_fs.open(path, 'rb'))
-    return None
 
 def localize_timestamp(timestamp, timezone=None):
     # pylint: disable=missing-docstring
@@ -213,15 +197,10 @@ def args_to_list(items):
                         result.append(val)
     return result
 
-def fs_files_equal(src_fs, path1, path2):
+def files_equal(walker, path1, path2):
     chunk_size = 8192
 
-    info1 = src_fs.getinfo(path1, namespaces=['details'])
-    info2 = src_fs.getinfo(path2, namespaces=['details'])
-    if info1.size != info2.size:
-        return False
-
-    with src_fs.open(path1, 'rb') as f1, src_fs.open(path2, 'rb') as f2:
+    with walker.open(path1, 'rb') as f1, walker.open(path2, 'rb') as f2:
         while True:
             chunk1 = f1.read(chunk_size)
             chunk2 = f2.read(chunk_size)

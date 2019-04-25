@@ -14,7 +14,7 @@ def format_timestamp_fn(dst_key):
 
     Arguments:
         dst_key (str): The destination key name
-    
+
     Returns:
         function: The function that will format a datetime
     """
@@ -72,8 +72,6 @@ def create_bruker_scanner(group, project, follow_symlinks, config, folder_templa
         folder_template = '.*'
 
     subject_node = parse_template_string(folder_template)
-    if getattr(subject_node, 'next_node', None):
-        raise ValueError('Invalid subject template: "{}"'.format(folder_template))
     subject_node.metadata_fn = extract_bruker_metadata_fn('subject', SUBJECT_PARAMS)
     importer.add_template_node(subject_node)
 

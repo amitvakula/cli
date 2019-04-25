@@ -88,22 +88,19 @@ def extract_bruker_metadata_fn(filename, keys):
     Returns:
         function: The function that will extract bruker params as metadata
     """
-    def extract_metadata(name, context, parent_fs):
-        path = fs.path.join(name, filename)
-        log.debug('Attempting to import params from: {}'.format(path))
-        if not parent_fs.isfile(path):
-            log.info('No param file located at: {}'.format(path))
-            return
+    def extract_metadata(name, context, walker, path):
+        file_path = walker.combine(path, filename)
+        log.debug('Attempting to import params from: {}'.format(file_path))
 
         try:
-            with parent_fs.open(path, mode='r', encoding='utf-8') as f:
+            with walker.open(file_path, mode='r', encoding='utf-8') as f:
                 params = parse_bruker_params(f)
 
             for src_key, dst_key in keys.items():
                 if src_key in params:
                     value = params[src_key]
                     if callable(dst_key):
-                        ret = dst_key(value, path=path, context=context)
+                        ret = dst_key(value, path=file_path, context=context)
                         if ret:
                             dst_key, value = ret
                         else:
@@ -111,8 +108,10 @@ def extract_bruker_metadata_fn(filename, keys):
 
                     if dst_key:
                         set_nested_attr(context, dst_key, value)
+        except FileNotFoundError:
+            log.info('No param file located at: {}'.format(file_path))
         except IOError as e:
-            log.error('Unable to process params file {}: {}'.format(path, e))
+            log.error('Unable to process params file {}: {}'.format(file_path, e))
 
     return extract_metadata
 

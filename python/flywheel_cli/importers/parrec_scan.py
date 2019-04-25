@@ -34,14 +34,13 @@ class ParRecScanner(object):
         self.config = config
         self.sessions = {}
 
-        self.walker = config.get_walker()
         self.messages = []
 
-    def discover(self, src_fs, context, container_factory, path_prefix=None):
+    def discover(self, walker, context, container_factory, path_prefix=None):
         """Performs discovery of containers to create and files to upload in the given folder.
 
         Arguments:
-            src_fs (obj): The filesystem to query
+            walker (AbstractWalker): The filesystem to query
             context (dict): The initial context
             container_factory (obj): The ContainerFactory instance
             path_prefix (str): The optional prefix for filenames
@@ -50,7 +49,7 @@ class ParRecScanner(object):
         sys.stdout.write('Scanning directories...'.ljust(80) + '\r')
         sys.stdout.flush()
 
-        files = list(self.walker.files(src_fs))
+        files = list(walker.files(subdir=path_prefix))
         file_count = len(files)
         files_scanned = 0
 
@@ -66,11 +65,11 @@ class ParRecScanner(object):
             if fnmatch.fnmatch(lpath, '*.par'):
                 # Parse par file
                 try:
-                    with src_fs.open(path, 'r') as f:
+                    with walker.open(path, 'r') as f:
                         par = parse_par_header(f)
 
                     acquisition = self.resolve_acquisition(context, par)
-                    if acquisition.par_file and not util.fs_files_equal(src_fs, path, acquisition.par_file):
+                    if acquisition.par_file and not util.files_equal(walker, path, acquisition.par_file):
                         message = ('File "{}" and "{}" conflict!\n  Both files appear to belong to '
                             'the same acquisition, but contents differ!').format(path, orig_path)
                         self.messages.append(('error', message))
@@ -197,12 +196,12 @@ class ParRecScannerImporter(AbstractImporter):
 
         return context
 
-    def perform_discover(self, src_fs, context):
+    def perform_discover(self, walker, context):
         """Performs discovery of containers to create and files to upload in the given folder.
 
         Arguments:
-            src_fs (obj): The filesystem to query
+            walker (AbstractWalker): The filesystem to query
             context (dict): The initial context
         """
-        self.scanner.discover(src_fs, context, self.container_factory)
+        self.scanner.discover(walker, context, self.container_factory)
         self.messages += self.scanner.messages

@@ -51,10 +51,10 @@ class Uploader(ABC):
 
 class UploadFileWrapper(object):
     """Wrapper around file that measures progress"""
-    def __init__(self, fileobj=None, src_fs=None, path=None):
-        """Initialize a file wrapper, must specify fileobj OR src_fs and path"""
+    def __init__(self, fileobj=None, walker=None, path=None):
+        """Initialize a file wrapper, must specify fileobj OR walker and path"""
         self.fileobj = fileobj
-        self.src_fs = src_fs
+        self.walker = walker
         self.path = path
         self._sent = 0
         self._total_size = None
@@ -65,7 +65,7 @@ class UploadFileWrapper(object):
 
     def _open(self):
         if not self.fileobj:
-            self.fileobj = self.src_fs.open(self.path, 'rb')
+            self.fileobj = self.walker.open(self.path, 'rb')
 
     def read(self, size=-1):
         self._open()
@@ -100,14 +100,14 @@ class UploadFileWrapper(object):
 
 
 class UploadTask(Task):
-    def __init__(self, uploader, audit_log, container, filename, fileobj=None, src_fs=None, path=None, metadata=None):
-        """Initialize an upload task, must specify fileobj OR src_fs and path"""
+    def __init__(self, uploader, audit_log, container, filename, fileobj=None, walker=None, path=None, metadata=None):
+        """Initialize an upload task, must specify fileobj OR walker and path"""
         super(UploadTask, self).__init__('upload')
         self.uploader = uploader
         self.audit_log = audit_log
         self.container = container
         self.filename = filename
-        self.fileobj = UploadFileWrapper(fileobj=fileobj, src_fs=src_fs, path=path)
+        self.fileobj = UploadFileWrapper(fileobj=fileobj, walker=walker, path=path)
         self._data = None
         self.metadata = metadata
 
@@ -145,18 +145,19 @@ class UploadTask(Task):
         return 'Upload {}'.format(self.filename)
 
 class PackfileTask(Task):
-    def __init__(self, uploader, audit_log, archive_fs, packfile_type, deid_profile, follow_symlinks, container, filename, paths=None, compression=None, max_spool=None):
+    def __init__(self, uploader, audit_log, walker, packfile_type, deid_profile,
+            container, filename, subdir=None, paths=None, compression=None, max_spool=None):
         super(PackfileTask, self).__init__('packfile')
 
         self.uploader = uploader
         self.audit_log = audit_log
-        self.archive_fs = archive_fs
+        self.walker = walker
         self.packfile_type = packfile_type
         self.deid_profile = deid_profile
-        self.follow_symlinks = follow_symlinks
 
         self.container = container
         self.filename = filename
+        self.subdir = subdir
         self.paths = paths
         self.compression = compression
         self.max_spool = max_spool
@@ -169,8 +170,8 @@ class PackfileTask(Task):
         else:
             tmpfile = tempfile.TemporaryFile()
 
-        zip_member_count = create_zip_packfile(tmpfile, self.archive_fs, packfile_type=self.packfile_type,
-            symlinks=self.follow_symlinks, paths=self.paths, compression=self.compression,
+        zip_member_count = create_zip_packfile(tmpfile, self.walker, packfile_type=self.packfile_type,
+            subdir=self.subdir, paths=self.paths, compression=self.compression,
             progress_callback=self.update_bytes_processed, deid_profile=self.deid_profile)
 
         #Rewind
@@ -178,17 +179,15 @@ class PackfileTask(Task):
 
         # store the packfile path
         audit_path = None
-        if not self.paths:
-            try:
-                audit_path = self.archive_fs.delegate_path('/')[1]
-            except:
-                log.warn('Could not determine packfile path for audit log')
+        if self.subdir:
+            audit_path = self.subdir
+        elif self.paths:
+            audit_path = os.path.dirname(self.paths[0])
+        else:
+            audit_path = self.walker.get_fs_url()
 
-        try:
-            # Close the filesystem
-            self.archive_fs.close()
-        except:
-            log.exception('Cannot close archive_fs')
+        # Remove walker reference
+        self.walker = None
 
         metadata = {
             'name': self.filename,
@@ -198,7 +197,7 @@ class PackfileTask(Task):
         # The next task is an uplad task
         next_task = UploadTask(self.uploader, self.audit_log, self.container, self.filename,
                           fileobj=tmpfile, metadata=metadata,
-                          path=os.path.dirname(self.paths[0]) if self.paths else audit_path)
+                          path=audit_path)
 
         # Enqueue with higher priority than normal uploads
         return (next_task, 5)
@@ -230,7 +229,6 @@ class UploadQueue(WorkQueue):
 
         self.uploader = uploader
         self.compression = config.get_compression_type()
-        self.follow_symlinks = config.follow_symlinks
         self.max_spool = config.max_spool
         self.audit_log = audit_log
 
@@ -297,7 +295,7 @@ class UploadQueue(WorkQueue):
 
         self.enqueue(UploadTask(self.uploader, self.audit_log, container, filename, fileobj=fileobj))
 
-    def upload_file(self, container, filename, src_fs, path):
+    def upload_file(self, container, filename, walker, path):
         if self.skip_existing and self.uploader.file_exists(container, filename):
             log.debug('Skipping existing file "%s" on %s %s', filename,
                     container.container_type, container.id)
@@ -305,9 +303,9 @@ class UploadQueue(WorkQueue):
             self.audit_log.add_log(path, container, filename, message='Skipped existing')
             return
 
-        self.enqueue(UploadTask(self.uploader, self.audit_log, container, filename, src_fs=src_fs, path=path))
+        self.enqueue(UploadTask(self.uploader, self.audit_log, container, filename, walker=walker, path=path))
 
-    def upload_packfile(self, archive_fs, packfile_type, deid_profile, container, filename, paths=None):
+    def upload_packfile(self, walker, packfile_type, deid_profile, container, filename, subdir=None, paths=None):
         if self.skip_existing and self.uploader.file_exists(container, filename):
             log.debug('Skipping existing packfile "%s" on %s %s', filename,
                     container.container_type, container.id)
@@ -317,6 +315,6 @@ class UploadQueue(WorkQueue):
                 self.audit_log.add_log(paths[0], container, filename, message='Skipped existing')
             return
 
-        self.enqueue(PackfileTask(self.uploader, self.audit_log, archive_fs, packfile_type,
-            deid_profile, self.follow_symlinks, container, filename, paths=paths,
+        self.enqueue(PackfileTask(self.uploader, self.audit_log, walker, packfile_type,
+            deid_profile, container, filename, subdir=subdir, paths=paths,
             compression=self.compression, max_spool=self.max_spool))

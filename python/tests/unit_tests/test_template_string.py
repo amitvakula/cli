@@ -4,6 +4,7 @@ from flywheel_cli.util import METADATA_EXPR
 
 group_pattern = '(?P<group>{})'.format(METADATA_EXPR['string-id'])
 project_pattern = '(?P<project>{})'.format(METADATA_EXPR['default'])
+subject_pattern = '(?P<subject>{})'.format(METADATA_EXPR['default'])
 session_pattern = '(?P<session>{})'.format(METADATA_EXPR['default'])
 
 def test_compile_regex():

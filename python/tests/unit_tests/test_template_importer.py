@@ -11,7 +11,7 @@ from flywheel_cli.importers import FolderImporter, StringMatchNode
 from flywheel_cli.config import Config
 from .test_container_factory import MockContainerResolver
 from .test_folder_importer import mock_fs, make_config
-from .test_template_string import project_pattern, session_pattern
+from .test_template_string import project_pattern, subject_pattern, session_pattern
 
 def make_importer(resolver, template='', **kwargs):
     assert template
@@ -177,3 +177,152 @@ def test_yaml_template1():
     except StopIteration:
         pass
 
+def test_slurp_scanner():
+    resolver = MockContainerResolver()
+    importer = make_importer(resolver, group='unsorted', project="POD", template=r"""
+    - pattern: "{subject}&{session}"
+      scan: slurp
+    """)
+
+    # Template check
+    result = importer.root_node
+
+    assert result
+    assert result.template.pattern == '{}&{}'.format(subject_pattern, session_pattern)
+    assert result.packfile_type == None
+
+    # Discovery
+    mockfs = mock_fs(collections.OrderedDict({
+        '20030415_Scan_POD_S501_m1&2_0hr': [
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr.log',
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.log',
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.lst',
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.lst.hdr',
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.scn',
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.scn.hdr',
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.img',
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.img.gz',
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.img.hdr',
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.log',
+            'acf.mhdr',
+            'acf_00.a.hdr',
+            'acf_00.atn',
+            'acf_00.atn.hdr',
+            'README',
+        ],
+        '20030415_Scan_POD_S501_m1&2_0hr/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1__s4jc_1_sct_QC_f0': [
+            'log_e7_sino_09.txt',
+            'scatter_qc_01.ps',
+        ],
+        '20030415_Scan_POD_S501_m1&2_0hr/CTscan_[2017-06-09-09h-18m-28s]': [
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.CTrecon.log',
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.cat',
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.cat.hdr',
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.ct.img',
+            '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.ct.img.hdr',
+        ],
+        '20030415_Scan_POD_S501_m1&2_0hr/CTscan_[2017-06-09-09h-18m-28s]/scan': [
+            'another-scan.img',
+            'another-scan.img.hdr',
+        ]
+    }))
+
+    importer.discover(mockfs)
+    itr = iter(importer.container_factory.walk_containers())
+
+    _, child = next(itr)
+    assert child.container_type == 'group'
+    assert child.id == 'unsorted'
+
+    _, child = next(itr)
+    assert child.container_type == 'project'
+    assert child.label == 'POD'
+    assert len(child.files) == 0
+
+    _, child = next(itr)
+    assert child.container_type == 'subject'
+    assert child.label == '20030415_Scan_POD_S501_m1'
+    assert len(child.files) == 0
+
+    _, child = next(itr)
+    assert child.container_type == 'session'
+    assert child.label == '2_0hr'
+    assert len(child.files) == 0
+
+    _, child = next(itr)
+    assert child.container_type == 'acquisition'
+    assert child.label == '20030415_Scan_POD_SCC1483_S501_m1&2_0hr'
+    assert child.files == ['20030415_Scan_POD_SCC1483_S501_m1&2_0hr.log']
+
+    _, child = next(itr)
+    assert child.container_type == 'acquisition'
+    assert child.label == '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1'
+    assert child.files == [
+        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.log',
+        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.lst',
+        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.lst.hdr',
+        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.scn',
+        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.scn.hdr',
+    ]
+
+    _, child = next(itr)
+    assert child.container_type == 'acquisition'
+    assert child.label == '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1__s4jc_1_sct_QC_f0'
+    assert child.files == [
+        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1__s4jc_1_sct_QC_f0/log_e7_sino_09.txt',
+        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1__s4jc_1_sct_QC_f0/scatter_qc_01.ps',
+    ]
+
+    _, child = next(itr)
+    assert child.container_type == 'acquisition'
+    assert child.label == '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor'
+    assert child.files == [
+        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.img',
+        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.img.gz',
+        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.img.hdr',
+        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.log',
+    ]
+
+    _, child = next(itr)
+    assert child.container_type == 'acquisition'
+    assert child.label == 'CTscan_[2017-06-09-09h-18m-28s]'
+    assert child.files == [
+        'CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.CTrecon.log',
+        'CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.cat',
+        'CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.cat.hdr',
+        'CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.ct.img',
+        'CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.ct.img.hdr',
+    ]
+
+    _, child = next(itr)
+    assert child.container_type == 'acquisition'
+    assert child.label == 'CTscan_[2017-06-09-09h-18m-28s]_scan'
+    assert child.files == [
+        'CTscan_[2017-06-09-09h-18m-28s]/scan/another-scan.img',
+        'CTscan_[2017-06-09-09h-18m-28s]/scan/another-scan.img.hdr',
+    ]
+
+    _, child = next(itr)
+    assert child.container_type == 'acquisition'
+    assert child.label == 'README'
+    assert child.files == ['README']
+
+    _, child = next(itr)
+    assert child.container_type == 'acquisition'
+    assert child.label == 'acf'
+    assert child.files == ['acf.mhdr']
+
+    _, child = next(itr)
+    assert child.container_type == 'acquisition'
+    assert child.label == 'acf_00'
+    assert child.files == [
+        'acf_00.a.hdr',
+        'acf_00.atn',
+        'acf_00.atn.hdr',
+    ]
+
+    try:
+        next(itr)
+        pytest.fail('Unexpected container found')
+    except StopIteration:
+        pass

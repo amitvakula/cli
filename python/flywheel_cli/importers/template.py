@@ -13,10 +13,12 @@ from ..util import (
 
 from .dicom_scan import DicomScanner
 from .parrec_scan import ParRecScanner
+from .slurp_scan import SlurpScanner
 
 SCANNER_CLASSES = {
     'dicom': DicomScanner,
-    'parrec': ParRecScanner
+    'parrec': ParRecScanner,
+    'slurp': SlurpScanner,
 }
 
 class ImportTemplateNode(ABC):
@@ -188,6 +190,7 @@ class ScannerNode(ImportTemplateNode):
     def __repr__(self):
         return 'ScannerNode(scanner={})'.format(type(self.scanner_cls))
 
+
 def parse_list_item(item, last=None, config=None):
     # Ensure dict, allows shorthand in config file
     if isinstance(item, str):
@@ -346,5 +349,3 @@ def _parse_optstr(val):
             result[key.strip()] = value.strip()
 
     return result
-
-

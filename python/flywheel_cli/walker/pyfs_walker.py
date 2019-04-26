@@ -52,14 +52,3 @@ class PyFsWalker(AbstractWalker):
 
     def get_fs_url(self):
         return self.fs_url
-
-if __name__ == '__main__':
-    import sys
-
-    walker = PyFsWalker('osfs://{}'.format(sys.argv[1]))
-    for root, subdirs, files in walker.walk():
-        print('root: {}'.format(root))
-        for subdir in subdirs:
-            print('  subdir: {}'.format(subdir))
-        for filename in files:
-            print('  file: {}'.format(filename))

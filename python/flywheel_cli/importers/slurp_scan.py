@@ -14,20 +14,17 @@ class SlurpScanner(object):
 
         self.walker = config.get_walker()
 
-    def discover(self, src_fs, context, container_factory, path_prefix=None):
+    def discover(self, walker, context, container_factory, path_prefix=None):
         """Performs discovery of containers to create and files to upload in the given folder.
 
         Arguments:
-            src_fs (obj): The filesystem to query
+            walker (AbstractWalker): The filesystem to query
             context (dict): The initial context
         """
         # Discover files first
-        if path_prefix is not None:
-            sub_fs = src_fs.opendir(path_prefix)
-        else:
-            sub_fs = src_fs
+        files = list(sorted(walker.files()))
 
-        files = list(sorted(self.walker.files(sub_fs)))
+        prefix_len = len(path_prefix or '')
 
         current_prefix = None
         current_files = []
@@ -35,13 +32,13 @@ class SlurpScanner(object):
         for path in files:
             path = path.lstrip('/')
 
-            prefix = SlurpScanner._get_prefix(path)
+            prefix = SlurpScanner._get_prefix(path[prefix_len:])
             if prefix == current_prefix:
                 current_files.append(path)
             else:
                 self._add_acquisition(container_factory, context, current_prefix, current_files)
 
-                current_prefix = SlurpScanner._get_prefix(path)
+                current_prefix = prefix
                 current_files = [path]
 
         self._add_acquisition(container_factory, context, current_prefix, current_files)

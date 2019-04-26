@@ -9,6 +9,7 @@ from flywheel_cli.util import METADATA_EXPR
 
 from flywheel_cli.importers import FolderImporter, StringMatchNode
 from flywheel_cli.config import Config
+from flywheel_cli.walker import PyFsWalker
 from .test_container_factory import MockContainerResolver
 from .test_folder_importer import mock_fs, make_config
 from .test_template_string import project_pattern, subject_pattern, session_pattern
@@ -133,7 +134,8 @@ def test_yaml_template1():
 
     assert importer.merge_subject_and_session
 
-    importer.discover(mockfs)
+    walker = PyFsWalker('mockfs://', src_fs=mockfs)
+    importer.discover(walker)
 
     itr = iter(importer.container_factory.walk_containers())
 
@@ -227,7 +229,8 @@ def test_slurp_scanner():
         ]
     }))
 
-    importer.discover(mockfs)
+    walker = PyFsWalker('mockfs://', src_fs=mockfs)
+    importer.discover(walker)
     itr = iter(importer.container_factory.walk_containers())
 
     _, child = next(itr)
@@ -252,73 +255,73 @@ def test_slurp_scanner():
     _, child = next(itr)
     assert child.container_type == 'acquisition'
     assert child.label == '20030415_Scan_POD_SCC1483_S501_m1&2_0hr'
-    assert child.files == ['20030415_Scan_POD_SCC1483_S501_m1&2_0hr.log']
+    assert child.files == ['20030415_Scan_POD_S501_m1&2_0hr/20030415_Scan_POD_SCC1483_S501_m1&2_0hr.log']
 
     _, child = next(itr)
     assert child.container_type == 'acquisition'
     assert child.label == '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1'
     assert child.files == [
-        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.log',
-        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.lst',
-        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.lst.hdr',
-        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.scn',
-        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.scn.hdr',
+        '20030415_Scan_POD_S501_m1&2_0hr/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.log',
+        '20030415_Scan_POD_S501_m1&2_0hr/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.lst',
+        '20030415_Scan_POD_S501_m1&2_0hr/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.lst.hdr',
+        '20030415_Scan_POD_S501_m1&2_0hr/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.scn',
+        '20030415_Scan_POD_S501_m1&2_0hr/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1.scn.hdr',
     ]
 
     _, child = next(itr)
     assert child.container_type == 'acquisition'
     assert child.label == '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1__s4jc_1_sct_QC_f0'
     assert child.files == [
-        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1__s4jc_1_sct_QC_f0/log_e7_sino_09.txt',
-        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1__s4jc_1_sct_QC_f0/scatter_qc_01.ps',
+        '20030415_Scan_POD_S501_m1&2_0hr/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1__s4jc_1_sct_QC_f0/log_e7_sino_09.txt',
+        '20030415_Scan_POD_S501_m1&2_0hr/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_v1__s4jc_1_sct_QC_f0/scatter_qc_01.ps',
     ]
 
     _, child = next(itr)
     assert child.container_type == 'acquisition'
     assert child.label == '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor'
     assert child.files == [
-        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.img',
-        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.img.gz',
-        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.img.hdr',
-        '20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.log',
+        '20030415_Scan_POD_S501_m1&2_0hr/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.img',
+        '20030415_Scan_POD_S501_m1&2_0hr/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.img.gz',
+        '20030415_Scan_POD_S501_m1&2_0hr/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.img.hdr',
+        '20030415_Scan_POD_S501_m1&2_0hr/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_124I_80M_em_vOSEM2D_scatcor.pet.log',
     ]
 
     _, child = next(itr)
     assert child.container_type == 'acquisition'
     assert child.label == 'CTscan_[2017-06-09-09h-18m-28s]'
     assert child.files == [
-        'CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.CTrecon.log',
-        'CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.cat',
-        'CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.cat.hdr',
-        'CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.ct.img',
-        'CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.ct.img.hdr',
+        '20030415_Scan_POD_S501_m1&2_0hr/CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.CTrecon.log',
+        '20030415_Scan_POD_S501_m1&2_0hr/CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.cat',
+        '20030415_Scan_POD_S501_m1&2_0hr/CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.cat.hdr',
+        '20030415_Scan_POD_S501_m1&2_0hr/CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.ct.img',
+        '20030415_Scan_POD_S501_m1&2_0hr/CTscan_[2017-06-09-09h-18m-28s]/20030415_Scan_POD_SCC1483_S501_m1&2_0hr_v1.ct.img.hdr',
     ]
 
     _, child = next(itr)
     assert child.container_type == 'acquisition'
     assert child.label == 'CTscan_[2017-06-09-09h-18m-28s]_scan'
     assert child.files == [
-        'CTscan_[2017-06-09-09h-18m-28s]/scan/another-scan.img',
-        'CTscan_[2017-06-09-09h-18m-28s]/scan/another-scan.img.hdr',
+        '20030415_Scan_POD_S501_m1&2_0hr/CTscan_[2017-06-09-09h-18m-28s]/scan/another-scan.img',
+        '20030415_Scan_POD_S501_m1&2_0hr/CTscan_[2017-06-09-09h-18m-28s]/scan/another-scan.img.hdr',
     ]
 
     _, child = next(itr)
     assert child.container_type == 'acquisition'
     assert child.label == 'README'
-    assert child.files == ['README']
+    assert child.files == ['20030415_Scan_POD_S501_m1&2_0hr/README']
 
     _, child = next(itr)
     assert child.container_type == 'acquisition'
     assert child.label == 'acf'
-    assert child.files == ['acf.mhdr']
+    assert child.files == ['20030415_Scan_POD_S501_m1&2_0hr/acf.mhdr']
 
     _, child = next(itr)
     assert child.container_type == 'acquisition'
     assert child.label == 'acf_00'
     assert child.files == [
-        'acf_00.a.hdr',
-        'acf_00.atn',
-        'acf_00.atn.hdr',
+        '20030415_Scan_POD_S501_m1&2_0hr/acf_00.a.hdr',
+        '20030415_Scan_POD_S501_m1&2_0hr/acf_00.atn',
+        '20030415_Scan_POD_S501_m1&2_0hr/acf_00.atn.hdr',
     ]
 
     try:

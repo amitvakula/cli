@@ -6,6 +6,7 @@ import pytest
 
 from flywheel_cli.importers import FolderImporter, StringMatchNode
 from flywheel_cli.config import Config
+from flywheel_cli.walker import PyFsWalker
 from .test_container_factory import MockContainerResolver
 
 def mock_fs(structure):
@@ -65,7 +66,8 @@ def test_folder_resolver_default():
     resolver = MockContainerResolver()
     importer = make_importer(resolver)
 
-    importer.discover(mockfs)
+    walker = PyFsWalker('mockfs://', src_fs=mockfs)
+    importer.discover(walker)
 
     itr = iter(importer.container_factory.walk_containers())
 
@@ -129,7 +131,8 @@ def test_folder_resolver_group_and_project():
     resolver = MockContainerResolver()
     importer = make_importer(resolver, group='psychology', project='Anxiety Study')
 
-    importer.discover(mockfs)
+    walker = PyFsWalker('mockfs://', src_fs=mockfs)
+    importer.discover(walker)
 
     itr = iter(importer.container_factory.walk_containers())
 
@@ -182,7 +185,8 @@ def test_composite_packfiles():
         StringMatchNode('acquisition')
     ])
 
-    importer.discover(mockfs)
+    walker = PyFsWalker('mockfs://', src_fs=mockfs)
+    importer.discover(walker)
 
     itr = iter(importer.container_factory.walk_containers())
 
@@ -251,7 +255,8 @@ def test_nested_packfiles():
         StringMatchNode('acquisition')
     ])
 
-    importer.discover(mockfs)
+    walker = PyFsWalker('mockfs://', src_fs=mockfs)
+    importer.discover(walker)
 
     itr = iter(importer.container_factory.walk_containers())
 

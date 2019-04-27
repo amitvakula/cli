@@ -22,7 +22,7 @@ class SlurpScanner(object):
             context (dict): The initial context
         """
         # Discover files first
-        files = list(sorted(walker.files()))
+        files = list(sorted(walker.files(subdir=path_prefix)))
 
         prefix_len = len(path_prefix or '')
 

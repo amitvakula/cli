@@ -226,6 +226,9 @@ def test_slurp_scanner():
         '20030415_Scan_POD_S501_m1&2_0hr/CTscan_[2017-06-09-09h-18m-28s]/scan': [
             'another-scan.img',
             'another-scan.img.hdr',
+        ],
+        '20030415_Scan_POD_S502_m1&2_0hr': [
+            'README'
         ]
     }))
 
@@ -245,6 +248,16 @@ def test_slurp_scanner():
     _, child = next(itr)
     assert child.container_type == 'subject'
     assert child.label == '20030415_Scan_POD_S501_m1'
+    assert len(child.files) == 0
+
+    _, child = next(itr)
+    assert child.container_type == 'subject'
+    assert child.label == '20030415_Scan_POD_S502_m1'
+    assert len(child.files) == 0
+
+    _, child = next(itr)
+    assert child.container_type == 'session'
+    assert child.label == '2_0hr'
     assert len(child.files) == 0
 
     _, child = next(itr)
@@ -323,6 +336,11 @@ def test_slurp_scanner():
         '20030415_Scan_POD_S501_m1&2_0hr/acf_00.atn',
         '20030415_Scan_POD_S501_m1&2_0hr/acf_00.atn.hdr',
     ]
+
+    _, child = next(itr)
+    assert child.container_type == 'acquisition'
+    assert child.label == 'README'
+    assert child.files == ['20030415_Scan_POD_S502_m1&2_0hr/README']
 
     try:
         next(itr)

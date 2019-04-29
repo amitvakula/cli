@@ -158,7 +158,7 @@ class AbstractWalker(ABC):
             return False
 
         if self._include_dirs is not None:
-            parts = (path + self._delim + info.name).lstrip(self._delim).split(self._delim)
+            parts = path.lstrip(self._delim).split(self._delim)
             if not filter_match(self._include_dirs, parts):
                 return False
 
@@ -179,3 +179,17 @@ class AbstractWalker(ABC):
             return False
 
         return True
+
+def filter_match(patterns, parts):
+    """Check if any of the given patterns match the split path"""
+    # Fast match - assumes that if the length of parts is
+    # larger than the length of the pattern, then it already matched
+    # previously
+    count = len(parts)
+    for pattern in patterns:
+        pattern_count = len(pattern)
+        if count <= pattern_count:
+            for i in range(count):
+                if not fnmatch.fnmatch(parts[i], pattern[i]):
+                    return False
+    return True

@@ -31,7 +31,7 @@ class FileInfo(object):
 class AbstractWalker(ABC):
     """Abstract interface for walking a filesystem"""
     def __init__(self, root, ignore_dot_files=True, follow_symlinks=False, filter=None, exclude=None,
-                 filter_dirs=None, exclude_dirs=None, delim='/'):
+            filter_dirs=None, exclude_dirs=None, delim='/'):
         """Initialize the abstract walker
 
         Args:

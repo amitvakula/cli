@@ -4,7 +4,13 @@ from .abstract_walker import AbstractWalker, FileInfo
 
 
 class S3Walker(AbstractWalker):
+    """Walker that is implemented in terms of S3"""
     def __init__(self, fs_url):
+        """Initialize the abstract walker
+
+        Args:
+            root (str): The starting directory for walking
+        """
         _, bucket, path, *_ = urlparse(fs_url)
 
         sanitized_path = '' if path == '/' else path[:-1]

@@ -17,7 +17,7 @@ class S3Walker(AbstractWalker):
     def get_fs_url(self):
         return self.fs_url
 
-    def open(self, path, mode='rb', **kwargs):
+    def open(path, mode='rb', **kwargs):
         # In S3:
         # Copy to a temp folder if it doesn't already exist,
         # Then open that temp file

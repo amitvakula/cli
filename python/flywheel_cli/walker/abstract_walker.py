@@ -31,7 +31,7 @@ class FileInfo(object):
 class AbstractWalker(ABC):
     """Abstract interface for walking a filesystem"""
     def __init__(self, root, ignore_dot_files=True, follow_symlinks=False, filter=None, exclude=None,
-            filter_dirs=None, exclude_dirs=None, delim='/'):
+                 filter_dirs=None, exclude_dirs=None, delim='/'):
         """Initialize the abstract walker
 
         Args:
@@ -104,7 +104,7 @@ class AbstractWalker(ABC):
                 yield self.combine(root, file_info.name)
 
     @abstractmethod
-    def open(self, path, mode='rb', **kwargs):
+    def open(path, mode='rb', **kwargs):
         """Open the given path for reading.
 
         Params:
@@ -158,7 +158,7 @@ class AbstractWalker(ABC):
             return False
 
         if self._include_dirs is not None:
-            parts = (path + self.delim + info.name).lstrip(self.delim).split(self.delim)
+            parts = path.lstrip(self.delim).split(self.delim)
             if not filter_match(self._include_dirs, parts):
                 return False
 

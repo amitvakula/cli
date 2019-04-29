@@ -37,11 +37,15 @@ class S3Walker(AbstractWalker):
         # In S3:
         # Copy to a temp folder if it doesn't already exist,
         # Then open that temp file
+
+        # python temp directory
+        # first time open file, go create one if doesn't exist
+        # close function delete temp folder
         return None
 
     def _listdir(self, path):
         prefix_path = path if path == '' else path[1:] + '/'
-        response = self.client.list_objects(Bucket=self.bucket, Prefix=prefix_path, Delimiter=self.delim)
+        response = self.client.list_objects(Bucket=self.bucket, Prefix=prefix_path, Delimiter=self._delim)
 
         if 'CommonPrefixes' in response:
             common_prefixes = response['CommonPrefixes']

@@ -57,7 +57,8 @@ class AbstractWalker(ABC):
             self._include_dirs = [spec.split(delim) for spec in self._include_dirs]
         self._exclude_dirs = exclude_dirs
 
-        self.delim = delim
+        # read only access
+        self._delim = delim
 
     @abstractmethod
     def get_fs_url(self):
@@ -131,16 +132,16 @@ class AbstractWalker(ABC):
         """Strip subdir from the beginning of path"""
         if path.startswith(subdir):
             path = path[len(subdir):]
-        return path.lstrip(self.delim)
+        return path.lstrip(self._delim)
 
     def close(self):
         """Cleanup any resources on this walker"""
 
     def combine(self, part1, part2):
         """Combine two path parts with delim"""
-        part1 = part1.rstrip(self.delim)
-        part2 = part2.lstrip(self.delim)
-        return part1 + self.delim + part2
+        part1 = part1.rstrip(self._delim)
+        part2 = part2.lstrip(self._delim)
+        return part1 + self._delim + part2
 
     def _match(self, patterns, name):
         """Return true if name matches any of the given patterns"""
@@ -158,7 +159,7 @@ class AbstractWalker(ABC):
             return False
 
         if self._include_dirs is not None:
-            parts = path.lstrip(self.delim).split(self.delim)
+            parts = path.lstrip(self._delim).split(self._delim)
             if not filter_match(self._include_dirs, parts):
                 return False
 

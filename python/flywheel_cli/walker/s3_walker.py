@@ -5,17 +5,27 @@ from .abstract_walker import AbstractWalker, FileInfo
 
 class S3Walker(AbstractWalker):
     """Walker that is implemented in terms of S3"""
-    def __init__(self, fs_url):
+    def __init__(self, fs_url, ignore_dot_files=True, follow_symlinks=False, filter=None, exclude=None,
+                 filter_dirs=None, exclude_dirs=None):
         """Initialize the abstract walker
 
         Args:
             root (str): The starting directory for walking
+            ignore_dot_files (bool): Whether or not to ignore files starting with '.'
+            follow_symlinks(bool): Whether or not to follow symlinks
+            filter (list): An optional list of filename patterns to INCLUDE
+            exclude (list): An optional list of filename patterns to EXCLUDE
+            filter_dirs (list): An optional list of directories to INCLUDE
+            exclude_dirs (list): An optional list of patterns of directories to EXCLUDE
+            delim (str): The path delimiter, if not '/'
         """
         _, bucket, path, *_ = urlparse(fs_url)
 
         sanitized_path = '' if path == '/' else path[:-1]
 
-        super(S3Walker, self).__init__(sanitized_path)
+        super(S3Walker, self).__init__(sanitized_path, ignore_dot_files=ignore_dot_files,
+                follow_symlinks=follow_symlinks, filter=filter, exclude=exclude,
+                filter_dirs=filter_dirs, exclude_dirs=exclude_dirs)
         self.bucket = bucket
         self.client = boto3.client('s3')
         self.fs_url = fs_url

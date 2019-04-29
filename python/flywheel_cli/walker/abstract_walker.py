@@ -56,7 +56,7 @@ class AbstractWalker(ABC):
         if self._include_dirs:
             self._include_dirs = [spec.split(delim) for spec in self._include_dirs]
         self._exclude_dirs = exclude_dirs
-        
+
         self._delim = delim
 
     @abstractmethod

@@ -22,6 +22,14 @@ def mocked_urlparse():
     mocked_urlparse_patch.stop()
 
 
+def test_get_fs_url_should_return_fs_url():
+    walker = S3Walker(fs_url)
+
+    result = walker.get_fs_url()
+
+    assert result == fs_url
+
+
 def test_init_should_request_urlparse(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'ed-storage-dev', 'psychology/')
 

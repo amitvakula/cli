@@ -53,7 +53,6 @@ class S3Walker(AbstractWalker):
         if 'Contents' in response:
             contents = response['Contents']
             for content in contents:
-                # need to test for root file
                 file_name = content['Key'] if prefix_path == '' else content['Key'].split(prefix_path)[1]
                 last_modified = content['LastModified']
                 size = content['Size']

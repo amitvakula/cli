@@ -3,7 +3,7 @@ from flywheel_cli.walker import S3Walker
 import datetime
 import pytest
 
-url = 's3://ed-storage-dev/psychology/'
+fs_url = 's3://ed-storage-dev/psychology/'
 
 
 @pytest.fixture
@@ -23,28 +23,25 @@ def mocked_urlparse():
 
 
 def test_init_should_request_urlparse(mocked_boto3, mocked_urlparse):
-    mocked_boto3.return_value = {}
     mocked_urlparse.return_value = (None, 'ed-storage-dev', 'psychology/')
 
-    S3Walker(url)
+    S3Walker(fs_url)
 
     mocked_urlparse.assert_called_with('s3://ed-storage-dev/psychology/')
 
 
 def test_init_should_request_client_from_boto3(mocked_boto3, mocked_urlparse):
-    mocked_boto3.return_value = {}
     mocked_urlparse.return_value = (None, 'ed-storage-dev', 'psychology/')
 
-    S3Walker(url)
+    S3Walker(fs_url)
 
     mocked_boto3.client.assert_called_with('s3')
 
 
 def test_init_should_set_bucket_from_urlparse(mocked_boto3, mocked_urlparse):
-    mocked_boto3.return_value = {}
     mocked_urlparse.return_value = (None, 'ed-storage-dev', 'psychology/')
 
-    result = S3Walker(url)
+    result = S3Walker(fs_url)
 
     assert result.bucket == 'ed-storage-dev'
 
@@ -53,25 +50,23 @@ def test_init_should_set_client_from_boto3(mocked_boto3, mocked_urlparse):
     mocked_boto3.client.return_value = {}
     mocked_urlparse.return_value = (None, 'ed-storage-dev', 'psychology/')
 
-    result = S3Walker(url)
+    result = S3Walker(fs_url)
 
     assert result.client == {}
 
 
 def test_init_should_set_root_to_empty_string_if_url_path_is_empty(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'ed-storage-dev', '/')
-    mocked_boto3.client.return_value = {}
 
-    result = S3Walker(url)
+    result = S3Walker(fs_url)
 
     assert result.root == ''
 
 
 def test_init_should_set_root_to_path_value(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'ed-storage-dev', 'psychology/')
-    mocked_boto3.client.return_value = {}
 
-    result = S3Walker(url)
+    result = S3Walker(fs_url)
 
     assert result.root == 'psychology'
 
@@ -79,9 +74,8 @@ def test_init_should_set_root_to_path_value(mocked_boto3, mocked_urlparse):
 def test_listdir_should_request_list_objects_from_client_with_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'ed-storage-dev', 'psychology/')
     client_mock = mock.MagicMock()
-    client_mock.list_objects.return_value = {}
     mocked_boto3.client.return_value = client_mock
-    walker = S3Walker(url)
+    walker = S3Walker(fs_url)
 
     next( walker._listdir('\psychology'), None)
 
@@ -91,9 +85,8 @@ def test_listdir_should_request_list_objects_from_client_with_path(mocked_boto3,
 def test_listdir_should_request_list_objects_from_client_without_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'ed-storage-dev', 'psychology/')
     client_mock = mock.MagicMock()
-    client_mock.list_objects.return_value = {}
     mocked_boto3.client.return_value = client_mock
-    walker = S3Walker(url)
+    walker = S3Walker(fs_url)
 
     next( walker._listdir(''), None)
 
@@ -108,7 +101,7 @@ def test_listdir_should_yield_directories_if_they_exist_with_path(mocked_boto3, 
         {'Prefix': 'psychology/dir2/'}
     ]}
     mocked_boto3.client.return_value = client_mock
-    walker = S3Walker(url)
+    walker = S3Walker(fs_url)
 
     directories = []
     for directory in walker._listdir('/psychology'):
@@ -134,7 +127,7 @@ def test_listdir_should_yield_directories_if_they_do_not_exist_with_path(mocked_
     client_mock = mock.MagicMock()
     client_mock.list_objects.return_value = {'CommonPrefixes': []}
     mocked_boto3.client.return_value = client_mock
-    walker = S3Walker(url)
+    walker = S3Walker(fs_url)
 
     directories = []
     for directory in walker._listdir('/psychology'):
@@ -151,7 +144,7 @@ def test_listdir_should_yield_directories_if_they_exist_without_path(mocked_boto
         {'Prefix': 'dir2/'}
     ]}
     mocked_boto3.client.return_value = client_mock
-    walker = S3Walker(url)
+    walker = S3Walker(fs_url)
 
     directories = []
     for directory in walker._listdir(''):
@@ -177,7 +170,7 @@ def test_listdir_should_yield_directories_if_they_do_not_exist_without_path(mock
     client_mock = mock.MagicMock()
     client_mock.list_objects.return_value = {'CommonPrefixes': []}
     mocked_boto3.client.return_value = client_mock
-    walker = S3Walker(url)
+    walker = S3Walker(fs_url)
 
     directories = []
     for directory in walker._listdir(''):
@@ -194,7 +187,7 @@ def test_listdir_should_yield_files_if_they_exist_with_path(mocked_boto3, mocked
         {'LastModified': datetime.date(1970, 1, 2), 'Key': 'psychology/file2.txt', 'Size': 2000}
     ]}
     mocked_boto3.client.return_value = client_mock
-    walker = S3Walker(url)
+    walker = S3Walker(fs_url)
 
     files = []
     for file in walker._listdir('/psychology'):
@@ -220,7 +213,7 @@ def test_listdir_should_not_yield_files_if_they_do_not_exist_with_path(mocked_bo
     client_mock = mock.MagicMock()
     client_mock.list_objects.return_value = {'Contents': []}
     mocked_boto3.client.return_value = client_mock
-    walker = S3Walker(url)
+    walker = S3Walker(fs_url)
 
     files = []
     for file in walker._listdir('/psychology'):
@@ -237,7 +230,7 @@ def test_listdir_should_yield_files_if_they_exist_without_path(mocked_boto3, moc
         {'LastModified': datetime.date(1970, 1, 2), 'Key': 'file2.txt', 'Size': 2000}
     ]}
     mocked_boto3.client.return_value = client_mock
-    walker = S3Walker(url)
+    walker = S3Walker(fs_url)
 
     files = []
     for file in walker._listdir(''):
@@ -258,12 +251,12 @@ def test_listdir_should_yield_files_if_they_exist_without_path(mocked_boto3, moc
     assert files[1].size == 2000
 
 
-def test_listdir_should_not_yield_files_if_they_do_not_exist_with_path(mocked_boto3, mocked_urlparse):
+def test_listdir_should_not_yield_files_if_they_do_not_exist_without_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'ed-storage-dev', 'psychology/')
     client_mock = mock.MagicMock()
     client_mock.list_objects.return_value = {'Contents': []}
     mocked_boto3.client.return_value = client_mock
-    walker = S3Walker(url)
+    walker = S3Walker(fs_url)
 
     files = []
     for file in walker._listdir(''):

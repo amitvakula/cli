@@ -1,5 +1,6 @@
 import boto3
 import fs
+import os
 import shutil
 import tempfile
 from urllib.parse import urlparse
@@ -41,20 +42,24 @@ class S3Walker(AbstractWalker):
             shutil.rmtree(self.dirpath)
 
     def open(self, path, mode='rb', **kwargs):
-        if not self.dirpath:
+        if not hasattr(self, 'dirpath'):
             self.dirpath = tempfile.mkdtemp()
 
-        print('We are in!')
-        print('dirpath: ' + self.dirpath)
-        print('path: ' + path)
+        # need to handle the case where there is no prefix path
+        prefix_dir = path.rsplit('/', 1)[0]
+        file_dir = self.dirpath + prefix_dir
 
-        # have to see what the path looks like here
-        # self.client.download_file(self.bucket, path[1:], self.dirpath + path[1:])
+        if not os.path.isdir(file_dir):
+            os.makedirs(file_dir)
 
-        # try:
-            # return open(path, mode, **kwargs)
-        # except fs.errors.ResourceNotFound as ex:
-            # raise FileNotFoundError('File {} not found'.format(path))
+        file_path = self.dirpath + path
+
+        self.client.download_file(self.bucket, path[1:], file_path)
+
+        try:
+            return open(file_path, mode, **kwargs)
+        except fs.errors.ResourceNotFound as ex:
+            raise FileNotFoundError('File {} not found'.format(path))
 
 
     def _listdir(self, path):

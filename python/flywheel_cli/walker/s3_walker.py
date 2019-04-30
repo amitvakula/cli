@@ -44,8 +44,12 @@ class S3Walker(AbstractWalker):
         if not self.dirpath:
             self.dirpath = tempfile.mkdtemp()
 
+        print('We are in!')
+        print('dirpath: ' + self.dirpath)
+        print('path: ' + path)
+
         # have to see what the path looks like here
-        self.client.download_file(self.bucket, path[1:], self.dirpath + path[1:])
+        # self.client.download_file(self.bucket, path[1:], self.dirpath + path[1:])
 
         try:
             return open(path, mode, **kwargs)

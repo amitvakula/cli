@@ -6,6 +6,9 @@ class MockWalker(AbstractWalker):
         for result in results:
             yield result
 
+    def close(self):
+        pass
+
     def open(self, path, mode='rb', **kwargs):
         raise FileNotFoundError('File not found!')
 

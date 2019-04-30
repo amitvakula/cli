@@ -22,7 +22,7 @@ class S3Walker(AbstractWalker):
             exclude_dirs (list): An optional list of patterns of directories to EXCLUDE
             delim (str): The path delimiter, if not '/'
         """
-        _, bucket, path, *_ = urlparse(fs_url)
+        schema, bucket, path, *_ = urlparse(fs_url)
 
         sanitized_path = '' if path == '/' else path[:-1]
 

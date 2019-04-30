@@ -1,6 +1,8 @@
 """Factory functions to create a file walker"""
 from .. import util
 from .pyfs_walker import PyFsWalker
+from .s3_walker import S3Walker
+from urllib.parse import urlparse
 
 def create_walker(fs_url, ignore_dot_files=True, follow_symlinks=False,
         filter=None, exclude=None, filter_dirs=None, exclude_dirs=None):
@@ -19,7 +21,10 @@ def create_walker(fs_url, ignore_dot_files=True, follow_symlinks=False,
         AbstractWalker: fs_url opened as a walker
     """
     # TODO: Check scheme and select walker class
-    cls = PyFsWalker
+
+    scheme, *_ = urlparse(fs_url)
+
+    cls = S3Walker if scheme == 's3' else PyFsWalker
 
     return cls(fs_url, ignore_dot_files=ignore_dot_files,
         follow_symlinks=follow_symlinks, filter=filter, exclude=exclude,

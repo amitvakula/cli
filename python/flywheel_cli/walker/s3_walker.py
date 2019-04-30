@@ -51,14 +51,14 @@ class S3Walker(AbstractWalker):
         # have to see what the path looks like here
         # self.client.download_file(self.bucket, path[1:], self.dirpath + path[1:])
 
-        try:
-            return open(path, mode, **kwargs)
-        except fs.errors.ResourceNotFound as ex:
-            raise FileNotFoundError('File {} not found'.format(path))
+        # try:
+            # return open(path, mode, **kwargs)
+        # except fs.errors.ResourceNotFound as ex:
+            # raise FileNotFoundError('File {} not found'.format(path))
 
 
     def _listdir(self, path):
-        prefix_path = '' if path == '/' else path[1:] + '/'
+        prefix_path = path[1:] if path.endswith('/') else path[1:] + '/'
         response = self.client.list_objects(Bucket=self.bucket, Prefix=prefix_path, Delimiter=self._delim)
 
         if 'CommonPrefixes' in response:

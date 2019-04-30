@@ -104,7 +104,7 @@ class AbstractWalker(ABC):
                 yield self.combine(root, file_info.name)
 
     @abstractmethod
-    def open(path, mode='rb', **kwargs):
+    def open(self, path, mode='rb', **kwargs):
         """Open the given path for reading.
 
         Params:
@@ -133,6 +133,7 @@ class AbstractWalker(ABC):
             path = path[len(subdir):]
         return path.lstrip(self._delim)
 
+    @abstractmethod
     def close(self):
         """Cleanup any resources on this walker"""
 

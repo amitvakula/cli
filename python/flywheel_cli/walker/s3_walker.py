@@ -1,4 +1,7 @@
 import boto3
+import fs
+import shutil
+import tempfile
 from urllib.parse import urlparse
 from .abstract_walker import AbstractWalker, FileInfo
 
@@ -6,7 +9,7 @@ from .abstract_walker import AbstractWalker, FileInfo
 class S3Walker(AbstractWalker):
     """Walker that is implemented in terms of S3"""
     def __init__(self, fs_url, ignore_dot_files=True, follow_symlinks=False, filter=None, exclude=None,
-                 filter_dirs=None, exclude_dirs=None):
+                 filter_dirs=None, exclude_dirs=None, src_fs=None):
         """Initialize the abstract walker
 
         Args:
@@ -33,15 +36,22 @@ class S3Walker(AbstractWalker):
     def get_fs_url(self):
         return self.fs_url
 
-    def open(path, mode='rb', **kwargs):
-        # In S3:
-        # Copy to a temp folder if it doesn't already exist,
-        # Then open that temp file
+    def close(self):
+        if self.dirpath:
+            shutil.rmtree(self.dirpath)
 
-        # python temp directory
-        # first time open file, go create one if doesn't exist
-        # close function delete temp folder
-        return None
+    def open(self, path, mode='rb', **kwargs):
+        if not self.dirpath:
+            self.dirpath = tempfile.mkdtemp()
+
+        # have to see what the path looks like here
+        self.client.download_file(self.bucket, path[1:], self.dirpath + path[1:])
+
+        try:
+            return open(path, mode, **kwargs)
+        except fs.errors.ResourceNotFound as ex:
+            raise FileNotFoundError('File {} not found'.format(path))
+
 
     def _listdir(self, path):
         prefix_path = path if path == '' else path[1:] + '/'

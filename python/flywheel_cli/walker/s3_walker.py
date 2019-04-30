@@ -58,7 +58,7 @@ class S3Walker(AbstractWalker):
 
 
     def _listdir(self, path):
-        prefix_path = path if path == '' else path[1:] + '/'
+        prefix_path = '' if path == '/' else path[1:] + '/'
         response = self.client.list_objects(Bucket=self.bucket, Prefix=prefix_path, Delimiter=self._delim)
 
         if 'CommonPrefixes' in response:

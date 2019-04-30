@@ -85,18 +85,18 @@ def test_listdir_should_request_list_objects_from_client_with_path(mocked_boto3,
     mocked_boto3.client.return_value = client_mock
     walker = S3Walker(fs_url)
 
-    next( walker._listdir('\path'), None)
+    next( walker._listdir('/path'), None)
 
     client_mock.list_objects.assert_called_with(Bucket='bucket', Prefix='path/', Delimiter='/')
 
 
 def test_listdir_should_request_list_objects_from_client_without_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse.return_value = (None, 'bucket', '/')
     client_mock = mock.MagicMock()
     mocked_boto3.client.return_value = client_mock
     walker = S3Walker(fs_url)
 
-    next( walker._listdir(''), None)
+    next( walker._listdir('/'), None)
 
     client_mock.list_objects.assert_called_with(Bucket='bucket', Prefix='', Delimiter='/')
 
@@ -145,7 +145,7 @@ def test_listdir_should_yield_directories_if_they_do_not_exist_with_path(mocked_
 
 
 def test_listdir_should_yield_directories_if_they_exist_without_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse.return_value = (None, 'bucket', '/')
     client_mock = mock.MagicMock()
     client_mock.list_objects.return_value = {'CommonPrefixes': [
         {'Prefix': 'dir1/'},
@@ -155,7 +155,7 @@ def test_listdir_should_yield_directories_if_they_exist_without_path(mocked_boto
     walker = S3Walker(fs_url)
 
     directories = []
-    for directory in walker._listdir(''):
+    for directory in walker._listdir('/'):
         directories.append(directory)
 
     assert len(directories) == 2
@@ -174,14 +174,14 @@ def test_listdir_should_yield_directories_if_they_exist_without_path(mocked_boto
 
 
 def test_listdir_should_yield_directories_if_they_do_not_exist_without_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse.return_value = (None, 'bucket', '/')
     client_mock = mock.MagicMock()
     client_mock.list_objects.return_value = {'CommonPrefixes': []}
     mocked_boto3.client.return_value = client_mock
     walker = S3Walker(fs_url)
 
     directories = []
-    for directory in walker._listdir(''):
+    for directory in walker._listdir('/'):
         directories.append(directory)
 
     assert len(directories) == 0
@@ -231,7 +231,7 @@ def test_listdir_should_not_yield_files_if_they_do_not_exist_with_path(mocked_bo
 
 
 def test_listdir_should_yield_files_if_they_exist_without_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse.return_value = (None, 'bucket', '/')
     client_mock = mock.MagicMock()
     client_mock.list_objects.return_value = {'Contents': [
         {'LastModified': datetime.date(1970, 1, 1), 'Key': 'file1.txt', 'Size': 1000},
@@ -241,7 +241,7 @@ def test_listdir_should_yield_files_if_they_exist_without_path(mocked_boto3, moc
     walker = S3Walker(fs_url)
 
     files = []
-    for file in walker._listdir(''):
+    for file in walker._listdir('/'):
         files.append(file)
 
     assert len(files) == 2
@@ -260,14 +260,14 @@ def test_listdir_should_yield_files_if_they_exist_without_path(mocked_boto3, moc
 
 
 def test_listdir_should_not_yield_files_if_they_do_not_exist_without_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse.return_value = (None, 'bucket', '/')
     client_mock = mock.MagicMock()
     client_mock.list_objects.return_value = {'Contents': []}
     mocked_boto3.client.return_value = client_mock
     walker = S3Walker(fs_url)
 
     files = []
-    for file in walker._listdir(''):
+    for file in walker._listdir('/'):
         files.append(file)
 
     assert len(files) == 0

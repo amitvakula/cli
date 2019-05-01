@@ -15,11 +15,39 @@ def mocked_boto3():
 
 
 @pytest.fixture
+def mocked_shutil():
+    mocked_shutil_patch = mock.patch('flywheel_cli.walker.s3_walker.shutil')
+    yield mocked_shutil_patch.start()
+
+    mocked_shutil_patch.stop()
+
+
+@pytest.fixture
 def mocked_urlparse():
     mocked_urlparse_patch = mock.patch('flywheel_cli.walker.s3_walker.urlparse')
     yield mocked_urlparse_patch.start()
 
     mocked_urlparse_patch.stop()
+
+
+def test_close_should_request_rmtree_from_shutil_if_tmp_dir_path_exists(mocked_boto3, mocked_urlparse, mocked_shutil):
+    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    s3_walker = S3Walker(fs_url)
+    s3_walker.tmp_dir_path = '/tmp'
+
+    s3_walker.close()
+
+    mocked_shutil.rmtree.assert_called_with('/tmp')
+
+
+def test_close_should_not_request_rmtree_from_shutil_if_tmp_dir_path_does_not_exist(mocked_boto3,
+                                                                                    mocked_urlparse, mocked_shutil):
+    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    s3_walker = S3Walker(fs_url)
+
+    s3_walker.close()
+
+    mocked_shutil.rmtree.assert_not_called()
 
 
 def test_get_fs_url_should_return_fs_url():

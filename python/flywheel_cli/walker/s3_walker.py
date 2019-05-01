@@ -46,8 +46,7 @@ class S3Walker(AbstractWalker):
         if self.tmp_dir_path is None:
             self.tmp_dir_path = tempfile.mkdtemp()
 
-        # need to handle the case where there is no prefix path
-        prefix_dir = path.rsplit('/', 1)[0]
+        prefix_dir = '' if path.count('/') == 1 else path.rsplit('/', 1)[0]
         file_dir = self.tmp_dir_path + self.root + prefix_dir
 
         if not os.path.isdir(file_dir):

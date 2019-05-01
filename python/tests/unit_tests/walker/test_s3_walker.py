@@ -15,11 +15,35 @@ def mocked_boto3():
 
 
 @pytest.fixture
+def mocked_open():
+    mocked_open_patch = mock.patch('flywheel_cli.walker.s3_walker.open')
+    yield mocked_open_patch.start()
+
+    mocked_open_patch.stop()
+
+
+@pytest.fixture
+def mocked_os():
+    mocked_os_patch = mock.patch('flywheel_cli.walker.s3_walker.os')
+    yield mocked_os_patch.start()
+
+    mocked_os_patch.stop()
+
+
+@pytest.fixture
 def mocked_shutil():
     mocked_shutil_patch = mock.patch('flywheel_cli.walker.s3_walker.shutil')
     yield mocked_shutil_patch.start()
 
     mocked_shutil_patch.stop()
+
+
+@pytest.fixture
+def mocked_tempfile():
+    mocked_tempfile_patch = mock.patch('flywheel_cli.walker.s3_walker.tempfile')
+    yield mocked_tempfile_patch.start()
+
+    mocked_tempfile_patch.stop()
 
 
 @pytest.fixture
@@ -315,3 +339,26 @@ def test_listdir_should_not_yield_files_if_they_do_not_exist_without_path(mocked
         files.append(file)
 
     assert len(files) == 0
+
+
+def test_open_should_request_mkdtemp_from_tempfile_if_tmp_dir_path_does_not_exist(mocked_boto3, mocked_os,
+                                                                                  mocked_shutil, mocked_tempfile,
+                                                                                  mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', '/')
+    walker = S3Walker(fs_url)
+
+    walker.open('/')
+
+    mocked_tempfile.mkdtemp.assert_called()
+
+
+def test_open_should_not_request_mkdtemp_from_tempfile_if_tmp_dir_path_exists(mocked_boto3, mocked_open, mocked_os,
+                                                                                  mocked_shutil, mocked_tempfile,
+                                                                                  mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', '/')
+    walker = S3Walker(fs_url)
+    walker.tmp_dir_path = '/tmp'
+
+    walker.open('/')
+
+    mocked_tempfile.mkdtemp.assert_not_called()

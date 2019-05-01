@@ -30,7 +30,6 @@ class S3Walker(AbstractWalker):
         super(S3Walker, self).__init__(sanitized_path, ignore_dot_files=ignore_dot_files,
                                        follow_symlinks=follow_symlinks, filter=filter, exclude=exclude,
                                        filter_dirs=filter_dirs, exclude_dirs=exclude_dirs)
-        self.base_path = sanitized_path
         self.bucket = bucket
         self.client = boto3.client('s3')
         self.fs_url = fs_url
@@ -49,13 +48,13 @@ class S3Walker(AbstractWalker):
 
         # need to handle the case where there is no prefix path
         prefix_dir = path.rsplit('/', 1)[0]
-        file_dir = self.tmp_dir_path + self.base_path + prefix_dir
+        file_dir = self.tmp_dir_path + self.root + prefix_dir
 
         if not os.path.isdir(file_dir):
             os.makedirs(file_dir)
 
-        file_path = self.tmp_dir_path + self.base_path + path
-        prefix_path = (self.base_path + path)[1:]
+        file_path = self.tmp_dir_path + self.root + path
+        prefix_path = (self.root + path)[1:]
 
         self.client.download_file(self.bucket, prefix_path, file_path)
 

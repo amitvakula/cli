@@ -46,7 +46,7 @@ def test_init_should_request_client_from_boto3(mocked_boto3, mocked_urlparse):
     mocked_boto3.client.assert_called_with('s3')
 
 
-def test_init_should_set_bucket_from_urlparse(mocked_boto3, mocked_urlparse):
+def test_init_should_set_bucket_to_urlparse_bucket(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', 'path/')
 
     result = S3Walker(fs_url)
@@ -54,13 +54,21 @@ def test_init_should_set_bucket_from_urlparse(mocked_boto3, mocked_urlparse):
     assert result.bucket == 'bucket'
 
 
-def test_init_should_set_client_from_boto3(mocked_boto3, mocked_urlparse):
+def test_init_should_set_client_to_boto3_client(mocked_boto3, mocked_urlparse):
     mocked_boto3.client.return_value = {}
     mocked_urlparse.return_value = (None, 'bucket', 'path/')
 
     result = S3Walker(fs_url)
 
     assert result.client == {}
+
+
+def test_init_should_set_fs_url(mocked_boto3, mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', '/')
+
+    result = S3Walker(fs_url)
+
+    assert result.fs_url == fs_url
 
 
 def test_init_should_set_root_to_empty_string_if_url_path_is_empty(mocked_boto3, mocked_urlparse):
@@ -71,12 +79,20 @@ def test_init_should_set_root_to_empty_string_if_url_path_is_empty(mocked_boto3,
     assert result.root == ''
 
 
-def test_init_should_set_root_to_path_value(mocked_boto3, mocked_urlparse):
+def test_init_should_set_root_to_sanitized_path_value_if_url_path_is_not_empty(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', 'path/')
 
     result = S3Walker(fs_url)
 
     assert result.root == 'path'
+
+
+def test_init_should_set_tmp_dir_path_to_none(mocked_boto3, mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', '/')
+
+    result = S3Walker(fs_url)
+
+    assert result.tmp_dir_path is None
 
 
 def test_listdir_should_request_list_objects_from_client_with_path(mocked_boto3, mocked_urlparse):

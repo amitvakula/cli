@@ -1,6 +1,7 @@
 from unittest import mock
 from flywheel_cli.walker import S3Walker
 import datetime
+import fs
 import pytest
 
 fs_url = 's3://bucket/path/'
@@ -362,3 +363,91 @@ def test_open_should_not_request_mkdtemp_from_tempfile_if_tmp_dir_path_exists(mo
     walker.open('/')
 
     mocked_tempfile.mkdtemp.assert_not_called()
+
+
+def test_open_should_request_makedirs_from_os_with_root_path_if_directory_does_not_exist(mocked_boto3, mocked_open,
+                                                                                         mocked_os, mocked_shutil,
+                                                                                         mocked_tempfile,
+                                                                                         mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', '/')
+    walker = S3Walker(fs_url)
+    walker.tmp_dir_path = '/tmp'
+    mocked_os.path.isdir.return_value = False
+
+    walker.open('/')
+
+    mocked_os.makedirs.assert_called_with('/tmp')
+
+
+def test_open_should_request_makedirs_from_os_with_path_if_directory_does_not_exist(mocked_boto3, mocked_open,
+                                                                                         mocked_os, mocked_shutil,
+                                                                                         mocked_tempfile,
+                                                                                         mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', '/')
+    walker = S3Walker(fs_url)
+    walker.tmp_dir_path = '/tmp'
+    mocked_os.path.isdir.return_value = False
+
+    walker.open('/dir1/dir2/file.txt')
+
+    mocked_os.makedirs.assert_called_with('/tmp/dir1/dir2')
+
+
+def test_open_should_not_request_makedirs_from_os_if_directory_does_exist(mocked_boto3, mocked_open,
+                                                                                         mocked_os, mocked_shutil,
+                                                                                         mocked_tempfile,
+                                                                                         mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', '/')
+    walker = S3Walker(fs_url)
+    walker.tmp_dir_path = '/tmp'
+    mocked_os.path.isdir.return_value = True
+
+    walker.open('/')
+
+    mocked_os.makedirs.assert_not_called()
+
+
+def test_open_should_request_download_file_from_boto3_client(mocked_boto3, mocked_open,
+                                                             mocked_os, mocked_shutil,
+                                                             mocked_tempfile,
+                                                             mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', '/path/')
+    walker = S3Walker(fs_url)
+    walker.tmp_dir_path = '/tmp'
+
+    walker.open('/dir1/file.txt')
+
+    walker.client.download_file.assert_called_with('bucket', 'path/dir1/file.txt', '/tmp/path/dir1/file.txt')
+
+
+def test_open_should_request_open(mocked_boto3, mocked_open, mocked_os, mocked_shutil, mocked_tempfile,
+                                  mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', '/path/')
+    walker = S3Walker(fs_url)
+    walker.tmp_dir_path = '/tmp'
+
+    walker.open('/dir1/file.txt')
+
+    mocked_open.assert_called_with('/tmp/path/dir1/file.txt', 'rb')
+
+
+def test_open_should_return_result_from_open(mocked_boto3, mocked_open, mocked_os, mocked_shutil, mocked_tempfile,
+                                  mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', '/path/')
+    mocked_open.return_value = {}
+    walker = S3Walker(fs_url)
+
+    result = walker.open('/')
+
+    assert result == {}
+
+
+def test_open_should_throw_if_file_if_resource_not_found_exception_is_thrown(mocked_boto3, mocked_open, mocked_os,
+                                                                             mocked_shutil, mocked_tempfile,
+                                                                             mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', '/path/')
+    mocked_open.side_effect = fs.errors.ResourceNotFound('not found')
+    walker = S3Walker(fs_url)
+
+    with pytest.raises(FileNotFoundError, match=r'File /dir1/file.txt not found'):
+        walker.open('/dir1/file.txt')

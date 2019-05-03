@@ -345,46 +345,30 @@ def test_open_should_not_request_mkdtemp_from_tempfile_if_tmp_dir_path_exists(mo
     mocked_tempfile.mkdtemp.assert_not_called()
 
 
-def test_open_should_request_makedirs_from_os_with_root_path_if_directory_does_not_exist(mocked_boto3, mocked_open,
+def test_open_should_request_makedirs_from_os_for_root_path(mocked_boto3, mocked_open,
                                                                                          mocked_os, mocked_shutil,
                                                                                          mocked_tempfile,
                                                                                          mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', '/')
     walker = S3Walker(fs_url)
     walker.tmp_dir_path = '/tmp'
-    mocked_os.path.isdir.return_value = False
 
     walker.open('/')
 
-    mocked_os.makedirs.assert_called_with('/tmp')
+    mocked_os.makedirs.assert_called_with('/tmp', exist_ok=True)
 
 
-def test_open_should_request_makedirs_from_os_with_path_if_directory_does_not_exist(mocked_boto3, mocked_open,
+def test_open_should_request_makedirs_from_os(mocked_boto3, mocked_open,
                                                                                          mocked_os, mocked_shutil,
                                                                                          mocked_tempfile,
                                                                                          mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', '/')
     walker = S3Walker(fs_url)
     walker.tmp_dir_path = '/tmp'
-    mocked_os.path.isdir.return_value = False
 
     walker.open('/dir1/dir2/file.txt')
 
-    mocked_os.makedirs.assert_called_with('/tmp/dir1/dir2')
-
-
-def test_open_should_not_request_makedirs_from_os_if_directory_does_exist(mocked_boto3, mocked_open,
-                                                                                         mocked_os, mocked_shutil,
-                                                                                         mocked_tempfile,
-                                                                                         mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
-    walker = S3Walker(fs_url)
-    walker.tmp_dir_path = '/tmp'
-    mocked_os.path.isdir.return_value = True
-
-    walker.open('/')
-
-    mocked_os.makedirs.assert_not_called()
+    mocked_os.makedirs.assert_called_with('/tmp/dir1/dir2', exist_ok=True)
 
 
 def test_open_should_request_download_file_from_boto3_client(mocked_boto3, mocked_open,

@@ -20,7 +20,6 @@ def create_walker(fs_url, ignore_dot_files=True, follow_symlinks=False,
     Returns:
         AbstractWalker: fs_url opened as a walker
     """
-    # TODO: Check scheme and select walker class
 
     scheme, *_ = urlparse(fs_url)
 

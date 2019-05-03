@@ -3,9 +3,10 @@ import fs
 import os
 import shutil
 import tempfile
+import time
+from random import randint
 from urllib.parse import urlparse
 from .abstract_walker import AbstractWalker, FileInfo
-
 
 class S3Walker(AbstractWalker):
     """Walker that is implemented in terms of S3"""
@@ -43,14 +44,16 @@ class S3Walker(AbstractWalker):
             shutil.rmtree(self.tmp_dir_path)
 
     def open(self, path, mode='rb', **kwargs):
+        # stagger to avoid bombarding S3 upon init
+        time.sleep(randint(50, 100) / 1000.0)
+
         if self.tmp_dir_path is None:
             self.tmp_dir_path = tempfile.mkdtemp()
 
         prefix_dir = '' if path.count('/') == 1 else path.rsplit('/', 1)[0]
         file_dir = self.tmp_dir_path + self.root + prefix_dir
 
-        if not os.path.isdir(file_dir):
-            os.makedirs(file_dir)
+        os.makedirs(file_dir, exist_ok=True)
 
         file_path = self.tmp_dir_path + self.root + path
         prefix_path = (self.root + path)[1:]

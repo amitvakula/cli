@@ -34,7 +34,7 @@ class S3Walker(AbstractWalker):
         self.bucket = bucket
         self.client = boto3.client('s3')
         self.fs_url = fs_url
-        self.tmp_dir_path = None
+        self.tmp_dir_path = tempfile.mkdtemp()
 
     def get_fs_url(self):
         return self.fs_url
@@ -44,12 +44,6 @@ class S3Walker(AbstractWalker):
             shutil.rmtree(self.tmp_dir_path)
 
     def open(self, path, mode='rb', **kwargs):
-        # stagger to avoid bombarding S3 upon init
-        time.sleep(randint(50, 200) / 1000.0)
-
-        if self.tmp_dir_path is None:
-            self.tmp_dir_path = tempfile.mkdtemp()
-
         file_path = self.tmp_dir_path + self.root + path
 
         if not os.path.isfile(file_path):

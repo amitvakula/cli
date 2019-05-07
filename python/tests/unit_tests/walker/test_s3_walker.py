@@ -55,18 +55,20 @@ def mocked_urlparse():
     mocked_urlparse_patch.stop()
 
 
-def test_close_should_request_rmtree_from_shutil_if_tmp_dir_path_exists(mocked_boto3, mocked_urlparse, mocked_shutil):
+def test_close_should_request_rmtree_from_shutil_if_tmp_dir_path_exists(mocked_boto3, mocked_shutil, mocked_tempfile,
+                                                                        mocked_urlparse):
+    mocked_tempfile.mkdtemp.return_value = '/tmp'
     mocked_urlparse.return_value = (None, 'bucket', 'path/')
     s3_walker = S3Walker(fs_url)
-    s3_walker.tmp_dir_path = '/tmp'
 
     s3_walker.close()
 
     mocked_shutil.rmtree.assert_called_with('/tmp')
 
 
-def test_close_should_not_request_rmtree_from_shutil_if_tmp_dir_path_does_not_exist(mocked_boto3,
-                                                                                    mocked_urlparse, mocked_shutil):
+def test_close_should_not_request_rmtree_from_shutil_if_tmp_dir_path_does_not_exist(mocked_boto3, mocked_shutil,
+                                                                                    mocked_tempfile, mocked_urlparse):
+    mocked_tempfile.mkdtemp.return_value = None
     mocked_urlparse.return_value = (None, 'bucket', 'path/')
     s3_walker = S3Walker(fs_url)
 
@@ -140,12 +142,21 @@ def test_init_should_set_root_to_sanitized_path_value_if_url_path_is_not_empty(m
     assert result.root == 'path'
 
 
-def test_init_should_set_tmp_dir_path_to_none(mocked_boto3, mocked_urlparse):
+def test_init_should_request_mkdtemp_from_tempfile(mocked_boto3, mocked_tempfile, mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', '/')
+
+    S3Walker(fs_url)
+
+    mocked_tempfile.mkdtemp.assert_called()
+
+
+def test_init_should_set_tmp_dir_path_to_temporary_directory_file_path(mocked_boto3, mocked_tempfile, mocked_urlparse):
+    mocked_tempfile.mkdtemp.return_value = '/tmp'
     mocked_urlparse.return_value = (None, 'bucket', '/')
 
     result = S3Walker(fs_url)
 
-    assert result.tmp_dir_path is None
+    assert result.tmp_dir_path == '/tmp'
 
 
 def test_listdir_should_request_list_objects_from_client_with_path_without_ending_slash(mocked_boto3, mocked_urlparse):
@@ -411,29 +422,6 @@ def test_listdir_should_not_yield_files_if_they_do_not_exist_without_path(mocked
         files.append(file)
 
     assert len(files) == 0
-
-
-def test_open_should_request_mkdtemp_from_tempfile_if_tmp_dir_path_does_not_exist(mocked_boto3, mocked_os,
-                                                                                  mocked_shutil, mocked_tempfile,
-                                                                                  mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
-    walker = S3Walker(fs_url)
-
-    walker.open('/')
-
-    mocked_tempfile.mkdtemp.assert_called()
-
-
-def test_open_should_not_request_mkdtemp_from_tempfile_if_tmp_dir_path_exists(mocked_boto3, mocked_open, mocked_os,
-                                                                                  mocked_shutil, mocked_tempfile,
-                                                                                  mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
-    walker = S3Walker(fs_url)
-    walker.tmp_dir_path = '/tmp'
-
-    walker.open('/')
-
-    mocked_tempfile.mkdtemp.assert_not_called()
 
 
 def test_open_should_request_isfile_from_os_path(mocked_boto3, mocked_open, mocked_os, mocked_shutil, mocked_tempfile,

@@ -73,19 +73,21 @@ class S3Walker(AbstractWalker):
             prefix_path = path[1:]
         else:
             prefix_path = path[1:] + '/'
-        response = self.client.list_objects(Bucket=self.bucket, Prefix=prefix_path, Delimiter=self._delim)
 
-        if 'CommonPrefixes' in response:
-            common_prefixes = response['CommonPrefixes']
-            for common_prefix in common_prefixes:
-                prefix = common_prefix['Prefix'][:-1]
-                dir_name = prefix if prefix_path == '' else prefix.split(prefix_path)[1]
-                yield FileInfo(dir_name, True)
+        paginator = self.client.get_paginator('list_objects')
+        page_iterator = paginator.paginate(Bucket=self.bucket, Prefix=prefix_path, Delimiter=self._delim)
+        for page in page_iterator:
+            if 'CommonPrefixes' in page:
+                common_prefixes = page['CommonPrefixes']
+                for common_prefix in common_prefixes:
+                    prefix = common_prefix['Prefix'][:-1]
+                    dir_name = prefix if prefix_path == '' else prefix.split(prefix_path)[1]
+                    yield FileInfo(dir_name, True)
 
-        if 'Contents' in response:
-            contents = response['Contents']
-            for content in contents:
-                file_name = content['Key'] if prefix_path == '' else content['Key'].split(prefix_path)[1]
-                last_modified = content['LastModified']
-                size = content['Size']
-                yield FileInfo(file_name, False, modified=last_modified, size=size)
+            if 'Contents' in page:
+                contents = page['Contents']
+                for content in contents:
+                    file_name = content['Key'] if prefix_path == '' else content['Key'].split(prefix_path)[1]
+                    last_modified = content['LastModified']
+                    size = content['Size']
+                    yield FileInfo(file_name, False, modified=last_modified, size=size)

@@ -201,6 +201,46 @@ def test_listdir_should_request_list_objects_from_client_with_root_path(mocked_b
     paginator.paginate.assert_called_with(Bucket='bucket', Prefix='', Delimiter='/')
 
 
+def test_listdir_should_paginate(mocked_boto3, mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    walker = S3Walker(fs_url)
+    paginator = mock.MagicMock()
+    paginator.paginate.return_value = [
+        {'CommonPrefixes': [
+            {'Prefix': 'path/dir1/'},
+            {'Prefix': 'path/dir2/'}
+        ]},
+        {'CommonPrefixes': [
+            {'Prefix': 'path/dir3/'}
+        ]}
+    ]
+    walker.client.get_paginator.return_value = paginator
+
+    directories = []
+    for directory in walker._listdir('/path'):
+        directories.append(directory)
+
+    assert len(directories) == 3
+    assert directories[0].created is None
+    assert directories[0].is_dir is True
+    assert directories[0].is_link is False
+    assert directories[0].modified is None
+    assert directories[0].name == 'dir1'
+    assert directories[0].size is None
+    assert directories[1].created is None
+    assert directories[1].is_dir is True
+    assert directories[1].is_link is False
+    assert directories[1].modified is None
+    assert directories[1].name == 'dir2'
+    assert directories[2].size is None
+    assert directories[2].created is None
+    assert directories[2].is_dir is True
+    assert directories[2].is_link is False
+    assert directories[2].modified is None
+    assert directories[2].name == 'dir3'
+    assert directories[2].size is None
+
+
 def test_listdir_should_yield_directories_if_they_exist_with_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', 'path/')
     walker = S3Walker(fs_url)

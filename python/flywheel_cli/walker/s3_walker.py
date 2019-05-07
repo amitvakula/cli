@@ -42,6 +42,7 @@ class S3Walker(AbstractWalker):
     def close(self):
         if self.tmp_dir_path is not None:
             shutil.rmtree(self.tmp_dir_path)
+            self.tmp_dir_path = None
 
     def open(self, path, mode='rb', **kwargs):
         file_path = self.tmp_dir_path + self.root + path

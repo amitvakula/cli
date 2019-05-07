@@ -68,6 +68,17 @@ def test_close_should_request_rmtree_from_shutil_if_tmp_dir_path_exists(mocked_b
     mocked_shutil.rmtree.assert_called_with('/tmp')
 
 
+def test_close_should_set_tmp_dir_path_to_none_if_tmp_dir_path_exists(mocked_boto3, mocked_shutil, mocked_tempfile,
+                                                                        mocked_urlparse):
+    mocked_tempfile.mkdtemp.return_value = '/tmp'
+    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    s3_walker = S3Walker(fs_url)
+
+    s3_walker.close()
+
+    assert s3_walker.tmp_dir_path is None
+
+
 def test_close_should_not_request_rmtree_from_shutil_if_tmp_dir_path_does_not_exist(mocked_boto3, mocked_shutil,
                                                                                     mocked_tempfile, mocked_urlparse):
     mocked_tempfile.mkdtemp.return_value = None

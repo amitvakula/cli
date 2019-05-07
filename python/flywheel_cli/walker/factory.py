@@ -5,6 +5,7 @@ from .. import util
 from .pyfs_walker import PyFsWalker
 from .s3_walker import S3Walker
 
+
 def create_walker(fs_url, ignore_dot_files=True, follow_symlinks=False,
         filter=None, exclude=None, filter_dirs=None, exclude_dirs=None):
     """Create a walker from a filesystem url

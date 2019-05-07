@@ -4,6 +4,7 @@ import fs
 from ..custom_walker import CustomWalker
 from .abstract_walker import AbstractWalker, FileInfo
 
+
 class PyFsWalker(AbstractWalker):
     """Walker that is implemented in terms of PyFs"""
     def __init__(self, fs_url, ignore_dot_files=True, follow_symlinks=False, filter=None, exclude=None,

@@ -4,6 +4,7 @@ import fnmatch
 
 from abc import ABC, abstractmethod
 
+
 class FileInfo(object):
     """Represents a node in a filesystem
 
@@ -104,7 +105,7 @@ class AbstractWalker(ABC):
                     else:
                         prefix_path = root
                 elif self.root == '/':
-                    prefix_path = root[1:]
+                    prefix_path = root.lstrip('/')
                 else:
                     prefix_path = root.split(self.root)[1]
 

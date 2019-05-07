@@ -27,7 +27,7 @@ class S3Walker(AbstractWalker):
         """
         schema, bucket, path, *_ = urlparse(fs_url)
 
-        sanitized_path = '' if path == '/' else path[:-1]
+        sanitized_path = '' if path == '/' else path.rstrip('/')
 
         super(S3Walker, self).__init__(sanitized_path, ignore_dot_files=ignore_dot_files,
                                        follow_symlinks=follow_symlinks, filter=filter, exclude=exclude,
@@ -46,14 +46,14 @@ class S3Walker(AbstractWalker):
             self.tmp_dir_path = None
 
     def open(self, path, mode='rb', **kwargs):
-        file_path = self.tmp_dir_path + self.root + path
+        file_path = os.path.join(self.tmp_dir_path, self.root.lstrip('/'), path.lstrip('/'))
 
         if not os.path.isfile(file_path):
             prefix_dir = '' if path.count('/') == 1 else path.rsplit('/', 1)[0]
-            file_dir = self.tmp_dir_path + self.root + prefix_dir
+            file_dir = os.path.join(self.tmp_dir_path, self.root.lstrip('/'), prefix_dir.lstrip('/'))
             os.makedirs(file_dir, exist_ok=True)
 
-            prefix_path = (self.root + path)[1:]
+            prefix_path = self.root.lstrip('/') + path
 
             self.client.download_file(self.bucket, prefix_path, file_path)
 
@@ -66,9 +66,9 @@ class S3Walker(AbstractWalker):
         if path == '/' or path == '':
             prefix_path = ''
         elif path.endswith('/'):
-            prefix_path = path[1:]
+            prefix_path = path.lstrip('/')
         else:
-            prefix_path = path[1:] + '/'
+            prefix_path = path.lstrip('/') + '/'
 
         paginator = self.client.get_paginator('list_objects')
         page_iterator = paginator.paginate(Bucket=self.bucket, Prefix=prefix_path, Delimiter='/')
@@ -76,7 +76,7 @@ class S3Walker(AbstractWalker):
             if 'CommonPrefixes' in page:
                 common_prefixes = page['CommonPrefixes']
                 for common_prefix in common_prefixes:
-                    prefix = common_prefix['Prefix'][:-1]
+                    prefix = common_prefix['Prefix'].rstrip('/')
                     dir_name = prefix if prefix_path == '' else prefix.split(prefix_path)[1]
                     yield FileInfo(dir_name, True)
 

@@ -1,5 +1,6 @@
 import datetime
 from unittest import mock
+import os
 
 import fs
 import pytest
@@ -440,6 +441,7 @@ def test_listdir_should_not_yield_files_if_they_do_not_exist_without_path(mocked
 def test_open_should_request_isfile_from_os_path(mocked_boto3, mocked_open, mocked_os, mocked_shutil, mocked_tempfile,
                                                  mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', '/')
+    mocked_os.path.join = mock.MagicMock(return_value='/tmp/dir1/file.txt')
     walker = S3Walker(fs_url)
     walker.tmp_dir_path = '/tmp'
 
@@ -454,6 +456,7 @@ def test_open_should_request_makedirs_from_os_for_root_path_if_file_does_not_exi
                                                                                          mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', '/')
     mocked_os.path.isfile = mock.MagicMock(return_value=False)
+    mocked_os.path.join = mock.MagicMock(return_value='/tmp')
     walker = S3Walker(fs_url)
     walker.tmp_dir_path = '/tmp'
 
@@ -468,6 +471,7 @@ def test_open_should_request_makedirs_from_os_if_file_does_not_exist(mocked_boto
                                                                                          mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', '/')
     mocked_os.path.isfile = mock.MagicMock(return_value=False)
+    mocked_os.path.join = mock.MagicMock(return_value='/tmp/dir1/dir2')
     walker = S3Walker(fs_url)
     walker.tmp_dir_path = '/tmp'
 
@@ -477,11 +481,11 @@ def test_open_should_request_makedirs_from_os_if_file_does_not_exist(mocked_boto
 
 
 def test_open_should_request_download_file_from_boto3_client_if_file_does_not_exist(mocked_boto3, mocked_open,
-                                                             mocked_os, mocked_shutil,
-                                                             mocked_tempfile,
+                                                             mocked_os, mocked_shutil, mocked_tempfile,
                                                              mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', '/path/')
     mocked_os.path.isfile = mock.MagicMock(return_value=False)
+    mocked_os.path.join = mock.MagicMock(side_effect=['/tmp/path/dir1/file.txt', 'path/dir1/file.txt'])
     walker = S3Walker(fs_url)
     walker.tmp_dir_path = '/tmp'
 
@@ -506,6 +510,7 @@ def test_open_should_not_request_download_file_from_boto3_client_if_file_exists(
 def test_open_should_request_open(mocked_boto3, mocked_open, mocked_os, mocked_shutil, mocked_tempfile,
                                   mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', '/path/')
+    mocked_os.path.join = mock.MagicMock(return_value='/tmp/path/dir1/file.txt')
     walker = S3Walker(fs_url)
     walker.tmp_dir_path = '/tmp'
 
@@ -515,7 +520,7 @@ def test_open_should_request_open(mocked_boto3, mocked_open, mocked_os, mocked_s
 
 
 def test_open_should_return_result_from_open(mocked_boto3, mocked_open, mocked_os, mocked_shutil, mocked_tempfile,
-                                  mocked_urlparse):
+                                             mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', '/path/')
     mocked_open.return_value = {}
     walker = S3Walker(fs_url)

@@ -1,10 +1,11 @@
-import boto3
-import fs
 import os
 import shutil
 import tempfile
-from random import randint
 from urllib.parse import urlparse
+
+import boto3
+import fs
+
 from .abstract_walker import AbstractWalker, FileInfo
 
 class S3Walker(AbstractWalker):

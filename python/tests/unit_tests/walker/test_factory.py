@@ -1,6 +1,8 @@
 from unittest import mock
-from flywheel_cli.walker import factory, PyFsWalker, S3Walker
+
 import pytest
+
+from flywheel_cli.walker import factory, PyFsWalker, S3Walker
 
 
 @pytest.fixture

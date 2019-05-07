@@ -1,8 +1,10 @@
-from unittest import mock
-from flywheel_cli.walker import S3Walker
 import datetime
+from unittest import mock
+
 import fs
 import pytest
+
+from flywheel_cli.walker import S3Walker
 
 fs_url = 's3://bucket/path/'
 

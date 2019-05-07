@@ -1,5 +1,6 @@
 """Abstract file-system walker class"""
 import fs
+
 from ..custom_walker import CustomWalker
 from .abstract_walker import AbstractWalker, FileInfo
 

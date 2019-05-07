@@ -18,7 +18,6 @@ class PyFsWalker(AbstractWalker):
             exclude (list): An optional list of filename patterns to EXCLUDE
             filter_dirs (list): An optional list of directories to INCLUDE
             exclude_dirs (list): An optional list of patterns of directories to EXCLUDE
-            delim (str): The path delimiter, if not '/'
             src_fs (fs): The fs instance or None
         """
         super(PyFsWalker, self).__init__('/', ignore_dot_files=ignore_dot_files,

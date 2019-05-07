@@ -31,7 +31,7 @@ class FileInfo(object):
 class AbstractWalker(ABC):
     """Abstract interface for walking a filesystem"""
     def __init__(self, root, ignore_dot_files=True, follow_symlinks=False, filter=None, exclude=None,
-            filter_dirs=None, exclude_dirs=None, delim='/'):
+            filter_dirs=None, exclude_dirs=None):
         """Initialize the abstract walker
 
         Args:
@@ -42,7 +42,6 @@ class AbstractWalker(ABC):
             exclude (list): An optional list of filename patterns to EXCLUDE
             filter_dirs (list): An optional list of directories to INCLUDE
             exclude_dirs (list): An optional list of patterns of directories to EXCLUDE
-            delim (str): The path delimiter, if not '/'
         """
         self.root = root
 
@@ -54,10 +53,8 @@ class AbstractWalker(ABC):
 
         self._include_dirs = filter_dirs
         if self._include_dirs:
-            self._include_dirs = [spec.split(delim) for spec in self._include_dirs]
+            self._include_dirs = [spec.split('/') for spec in self._include_dirs]
         self._exclude_dirs = exclude_dirs
-
-        self._delim = delim
 
     @abstractmethod
     def get_fs_url(self):
@@ -141,16 +138,16 @@ class AbstractWalker(ABC):
         """Strip subdir from the beginning of path"""
         if path.startswith(subdir):
             path = path[len(subdir):]
-        return path.lstrip(self._delim)
+        return path.lstrip('/')
 
     def close(self):
         """Cleanup any resources on this walker"""
 
     def combine(self, part1, part2):
         """Combine two path parts with delim"""
-        part1 = part1.rstrip(self._delim)
-        part2 = part2.lstrip(self._delim)
-        return part1 + self._delim + part2
+        part1 = part1.rstrip('/')
+        part2 = part2.lstrip('/')
+        return part1 + '/' + part2
 
     def _match(self, patterns, name):
         """Return true if name matches any of the given patterns"""
@@ -168,7 +165,7 @@ class AbstractWalker(ABC):
             return False
 
         if self._include_dirs is not None:
-            parts = path.lstrip(self._delim).split(self._delim)
+            parts = path.lstrip('/').split('/')
             if not filter_match(self._include_dirs, parts):
                 return False
 

@@ -8,8 +8,10 @@ import fs
 
 from .abstract_walker import AbstractWalker, FileInfo
 
+
 class S3Walker(AbstractWalker):
     """Walker that is implemented in terms of S3"""
+    """By default, use '/' for S3 list objects path delimiter"""
     def __init__(self, fs_url, ignore_dot_files=True, follow_symlinks=False, filter=None, exclude=None,
                  filter_dirs=None, exclude_dirs=None):
         """Initialize the abstract walker
@@ -22,7 +24,6 @@ class S3Walker(AbstractWalker):
             exclude (list): An optional list of filename patterns to EXCLUDE
             filter_dirs (list): An optional list of directories to INCLUDE
             exclude_dirs (list): An optional list of patterns of directories to EXCLUDE
-            delim (str): The path delimiter, if not '/'
         """
         schema, bucket, path, *_ = urlparse(fs_url)
 
@@ -70,7 +71,7 @@ class S3Walker(AbstractWalker):
             prefix_path = path[1:] + '/'
 
         paginator = self.client.get_paginator('list_objects')
-        page_iterator = paginator.paginate(Bucket=self.bucket, Prefix=prefix_path, Delimiter=self._delim)
+        page_iterator = paginator.paginate(Bucket=self.bucket, Prefix=prefix_path, Delimiter='/')
         for page in page_iterator:
             if 'CommonPrefixes' in page:
                 common_prefixes = page['CommonPrefixes']

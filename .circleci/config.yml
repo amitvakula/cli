@@ -22,7 +22,7 @@ jobs:
         working_directory: "/workspace/src/flywheel.io/fw"
 
         docker:
-            - image: buildpack-deps:artful
+            - image: buildpack-deps:bionic
               environment:
                 MakeGenerateJunit: "1"
 
@@ -37,7 +37,7 @@ jobs:
                 command: apt -y update && apt -y install python3 python3-pip python3-venv unzip upx
 
             - run:
-                name: Execute python unit tests 
+                name: Execute python unit tests
                 command: ./make.sh testPython
 
             - run:
@@ -73,7 +73,7 @@ jobs:
 
             - run:
                 name: Make static
-                command: | 
+                command: |
                   CC=`which musl-gcc` ./make.sh go build -v --ldflags '-linkmode external -extldflags "-static"' fw.go \
                   && mv ./fw /workspace/bin/linux_amd64/fw \
                   && ./make.sh compressExecutable /workspace/bin/linux_amd64/fw

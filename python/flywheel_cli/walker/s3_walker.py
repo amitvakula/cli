@@ -3,7 +3,6 @@ import fs
 import os
 import shutil
 import tempfile
-import time
 from random import randint
 from urllib.parse import urlparse
 from .abstract_walker import AbstractWalker, FileInfo

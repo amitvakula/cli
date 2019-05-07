@@ -40,25 +40,27 @@ class S3Walker(AbstractWalker):
         return self.fs_url
 
     def close(self):
+        print('closing')
         if self.tmp_dir_path is not None:
             shutil.rmtree(self.tmp_dir_path)
 
     def open(self, path, mode='rb', **kwargs):
         # stagger to avoid bombarding S3 upon init
-        time.sleep(randint(50, 100) / 1000.0)
+        time.sleep(randint(50, 200) / 1000.0)
 
         if self.tmp_dir_path is None:
             self.tmp_dir_path = tempfile.mkdtemp()
 
-        prefix_dir = '' if path.count('/') == 1 else path.rsplit('/', 1)[0]
-        file_dir = self.tmp_dir_path + self.root + prefix_dir
-
-        os.makedirs(file_dir, exist_ok=True)
-
         file_path = self.tmp_dir_path + self.root + path
-        prefix_path = (self.root + path)[1:]
 
-        self.client.download_file(self.bucket, prefix_path, file_path)
+        if not os.path.isfile(file_path):
+            prefix_dir = '' if path.count('/') == 1 else path.rsplit('/', 1)[0]
+            file_dir = self.tmp_dir_path + self.root + prefix_dir
+            os.makedirs(file_dir, exist_ok=True)
+
+            prefix_path = (self.root + path)[1:]
+
+            self.client.download_file(self.bucket, prefix_path, file_path)
 
         try:
             return open(file_path, mode, **kwargs)
@@ -66,7 +68,12 @@ class S3Walker(AbstractWalker):
             raise FileNotFoundError('File {} not found'.format(path))
 
     def _listdir(self, path):
-        prefix_path = path[1:] if path.endswith('/') else path[1:] + '/'
+        if path == '/' or path == '':
+            prefix_path = ''
+        elif path.endswith('/'):
+            prefix_path = path[1:]
+        else:
+            prefix_path = path[1:] + '/'
         response = self.client.list_objects(Bucket=self.bucket, Prefix=prefix_path, Delimiter=self._delim)
 
         if 'CommonPrefixes' in response:

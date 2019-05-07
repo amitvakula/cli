@@ -101,7 +101,15 @@ class AbstractWalker(ABC):
         """Return all files in the sub directory"""
         for root, _, files in self.walk(subdir=subdir, max_depth=max_depth):
             for file_info in files:
-                yield self.combine(root, file_info.name)
+                if self.root == '':
+                    if '/' not in root:
+                        prefix_path = '/'
+                    else:
+                        prefix_path = root
+                else:
+                    prefix_path = root.split(self.root)[1]
+
+                yield self.combine(prefix_path, file_info.name)
 
     @abstractmethod
     def open(self, path, mode='rb', **kwargs):

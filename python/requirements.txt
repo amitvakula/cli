@@ -1,7 +1,7 @@
 boto3>=1.9.0
 fs>=2.4.4
 flywheel-bids~=0.8.0
-flywheel_migration>=0.8.0
+flywheel_migration>=0.8.1
 flywheel-sdk>=4.4.0
 pyinstaller~=3.3.1
 tzlocal~=1.5.1

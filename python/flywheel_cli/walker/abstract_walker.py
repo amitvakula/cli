@@ -143,7 +143,6 @@ class AbstractWalker(ABC):
             path = path[len(subdir):]
         return path.lstrip(self._delim)
 
-    @abstractmethod
     def close(self):
         """Cleanup any resources on this walker"""
 

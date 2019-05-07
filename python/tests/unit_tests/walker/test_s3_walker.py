@@ -159,7 +159,7 @@ def test_init_should_set_tmp_dir_path_to_temporary_directory_file_path(mocked_bo
     assert result.tmp_dir_path == '/tmp'
 
 
-def test_listdir_should_request_list_objects_from_client_with_path_without_ending_slash(mocked_boto3, mocked_urlparse):
+def test_listdir_should_request_get_paginator_from_client_with_path_without_ending_slash(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', 'path/')
     walker = S3Walker(fs_url)
 
@@ -179,7 +179,7 @@ def test_listdir_should_request_paginate_from_paginator_with_path_without_ending
     paginator.paginate.assert_called_with(Bucket='bucket', Prefix='path/', Delimiter='/')
 
 
-def test_listdir_should_request_list_objects_from_client_with_path_with_ending_slash(mocked_boto3, mocked_urlparse):
+def test_listdir_should_request_paginate_from_paginator_with_path_with_ending_slash(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', 'path/')
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
@@ -190,7 +190,7 @@ def test_listdir_should_request_list_objects_from_client_with_path_with_ending_s
     paginator.paginate.assert_called_with(Bucket='bucket', Prefix='path/', Delimiter='/')
 
 
-def test_listdir_should_request_list_objects_from_client_without_path(mocked_boto3, mocked_urlparse):
+def test_listdir_should_request_paginate_from_paginator_without_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', '/')
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
@@ -201,7 +201,7 @@ def test_listdir_should_request_list_objects_from_client_without_path(mocked_bot
     paginator.paginate.assert_called_with(Bucket='bucket', Prefix='', Delimiter='/')
 
 
-def test_listdir_should_request_list_objects_from_client_with_root_path(mocked_boto3, mocked_urlparse):
+def test_listdir_should_request_paginate_from_paginator_with_root_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', '/')
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()

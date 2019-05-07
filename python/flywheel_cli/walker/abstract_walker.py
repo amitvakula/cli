@@ -106,6 +106,8 @@ class AbstractWalker(ABC):
                         prefix_path = '/'
                     else:
                         prefix_path = root
+                elif self.root == '/':
+                    prefix_path = root[1:]
                 else:
                     prefix_path = root.split(self.root)[1]
 

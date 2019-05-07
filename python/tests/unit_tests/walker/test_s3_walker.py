@@ -148,7 +148,7 @@ def test_init_should_set_tmp_dir_path_to_none(mocked_boto3, mocked_urlparse):
     assert result.tmp_dir_path is None
 
 
-def test_listdir_should_request_list_objects_from_client_with_path(mocked_boto3, mocked_urlparse):
+def test_listdir_should_request_list_objects_from_client_with_path_without_ending_slash(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', 'path/')
     walker = S3Walker(fs_url)
 
@@ -157,7 +157,25 @@ def test_listdir_should_request_list_objects_from_client_with_path(mocked_boto3,
     walker.client.list_objects.assert_called_with(Bucket='bucket', Prefix='path/', Delimiter='/')
 
 
+def test_listdir_should_request_list_objects_from_client_with_path_with_ending_slash(mocked_boto3, mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    walker = S3Walker(fs_url)
+
+    next( walker._listdir('/path/'), None)
+
+    walker.client.list_objects.assert_called_with(Bucket='bucket', Prefix='path/', Delimiter='/')
+
+
 def test_listdir_should_request_list_objects_from_client_without_path(mocked_boto3, mocked_urlparse):
+    mocked_urlparse.return_value = (None, 'bucket', '/')
+    walker = S3Walker(fs_url)
+
+    next( walker._listdir(''), None)
+
+    walker.client.list_objects.assert_called_with(Bucket='bucket', Prefix='', Delimiter='/')
+
+
+def test_listdir_should_request_list_objects_from_client_with_root_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', '/')
     walker = S3Walker(fs_url)
 
@@ -193,7 +211,7 @@ def test_listdir_should_yield_directories_if_they_exist_with_path(mocked_boto3, 
     assert directories[1].size is None
 
 
-def test_listdir_should_yield_directories_if_they_do_not_exist_with_path(mocked_boto3, mocked_urlparse):
+def test_listdir_should_not_yield_directories_if_they_do_not_exist_with_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', 'path/')
     walker = S3Walker(fs_url)
     walker.client.list_objects.return_value = {'CommonPrefixes': []}
@@ -232,7 +250,7 @@ def test_listdir_should_yield_directories_if_they_exist_without_path(mocked_boto
     assert directories[1].size is None
 
 
-def test_listdir_should_yield_directories_if_they_do_not_exist_without_path(mocked_boto3, mocked_urlparse):
+def test_listdir_should_not_yield_directories_if_they_do_not_exist_without_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse.return_value = (None, 'bucket', '/')
     walker = S3Walker(fs_url)
     walker.client.list_objects.return_value = {'CommonPrefixes': []}

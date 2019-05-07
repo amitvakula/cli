@@ -40,7 +40,6 @@ class S3Walker(AbstractWalker):
         return self.fs_url
 
     def close(self):
-        print('closing')
         if self.tmp_dir_path is not None:
             shutil.rmtree(self.tmp_dir_path)
 

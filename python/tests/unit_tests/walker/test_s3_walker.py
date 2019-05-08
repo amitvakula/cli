@@ -66,6 +66,14 @@ def mocked_urlparse():
         mocked_urlparse_patch.stop()
 
 
+def mock_paginator(walker, paginate_return_value=None):
+    paginator = mock.MagicMock()
+    walker.client.get_paginator.return_value = paginator
+    if paginate_return_value is not None:
+        paginator.paginate.return_value = paginate_return_value
+    return paginator
+
+
 def test_close_should_request_rmtree_from_shutil_if_tmp_dir_path_exists(mocked_boto3, mocked_shutil, mocked_tempfile,
                                                                         mocked_urlparse):
     mocked_tempfile.mkdtemp.return_value = '/tmp'
@@ -78,7 +86,7 @@ def test_close_should_request_rmtree_from_shutil_if_tmp_dir_path_exists(mocked_b
 
 
 def test_close_should_set_tmp_dir_path_to_none_if_tmp_dir_path_exists(mocked_boto3, mocked_shutil, mocked_tempfile,
-                                                                        mocked_urlparse):
+                                                                      mocked_urlparse):
     mocked_tempfile.mkdtemp.return_value = '/tmp'
     mocked_urlparse((None, 'bucket', 'path/'))
     s3_walker = S3Walker(fs_url)
@@ -193,8 +201,7 @@ def test_listdir_should_request_get_paginator_from_client_with_path_without_endi
 def test_listdir_should_request_paginate_from_paginator_with_path_without_ending_slash(mocked_boto3, mocked_urlparse):
     mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
-    paginator = mock.MagicMock()
-    walker.client.get_paginator.return_value = paginator
+    paginator = mock_paginator(walker)
 
     next(walker._listdir('/path'), None)
 
@@ -204,8 +211,7 @@ def test_listdir_should_request_paginate_from_paginator_with_path_without_ending
 def test_listdir_should_request_paginate_from_paginator_with_path_with_ending_slash(mocked_boto3, mocked_urlparse):
     mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
-    paginator = mock.MagicMock()
-    walker.client.get_paginator.return_value = paginator
+    paginator = mock_paginator(walker)
 
     next(walker._listdir('/path/'), None)
 
@@ -215,8 +221,7 @@ def test_listdir_should_request_paginate_from_paginator_with_path_with_ending_sl
 def test_listdir_should_request_paginate_from_paginator_without_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse((None, 'bucket', '/'))
     walker = S3Walker(fs_url)
-    paginator = mock.MagicMock()
-    walker.client.get_paginator.return_value = paginator
+    paginator = mock_paginator(walker)
 
     next(walker._listdir(''), None)
 
@@ -226,8 +231,7 @@ def test_listdir_should_request_paginate_from_paginator_without_path(mocked_boto
 def test_listdir_should_request_paginate_from_paginator_with_root_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse((None, 'bucket', '/'))
     walker = S3Walker(fs_url)
-    paginator = mock.MagicMock()
-    walker.client.get_paginator.return_value = paginator
+    paginator = mock_paginator(walker)
 
     next(walker._listdir('/'), None)
 
@@ -237,8 +241,7 @@ def test_listdir_should_request_paginate_from_paginator_with_root_path(mocked_bo
 def test_listdir_should_paginate(mocked_boto3, mocked_urlparse):
     mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
-    paginator = mock.MagicMock()
-    paginator.paginate.return_value = [
+    mock_paginator(walker, [
         {'CommonPrefixes': [
             {'Prefix': 'path/dir1/'},
             {'Prefix': 'path/dir2/'}
@@ -246,8 +249,7 @@ def test_listdir_should_paginate(mocked_boto3, mocked_urlparse):
         {'CommonPrefixes': [
             {'Prefix': 'path/dir3/'}
         ]}
-    ]
-    walker.client.get_paginator.return_value = paginator
+    ])
 
     directories = []
     for directory in walker._listdir('/path'):
@@ -277,12 +279,10 @@ def test_listdir_should_paginate(mocked_boto3, mocked_urlparse):
 def test_listdir_should_yield_directories_if_they_exist_with_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
-    paginator = mock.MagicMock()
-    paginator.paginate.return_value = [{'CommonPrefixes': [
+    mock_paginator(walker, [{'CommonPrefixes': [
         {'Prefix': 'path/dir1/'},
         {'Prefix': 'path/dir2/'}
-    ]}]
-    walker.client.get_paginator.return_value = paginator
+    ]}])
 
     directories = []
     for directory in walker._listdir('/path'):
@@ -306,9 +306,7 @@ def test_listdir_should_yield_directories_if_they_exist_with_path(mocked_boto3, 
 def test_listdir_should_not_yield_directories_if_they_do_not_exist_with_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
-    paginator = mock.MagicMock()
-    paginator.paginate.return_value = [{'CommonPrefixes': []}]
-    walker.client.get_paginator.return_value = paginator
+    mock_paginator(walker, [{'CommonPrefixes': []}])
 
     directories = []
     for directory in walker._listdir('/path'):
@@ -320,12 +318,10 @@ def test_listdir_should_not_yield_directories_if_they_do_not_exist_with_path(moc
 def test_listdir_should_yield_directories_if_they_exist_without_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse((None, 'bucket', '/'))
     walker = S3Walker(fs_url)
-    paginator = mock.MagicMock()
-    paginator.paginate.return_value = [{'CommonPrefixes': [
+    mock_paginator(walker, [{'CommonPrefixes': [
         {'Prefix': 'dir1/'},
         {'Prefix': 'dir2/'}
-    ]}]
-    walker.client.get_paginator.return_value = paginator
+    ]}])
 
     directories = []
     for directory in walker._listdir('/'):
@@ -349,9 +345,7 @@ def test_listdir_should_yield_directories_if_they_exist_without_path(mocked_boto
 def test_listdir_should_not_yield_directories_if_they_do_not_exist_without_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse((None, 'bucket', '/'))
     walker = S3Walker(fs_url)
-    paginator = mock.MagicMock()
-    paginator.paginate.return_value = [{'CommonPrefixes': []}]
-    walker.client.get_paginator.return_value = paginator
+    mock_paginator(walker, [{'CommonPrefixes': []}])
 
     directories = []
     for directory in walker._listdir('/'):
@@ -363,12 +357,10 @@ def test_listdir_should_not_yield_directories_if_they_do_not_exist_without_path(
 def test_listdir_should_yield_files_if_they_exist_with_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
-    paginator = mock.MagicMock()
-    paginator.paginate.return_value = [{'Contents': [
+    mock_paginator(walker, [{'Contents': [
         {'LastModified': datetime.date(1970, 1, 1), 'Key': 'path/file1.txt', 'Size': 1000},
         {'LastModified': datetime.date(1970, 1, 2), 'Key': 'path/file2.txt', 'Size': 2000}
-    ]}]
-    walker.client.get_paginator.return_value = paginator
+    ]}])
 
     files = []
     for file in walker._listdir('/path'):
@@ -392,9 +384,7 @@ def test_listdir_should_yield_files_if_they_exist_with_path(mocked_boto3, mocked
 def test_listdir_should_not_yield_files_if_they_do_not_exist_with_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
-    paginator = mock.MagicMock()
-    paginator.paginate.return_value = [{'CommonPrefixes': []}]
-    walker.client.get_paginator.return_value = paginator
+    mock_paginator(walker, [{'CommonPrefixes': []}])
 
     files = []
     for file in walker._listdir('/path'):
@@ -406,12 +396,10 @@ def test_listdir_should_not_yield_files_if_they_do_not_exist_with_path(mocked_bo
 def test_listdir_should_yield_files_if_they_exist_without_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse((None, 'bucket', '/'))
     walker = S3Walker(fs_url)
-    paginator = mock.MagicMock()
-    paginator.paginate.return_value = [{'Contents': [
+    mock_paginator(walker, [{'Contents': [
         {'LastModified': datetime.date(1970, 1, 1), 'Key': 'file1.txt', 'Size': 1000},
         {'LastModified': datetime.date(1970, 1, 2), 'Key': 'file2.txt', 'Size': 2000}
-    ]}]
-    walker.client.get_paginator.return_value = paginator
+    ]}])
 
     files = []
     for file in walker._listdir('/'):
@@ -435,9 +423,7 @@ def test_listdir_should_yield_files_if_they_exist_without_path(mocked_boto3, moc
 def test_listdir_should_not_yield_files_if_they_do_not_exist_without_path(mocked_boto3, mocked_urlparse):
     mocked_urlparse((None, 'bucket', '/'))
     walker = S3Walker(fs_url)
-    paginator = mock.MagicMock()
-    paginator.paginate.return_value = [{'CommonPrefixes': []}]
-    walker.client.get_paginator.return_value = paginator
+    mock_paginator(walker, [{'CommonPrefixes': []}])
 
     files = []
     for file in walker._listdir('/'):

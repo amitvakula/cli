@@ -18,7 +18,7 @@ class PackfileDescriptor(object):
         self.count = count
         self.name = name
 
-def create_zip_packfile(dst_file, src_fs, packfile_type=None, symlinks=False, paths=None, progress_callback=None, compression=None, deid_profile=None):
+def create_zip_packfile(dst_file, src_fs, packfile_type=None, symlinks=False, paths=None, path_transform=None, progress_callback=None, compression=None, deid_profile=None):
     """Create a zipped packfile for the given packfile_type and options, that writes a ZipFile to dst_file
 
     Arguments:
@@ -34,11 +34,11 @@ def create_zip_packfile(dst_file, src_fs, packfile_type=None, symlinks=False, pa
         compression = zipfile.ZIP_DEFLATED
 
     with ZipFS(dst_file, write=True, compression=compression) as dst_fs:
-        zip_member_count = create_packfile(src_fs, dst_fs, packfile_type, symlinks=symlinks, paths=paths, progress_callback=progress_callback, deid_profile=deid_profile)
+        zip_member_count = create_packfile(src_fs, dst_fs, packfile_type, symlinks=symlinks, paths=paths, path_transform=path_transform, progress_callback=progress_callback, deid_profile=deid_profile)
 
     return zip_member_count
 
-def create_packfile(src_fs, dst_fs, packfile_type, symlinks=False, paths=None, progress_callback=None, deid_profile=None):
+def create_packfile(src_fs, dst_fs, packfile_type, symlinks=False, paths=None, path_transform=None, progress_callback=None, deid_profile=None):
     """Create a packfile by copying files from src_fs to dst_fs, possibly validating and/or de-identifying
 
     Arguments:
@@ -71,11 +71,16 @@ def create_packfile(src_fs, dst_fs, packfile_type, symlinks=False, paths=None, p
 
     # Otherwise, just copy files into place
     for path in paths:
-        # Ensure folder exists
-        folder = fs.path.dirname(path)
-        dst_fs.makedirs(folder, recreate=True)
-
-        fs.copy.copy_file(src_fs, path, dst_fs, path)
-        if callable(progress_fn):
-            progress_fn(dst_fs, path)
+        if callable(path_transform):
+            # Copy files without folder structure
+            fs.copy.copy_file(src_fs, path, dst_fs, path_transform(path))
+            if callable(progress_fn):
+                progress_fn(dst_fs, path_transform(path))
+        else:
+            # Ensure folder exists
+            folder = fs.path.dirname(path)
+            dst_fs.makedirs(folder, recreate=True)
+            fs.copy.copy_file(src_fs, path, dst_fs, path)
+            if callable(progress_fn):
+                progress_fn(dst_fs, path)
     return len(paths)

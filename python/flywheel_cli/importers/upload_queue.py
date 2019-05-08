@@ -145,7 +145,7 @@ class UploadTask(Task):
         return 'Upload {}'.format(self.filename)
 
 class PackfileTask(Task):
-    def __init__(self, uploader, audit_log, archive_fs, packfile_type, deid_profile, follow_symlinks, container, filename, paths=None, compression=None, max_spool=None):
+    def __init__(self, uploader, audit_log, archive_fs, packfile_type, deid_profile, follow_symlinks, container, filename, paths=None, path_transform=None, compression=None, max_spool=None):
         super(PackfileTask, self).__init__('packfile')
 
         self.uploader = uploader
@@ -158,6 +158,7 @@ class PackfileTask(Task):
         self.container = container
         self.filename = filename
         self.paths = paths
+        self.path_transform = path_transform
         self.compression = compression
         self.max_spool = max_spool
 
@@ -170,7 +171,7 @@ class PackfileTask(Task):
             tmpfile = tempfile.TemporaryFile()
 
         zip_member_count = create_zip_packfile(tmpfile, self.archive_fs, packfile_type=self.packfile_type,
-            symlinks=self.follow_symlinks, paths=self.paths, compression=self.compression,
+            symlinks=self.follow_symlinks, paths=self.paths, path_transform=self.path_transform, compression=self.compression,
             progress_callback=self.update_bytes_processed, deid_profile=self.deid_profile)
 
         #Rewind
@@ -307,7 +308,7 @@ class UploadQueue(WorkQueue):
 
         self.enqueue(UploadTask(self.uploader, self.audit_log, container, filename, src_fs=src_fs, path=path))
 
-    def upload_packfile(self, archive_fs, packfile_type, deid_profile, container, filename, paths=None):
+    def upload_packfile(self, archive_fs, packfile_type, deid_profile, container, filename, paths=None, path_transform=None):
         if self.skip_existing and self.uploader.file_exists(container, filename):
             log.debug('Skipping existing packfile "%s" on %s %s', filename,
                     container.container_type, container.id)
@@ -318,5 +319,5 @@ class UploadQueue(WorkQueue):
             return
 
         self.enqueue(PackfileTask(self.uploader, self.audit_log, archive_fs, packfile_type,
-            deid_profile, self.follow_symlinks, container, filename, paths=paths,
+            deid_profile, self.follow_symlinks, container, filename, paths=paths, path_transform=path_transform,
             compression=self.compression, max_spool=self.max_spool))

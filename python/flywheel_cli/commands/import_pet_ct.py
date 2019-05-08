@@ -1,4 +1,5 @@
 import re
+import os
 
 from ..importers import PetCtScannerImporter
 
@@ -19,10 +20,15 @@ def add_command(subparsers, parents):
     return parser
 
 
+def packfile_dst_path_transform(path):
+    return os.path.basename(path)
+
+
 def import_pet_ct(args):
     # Build the importer instance
     importer = PetCtScannerImporter(group=args.group, project=args.project, config=args.config,
-                                    subject_label=args.subject, session_label=args.session)
+                                    subject_label=args.subject, session_label=args.session,
+                                    path_transform=packfile_dst_path_transform)
 
     if args.template:
         importer.add_template(args.template)

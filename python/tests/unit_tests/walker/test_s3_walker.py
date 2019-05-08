@@ -549,6 +549,21 @@ def test_open_should_request_download_file_from_boto3_client_if_file_does_not_ex
     walker.client.download_file.assert_called_with('bucket', 'path/dir1/file.txt', '/tmp/path/dir1/file.txt')
 
 
+def test_open_should_request_download_file_from_boto3_client_if_file_does_not_exist_for_root(mocked_boto3, mocked_open,
+                                                                                             mocked_os, mocked_shutil,
+                                                                                             mocked_tempfile,
+                                                                                             mocked_urlparse):
+    mocked_urlparse((None, 'bucket', '/'))
+    mocked_os.path.isfile = mock.MagicMock(return_value=False)
+    mocked_os.path.join = mock.MagicMock(side_effect=['/tmp/path/dir1/file.txt', 'path/dir1/file.txt'])
+    walker = S3Walker(fs_url)
+    walker.tmp_dir_path = '/tmp'
+
+    walker.open('/dir1/file.txt')
+
+    walker.client.download_file.assert_called_with('bucket', 'dir1/file.txt', '/tmp/path/dir1/file.txt')
+
+
 def test_open_should_not_request_download_file_from_boto3_client_if_file_exists(mocked_boto3, mocked_open, mocked_os,
                                                                                 mocked_shutil, mocked_tempfile,
                                                                                 mocked_urlparse):

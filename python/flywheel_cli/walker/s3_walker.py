@@ -53,7 +53,7 @@ class S3Walker(AbstractWalker):
             file_dir = os.path.join(self.tmp_dir_path, self.root.lstrip('/'), prefix_dir.lstrip('/'))
             os.makedirs(file_dir, exist_ok=True)
 
-            prefix_path = self.root.lstrip('/') + path
+            prefix_path = (self.root + path).lstrip('/')
 
             self.client.download_file(self.bucket, prefix_path, file_path)
 

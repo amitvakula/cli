@@ -35,9 +35,6 @@ setup(
     install_requires=requirements,
     packages=find_packages(),
     license="MIT",
-    data_files=[
-        ('', ['LICENSE'])
-    ],
     project_urls={
         'Documentation': 'https://docs.flywheel.io/display/EM/CLI+-+Installation'
     },

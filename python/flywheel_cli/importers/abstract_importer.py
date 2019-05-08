@@ -206,7 +206,7 @@ class AbstractImporter(ABC):
 
         try:
             log.debug('Using source filesystem: %s', fs_url)
-            walker = create_walker(fs_url)
+            walker = self.config.create_walker(fs_url)
         except fs.errors.CreateFailed:
             log.exception('Could not open filesystem at "{}"'.format(folder))
             sys.exit(1)

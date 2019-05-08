@@ -8,3 +8,4 @@ from .packfile import create_zip_packfile
 from .template import *
 from .dicom_scan import DicomScanner, DicomScannerImporter
 from .parrec_scan import ParRecScanner, ParRecScannerImporter
+from .pet_ct_scan import PetCtScanner, PetCtScannerImporter

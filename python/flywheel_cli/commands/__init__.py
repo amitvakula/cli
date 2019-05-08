@@ -4,6 +4,7 @@ from . import import_bruker
 from . import import_dicom
 from . import import_bids
 from . import import_parrec
+from . import import_pet_ct
 
 from . import export_bids
 
@@ -72,6 +73,9 @@ def add_commands(parser):
 
     # import template
     parsers['import template'] = import_template.add_command(import_subparsers, [global_parser, import_parser, deid_parser])
+
+    # import pet ct
+    parsers['import pet-ct'] = import_pet_ct.add_command(import_subparsers, [global_parser, import_parser, deid_parser])
 
     # Link help commands
     set_subparser_print_help(parser_import, import_subparsers)

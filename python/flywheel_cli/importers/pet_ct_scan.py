@@ -149,9 +149,9 @@ class PetCtScannerImporter(AbstractImporter):
 
 
     def __init__(self, group, project, config, context=None, subject_label=None, session_label=None, template=None,
-                 path_transform=None):
+                 zip_path_transform=None):
 
-        super(PetCtScannerImporter, self).__init__(group, project, True, context, config, path_transform)
+        super(PetCtScannerImporter, self).__init__(group, project, True, context, config, zip_path_transform)
 
         self.scanner = PetCtScanner(config)
         self.subject_label = subject_label

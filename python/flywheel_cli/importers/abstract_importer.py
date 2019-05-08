@@ -19,7 +19,7 @@ class AbstractImporter(ABC):
     support_archive_fs = True
     support_subject_mapping = False
 
-    def __init__(self, group, project, repackage_archives, context, config, path_transform=None):
+    def __init__(self, group, project, repackage_archives, context, config, zip_path_transform=None):
         """Abstract class that handles state for flywheel imports
 
         Arguments:
@@ -28,6 +28,7 @@ class AbstractImporter(ABC):
             repackage_archives (bool): Whether or not to repackage (and validate and de-identify) zipped packfiles. Default is False.
             context (dict): The optional additional context fields
             config (Config): The config object
+            zip_path_transform (function): The optional function which return (str) the transformed path structure.
         """
         self.container_factory = ContainerFactory(config.get_resolver(), uids=config.use_uids)
 
@@ -37,7 +38,7 @@ class AbstractImporter(ABC):
         self.context = context
         self.config = config
         self.repackage_archives = repackage_archives
-        self.path_transform = path_transform
+        self.zip_path_transform = zip_path_transform
 
         if config:
             self.deid_profile = config.deid_profile
@@ -290,7 +291,7 @@ class AbstractImporter(ABC):
                     else:
                         packfile_src_fs = src_fs.opendir('/')
                         upload_queue.upload_packfile(packfile_src_fs, desc.packfile_type, self.deid_profile, container, file_name,
-                                                     paths=desc.path, path_transform=self.path_transform)
+                                                     paths=desc.path, zip_path_transform=self.zip_path_transform)
 
             upload_queue.wait_for_finish()
             # Retry loop for errored jobs

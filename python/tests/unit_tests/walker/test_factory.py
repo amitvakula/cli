@@ -10,6 +10,7 @@ def mocked_urlparse():
     mocked_urlparse_patch = None
 
     def patcher(return_value):
+        nonlocal mocked_urlparse_patch
         mocked_urlparse_patch = mock.patch('flywheel_cli.walker.s3_walker.urlparse')
         mocked_urlparse = mocked_urlparse_patch.start()
         mocked_urlparse.return_value = return_value

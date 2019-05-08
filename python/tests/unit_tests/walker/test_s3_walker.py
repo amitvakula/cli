@@ -52,16 +52,24 @@ def mocked_tempfile():
 
 @pytest.fixture
 def mocked_urlparse():
-    mocked_urlparse_patch = mock.patch('flywheel_cli.walker.s3_walker.urlparse')
-    yield mocked_urlparse_patch.start()
+    mocked_urlparse_patch = None
 
-    mocked_urlparse_patch.stop()
+    def patcher(return_value):
+        mocked_urlparse_patch = mock.patch('flywheel_cli.walker.s3_walker.urlparse')
+        mocked_urlparse = mocked_urlparse_patch.start()
+        mocked_urlparse.return_value = return_value
+        return mocked_urlparse
+
+    yield patcher
+
+    if mocked_urlparse_patch is not None:
+        mocked_urlparse_patch.stop()
 
 
 def test_close_should_request_rmtree_from_shutil_if_tmp_dir_path_exists(mocked_boto3, mocked_shutil, mocked_tempfile,
                                                                         mocked_urlparse):
     mocked_tempfile.mkdtemp.return_value = '/tmp'
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
     s3_walker = S3Walker(fs_url)
 
     s3_walker.close()
@@ -72,7 +80,7 @@ def test_close_should_request_rmtree_from_shutil_if_tmp_dir_path_exists(mocked_b
 def test_close_should_set_tmp_dir_path_to_none_if_tmp_dir_path_exists(mocked_boto3, mocked_shutil, mocked_tempfile,
                                                                         mocked_urlparse):
     mocked_tempfile.mkdtemp.return_value = '/tmp'
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
     s3_walker = S3Walker(fs_url)
 
     s3_walker.close()
@@ -83,7 +91,7 @@ def test_close_should_set_tmp_dir_path_to_none_if_tmp_dir_path_exists(mocked_bot
 def test_close_should_not_request_rmtree_from_shutil_if_tmp_dir_path_does_not_exist(mocked_boto3, mocked_shutil,
                                                                                     mocked_tempfile, mocked_urlparse):
     mocked_tempfile.mkdtemp.return_value = None
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
     s3_walker = S3Walker(fs_url)
 
     s3_walker.close()
@@ -100,15 +108,15 @@ def test_get_fs_url_should_return_fs_url():
 
 
 def test_init_should_request_urlparse(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mock_urlparse = mocked_urlparse((None, 'bucket', 'path/'))
 
     S3Walker(fs_url)
 
-    mocked_urlparse.assert_called_with('s3://bucket/path/')
+    mock_urlparse.assert_called_with('s3://bucket/path/')
 
 
 def test_init_should_request_client_from_boto3(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
 
     S3Walker(fs_url)
 
@@ -116,7 +124,7 @@ def test_init_should_request_client_from_boto3(mocked_boto3, mocked_urlparse):
 
 
 def test_init_should_set_bucket_to_urlparse_bucket(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
 
     result = S3Walker(fs_url)
 
@@ -125,7 +133,7 @@ def test_init_should_set_bucket_to_urlparse_bucket(mocked_boto3, mocked_urlparse
 
 def test_init_should_set_client_to_boto3_client(mocked_boto3, mocked_urlparse):
     mocked_boto3.client.return_value = {}
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
 
     result = S3Walker(fs_url)
 
@@ -133,7 +141,7 @@ def test_init_should_set_client_to_boto3_client(mocked_boto3, mocked_urlparse):
 
 
 def test_init_should_set_fs_url(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
+    mocked_urlparse((None, 'bucket', 'path/'))
 
     result = S3Walker(fs_url)
 
@@ -141,7 +149,7 @@ def test_init_should_set_fs_url(mocked_boto3, mocked_urlparse):
 
 
 def test_init_should_set_root_to_empty_string_if_url_path_is_empty(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
+    mocked_urlparse((None, 'bucket', '/'))
 
     result = S3Walker(fs_url)
 
@@ -149,7 +157,7 @@ def test_init_should_set_root_to_empty_string_if_url_path_is_empty(mocked_boto3,
 
 
 def test_init_should_set_root_to_sanitized_path_value_if_url_path_is_not_empty(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
 
     result = S3Walker(fs_url)
 
@@ -157,7 +165,7 @@ def test_init_should_set_root_to_sanitized_path_value_if_url_path_is_not_empty(m
 
 
 def test_init_should_request_mkdtemp_from_tempfile(mocked_boto3, mocked_tempfile, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
+    mocked_urlparse((None, 'bucket', 'path/'))
 
     S3Walker(fs_url)
 
@@ -166,7 +174,7 @@ def test_init_should_request_mkdtemp_from_tempfile(mocked_boto3, mocked_tempfile
 
 def test_init_should_set_tmp_dir_path_to_temporary_directory_file_path(mocked_boto3, mocked_tempfile, mocked_urlparse):
     mocked_tempfile.mkdtemp.return_value = '/tmp'
-    mocked_urlparse.return_value = (None, 'bucket', '/')
+    mocked_urlparse((None, 'bucket', '/'))
 
     result = S3Walker(fs_url)
 
@@ -174,7 +182,7 @@ def test_init_should_set_tmp_dir_path_to_temporary_directory_file_path(mocked_bo
 
 
 def test_listdir_should_request_get_paginator_from_client_with_path_without_ending_slash(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
 
     next(walker._listdir('/path'), None)
@@ -183,7 +191,7 @@ def test_listdir_should_request_get_paginator_from_client_with_path_without_endi
 
 
 def test_listdir_should_request_paginate_from_paginator_with_path_without_ending_slash(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
     walker.client.get_paginator.return_value = paginator
@@ -194,7 +202,7 @@ def test_listdir_should_request_paginate_from_paginator_with_path_without_ending
 
 
 def test_listdir_should_request_paginate_from_paginator_with_path_with_ending_slash(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
     walker.client.get_paginator.return_value = paginator
@@ -205,7 +213,7 @@ def test_listdir_should_request_paginate_from_paginator_with_path_with_ending_sl
 
 
 def test_listdir_should_request_paginate_from_paginator_without_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
+    mocked_urlparse((None, 'bucket', '/'))
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
     walker.client.get_paginator.return_value = paginator
@@ -216,7 +224,7 @@ def test_listdir_should_request_paginate_from_paginator_without_path(mocked_boto
 
 
 def test_listdir_should_request_paginate_from_paginator_with_root_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
+    mocked_urlparse((None, 'bucket', '/'))
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
     walker.client.get_paginator.return_value = paginator
@@ -227,7 +235,7 @@ def test_listdir_should_request_paginate_from_paginator_with_root_path(mocked_bo
 
 
 def test_listdir_should_paginate(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
     paginator.paginate.return_value = [
@@ -267,7 +275,7 @@ def test_listdir_should_paginate(mocked_boto3, mocked_urlparse):
 
 
 def test_listdir_should_yield_directories_if_they_exist_with_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
     paginator.paginate.return_value = [{'CommonPrefixes': [
@@ -296,7 +304,7 @@ def test_listdir_should_yield_directories_if_they_exist_with_path(mocked_boto3, 
 
 
 def test_listdir_should_not_yield_directories_if_they_do_not_exist_with_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
     paginator.paginate.return_value = [{'CommonPrefixes': []}]
@@ -310,7 +318,7 @@ def test_listdir_should_not_yield_directories_if_they_do_not_exist_with_path(moc
 
 
 def test_listdir_should_yield_directories_if_they_exist_without_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
+    mocked_urlparse((None, 'bucket', '/'))
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
     paginator.paginate.return_value = [{'CommonPrefixes': [
@@ -339,7 +347,7 @@ def test_listdir_should_yield_directories_if_they_exist_without_path(mocked_boto
 
 
 def test_listdir_should_not_yield_directories_if_they_do_not_exist_without_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
+    mocked_urlparse((None, 'bucket', '/'))
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
     paginator.paginate.return_value = [{'CommonPrefixes': []}]
@@ -353,7 +361,7 @@ def test_listdir_should_not_yield_directories_if_they_do_not_exist_without_path(
 
 
 def test_listdir_should_yield_files_if_they_exist_with_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
     paginator.paginate.return_value = [{'Contents': [
@@ -382,7 +390,7 @@ def test_listdir_should_yield_files_if_they_exist_with_path(mocked_boto3, mocked
 
 
 def test_listdir_should_not_yield_files_if_they_do_not_exist_with_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', 'path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
     paginator.paginate.return_value = [{'CommonPrefixes': []}]
@@ -396,7 +404,7 @@ def test_listdir_should_not_yield_files_if_they_do_not_exist_with_path(mocked_bo
 
 
 def test_listdir_should_yield_files_if_they_exist_without_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
+    mocked_urlparse((None, 'bucket', '/'))
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
     paginator.paginate.return_value = [{'Contents': [
@@ -425,7 +433,7 @@ def test_listdir_should_yield_files_if_they_exist_without_path(mocked_boto3, moc
 
 
 def test_listdir_should_not_yield_files_if_they_do_not_exist_without_path(mocked_boto3, mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
+    mocked_urlparse((None, 'bucket', '/'))
     walker = S3Walker(fs_url)
     paginator = mock.MagicMock()
     paginator.paginate.return_value = [{'CommonPrefixes': []}]
@@ -440,7 +448,7 @@ def test_listdir_should_not_yield_files_if_they_do_not_exist_without_path(mocked
 
 def test_open_should_request_isfile_from_os_path(mocked_boto3, mocked_open, mocked_os, mocked_shutil, mocked_tempfile,
                                                  mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
+    mocked_urlparse((None, 'bucket', '/'))
     mocked_os.path.join = mock.MagicMock(return_value='/tmp/dir1/file.txt')
     walker = S3Walker(fs_url)
     walker.tmp_dir_path = '/tmp'
@@ -454,7 +462,7 @@ def test_open_should_request_makedirs_from_os_for_root_path_if_file_does_not_exi
                                                                                          mocked_os, mocked_shutil,
                                                                                          mocked_tempfile,
                                                                                          mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
+    mocked_urlparse((None, 'bucket', '/'))
     mocked_os.path.isfile = mock.MagicMock(return_value=False)
     mocked_os.path.join = mock.MagicMock(return_value='/tmp')
     walker = S3Walker(fs_url)
@@ -469,7 +477,7 @@ def test_open_should_request_makedirs_from_os_if_file_does_not_exist(mocked_boto
                                                                                          mocked_os, mocked_shutil,
                                                                                          mocked_tempfile,
                                                                                          mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/')
+    mocked_urlparse((None, 'bucket', '/'))
     mocked_os.path.isfile = mock.MagicMock(return_value=False)
     mocked_os.path.join = mock.MagicMock(return_value='/tmp/dir1/dir2')
     walker = S3Walker(fs_url)
@@ -483,7 +491,7 @@ def test_open_should_request_makedirs_from_os_if_file_does_not_exist(mocked_boto
 def test_open_should_request_download_file_from_boto3_client_if_file_does_not_exist(mocked_boto3, mocked_open,
                                                              mocked_os, mocked_shutil, mocked_tempfile,
                                                              mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/path/')
+    mocked_urlparse((None, 'bucket', '/path/'))
     mocked_os.path.isfile = mock.MagicMock(return_value=False)
     mocked_os.path.join = mock.MagicMock(side_effect=['/tmp/path/dir1/file.txt', 'path/dir1/file.txt'])
     walker = S3Walker(fs_url)
@@ -497,7 +505,7 @@ def test_open_should_request_download_file_from_boto3_client_if_file_does_not_ex
 def test_open_should_not_request_download_file_from_boto3_client_if_file_exists(mocked_boto3, mocked_open, mocked_os,
                                                                                 mocked_shutil, mocked_tempfile,
                                                                                 mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/path/')
+    mocked_urlparse((None, 'bucket', '/path/'))
     mocked_os.path.isfile = mock.MagicMock(return_value=True)
     walker = S3Walker(fs_url)
     walker.tmp_dir_path = '/tmp'
@@ -509,7 +517,7 @@ def test_open_should_not_request_download_file_from_boto3_client_if_file_exists(
 
 def test_open_should_request_open(mocked_boto3, mocked_open, mocked_os, mocked_shutil, mocked_tempfile,
                                   mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/path/')
+    mocked_urlparse((None, 'bucket', '/path/'))
     mocked_os.path.join = mock.MagicMock(return_value='/tmp/path/dir1/file.txt')
     walker = S3Walker(fs_url)
     walker.tmp_dir_path = '/tmp'
@@ -521,7 +529,7 @@ def test_open_should_request_open(mocked_boto3, mocked_open, mocked_os, mocked_s
 
 def test_open_should_return_result_from_open(mocked_boto3, mocked_open, mocked_os, mocked_shutil, mocked_tempfile,
                                              mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/path/')
+    mocked_urlparse((None, 'bucket', 'path/'))
     mocked_open.return_value = {}
     walker = S3Walker(fs_url)
 
@@ -533,7 +541,7 @@ def test_open_should_return_result_from_open(mocked_boto3, mocked_open, mocked_o
 def test_open_should_throw_if_file_if_resource_not_found_exception_is_thrown(mocked_boto3, mocked_open, mocked_os,
                                                                              mocked_shutil, mocked_tempfile,
                                                                              mocked_urlparse):
-    mocked_urlparse.return_value = (None, 'bucket', '/path/')
+    mocked_urlparse((None, 'bucket', '/path/'))
     mocked_open.side_effect = fs.errors.ResourceNotFound('not found')
     walker = S3Walker(fs_url)
 

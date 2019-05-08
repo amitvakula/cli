@@ -64,6 +64,26 @@ def mocked_open():
 
 
 @pytest.fixture
+def mocked_open_return():
+    mocked_open_patch = None
+
+    def patcher(is_side_effect, return_value=None):
+        nonlocal mocked_open_patch
+        mocked_open_patch = mock.patch('flywheel_cli.walker.s3_walker.open')
+        mocked_open = mocked_open_patch.start()
+        if is_side_effect:
+            mocked_open.side_effect = return_value
+        else:
+            mocked_open.return_value = return_value
+        return mocked_open
+
+    yield patcher
+
+    if mocked_open_patch is not None:
+        mocked_open_patch.stop()
+
+
+@pytest.fixture
 def mocked_os():
     mocked_os_patch = mock.patch('flywheel_cli.walker.s3_walker.os')
     yield mocked_os_patch.start()
@@ -239,7 +259,8 @@ def test_listdir_should_request_get_paginator_from_client_with_path_without_endi
     mocked_boto3.client.return_value.get_paginator.assert_called_with('list_objects')
 
 
-def test_listdir_should_request_paginate_from_paginator_with_path_without_ending_slash(mocked_boto3_pagination, mocked_urlparse):
+def test_listdir_should_request_paginate_from_paginator_with_path_without_ending_slash(mocked_boto3_pagination,
+                                                                                       mocked_urlparse):
     mock_paginator = mocked_boto3_pagination()
     mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
@@ -249,7 +270,8 @@ def test_listdir_should_request_paginate_from_paginator_with_path_without_ending
     mock_paginator.paginate.assert_called_with(Bucket='bucket', Prefix='path/', Delimiter='/')
 
 
-def test_listdir_should_request_paginate_from_paginator_with_path_with_ending_slash(mocked_boto3_pagination, mocked_urlparse):
+def test_listdir_should_request_paginate_from_paginator_with_path_with_ending_slash(mocked_boto3_pagination,
+                                                                                    mocked_urlparse):
     mock_paginator = mocked_boto3_pagination()
     mocked_urlparse((None, 'bucket', 'path/'))
     walker = S3Walker(fs_url)
@@ -383,7 +405,8 @@ def test_listdir_should_yield_directories_if_they_exist_without_path(mocked_boto
     assert directories[1].size is None
 
 
-def test_listdir_should_not_yield_directories_if_they_do_not_exist_without_path(mocked_boto3_pagination, mocked_urlparse):
+def test_listdir_should_not_yield_directories_if_they_do_not_exist_without_path(mocked_boto3_pagination,
+                                                                                mocked_urlparse):
     mocked_boto3_pagination([{'CommonPrefixes': []}])
     mocked_urlparse((None, 'bucket', '/'))
     walker = S3Walker(fs_url)
@@ -551,10 +574,10 @@ def test_open_should_request_open(mocked_boto3, mocked_open, mocked_os, mocked_s
     mocked_open.assert_called_with('/tmp/path/dir1/file.txt', 'rb')
 
 
-def test_open_should_return_result_from_open(mocked_boto3, mocked_open, mocked_os, mocked_shutil, mocked_tempfile,
-                                             mocked_urlparse):
+def test_open_should_return_result_from_open(mocked_boto3, mocked_open_return, mocked_os, mocked_shutil,
+                                             mocked_tempfile, mocked_urlparse):
+    mocked_open_return(False, {})
     mocked_urlparse((None, 'bucket', 'path/'))
-    mocked_open.return_value = {}
     walker = S3Walker(fs_url)
 
     result = walker.open('/')
@@ -562,11 +585,11 @@ def test_open_should_return_result_from_open(mocked_boto3, mocked_open, mocked_o
     assert result == {}
 
 
-def test_open_should_throw_if_file_if_resource_not_found_exception_is_thrown(mocked_boto3, mocked_open, mocked_os,
-                                                                             mocked_shutil, mocked_tempfile,
+def test_open_should_throw_if_file_if_resource_not_found_exception_is_thrown(mocked_boto3, mocked_open_return,
+                                                                             mocked_os, mocked_shutil, mocked_tempfile,
                                                                              mocked_urlparse):
+    mocked_open_return(True, fs.errors.ResourceNotFound('not found'))
     mocked_urlparse((None, 'bucket', '/path/'))
-    mocked_open.side_effect = fs.errors.ResourceNotFound('not found')
     walker = S3Walker(fs_url)
 
     with pytest.raises(FileNotFoundError, match=r'File /dir1/file.txt not found'):

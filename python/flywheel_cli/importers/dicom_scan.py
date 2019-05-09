@@ -288,6 +288,5 @@ class DicomScannerImporter(AbstractImporter):
             walker (AbstractWalker): The filesystem to query
             context (dict): The initial context
         """
-        print('Walker: {}'.format(walker))
         self.scanner.discover(walker, context, self.container_factory)
         self.messages += self.scanner.messages

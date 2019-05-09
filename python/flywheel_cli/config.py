@@ -10,9 +10,10 @@ import zlib
 import zipfile
 
 from flywheel_migration import deidentify
+
+from . import walker
 from .sdk_impl import create_flywheel_client, SdkUploadWrapper
 from .folder_impl import FSWrapper
-from .custom_walker import CustomWalker
 from .private_tags import add_private_tags
 
 DEFAULT_CONFIG_PATH = '~/.config/flywheel/cli.cfg'
@@ -88,7 +89,7 @@ class Config(object):
         self.walk_filters = {
             'filter': getattr(args, 'filter', []),
             'exclude': getattr(args, 'exclude', []),
-            'include_dirs': getattr(args, 'include_dirs', []),
+            'filter_dirs': getattr(args, 'include_dirs', []),
             'exclude_dirs': getattr(args, 'exclude_dirs', []),
         }
 
@@ -127,12 +128,13 @@ class Config(object):
         # Currently all resolvers are uploaders
         return self.get_resolver()
 
-    def get_walker(self, **kwargs):
+    def create_walker(self, fs_url, **kwargs):
         # Merge include/exclusion lists
-        for key in ('filter', 'exclude', 'include_dirs', 'exclude_dirs'):
+        for key in ('filter', 'exclude', 'filter_dirs', 'exclude_dirs'):
             kwargs[key] = merge_lists(kwargs.get(key, []), self.walk_filters[key])
+        kwargs.setdefault('follow_symlinks', self.follow_symlinks)
 
-        return CustomWalker(symlinks=self.follow_symlinks, **kwargs)
+        return walker.create_walker(fs_url, **kwargs)
 
     def configure_logging(self, args):
         root = logging.getLogger()

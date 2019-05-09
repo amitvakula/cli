@@ -6,9 +6,9 @@ import fs.path
 import fs.copy
 from fs.zipfs import ZipFS
 
-from ..custom_walker import CustomWalker
 
 log = logging.getLogger(__name__)
+
 
 class PackfileDescriptor(object):
     def __init__(self, packfile_type, path, count, name=None):

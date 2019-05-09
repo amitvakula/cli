@@ -10,7 +10,6 @@ from setuptools import setup, find_packages
 from setuptools.command.install import install
 
 NAME = "flywheel-cli"
-VERSION = "7.5.1"
 
 # To install the library, run the following
 #
@@ -22,18 +21,12 @@ VERSION = "7.5.1"
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
-class VerifyVersionCommand(install):
-    """Custom command to verify that the git tag matches our version"""
-    description = 'Verify that the git tag matches our version'
-
-    def run(self):
-        tag = os.getenv('CIRCLE_TAG')
-        if tag != VERSION:
-            sys.exit('Git tag: {0} does not match version: {1}'.format(tag, VERSION))
+with open('flywheel_cli/VERSION') as f:
+    version = f.read().strip()
 
 setup(
     name=NAME,
-    version=VERSION,
+    version=version,
     description="Flywheel Command Line Interface",
     author_email="support@flywheel.io",
     url="",
@@ -49,8 +42,5 @@ setup(
         'console_scripts': [
             'fw=flywheel_cli.main:main',
         ]
-    },
-    cmdclass = {
-        'verify': VerifyVersionCommand
     }
 )

@@ -12,8 +12,6 @@ class SlurpScanner(object):
         self.config = config
         self.messages = []
 
-        self.walker = config.get_walker()
-
     def discover(self, walker, context, container_factory, path_prefix=None):
         """Performs discovery of containers to create and files to upload in the given folder.
 

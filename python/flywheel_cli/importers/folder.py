@@ -157,6 +157,7 @@ class FolderImporter(AbstractImporter):
                             child_path, 0, name=packfile_name)
 
                     if next_node and next_node.node_type == 'scanner':
+                        print('Scanning: {}'.format(child_path))
                         messages = next_node.scan(walker, child_path, child_context, self.container_factory)
                         self.messages += messages
                         resolve = False

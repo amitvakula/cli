@@ -59,6 +59,19 @@ class AbstractWalker(ABC):
 
         self._delim = delim
 
+    def __repr__(self):
+        include_files_str = ','.join(self._include_files) if self._include_files else '[]'
+        exclude_files_str = ','.join(self._exclude_files) if self._exclude_files else '[]'
+        include_dirs = ['/'.join(spec) for spec in self._include_dirs or []]
+        include_dirs_str = ','.join(include_dirs) if include_dirs else '[]'
+        exclude_dirs_str = ','.join(self._exclude_dirs) if self._exclude_dirs else '[]'
+
+        return ('{}(root={}, ignore_dot_files={}, follow_symlinks={}, '
+            'filter={}, exclude={}, filter_dirs={}, exclude_dirs={}').format(
+            type(self).__name__, self.root, self._ignore_dot_files, self._follow_symlinks,
+            include_files_str, exclude_files_str, include_dirs_str, exclude_dirs_str)
+
+
     @abstractmethod
     def get_fs_url(self):
         """Return the FS url for the underlying filesystem"""
@@ -90,8 +103,8 @@ class AbstractWalker(ABC):
                     if self._should_include_dir(full_path, item):
                         subdirs.append(item)
 
-                    if max_depth is None or depth < max_depth:
-                        queue.append((depth+1, full_path))
+                        if max_depth is None or depth < max_depth:
+                            queue.append((depth+1, full_path))
                 elif self._should_include_file(full_path, item):
                     files.append(item)
 

@@ -126,8 +126,6 @@ class DicomScanner(object):
                             message = ('File "{}" and "{}" conflict!\n  Both files have the '
                                 'same IDs, but contents differ!').format(path, orig_path)
                             self.messages.append(('error', message))
-                    elif path_prefix:
-                        acquisition.files[sop_uid] = path_prefix + path
                     else:
                         acquisition.files[sop_uid] = path
 
@@ -290,5 +288,6 @@ class DicomScannerImporter(AbstractImporter):
             walker (AbstractWalker): The filesystem to query
             context (dict): The initial context
         """
+        print('Walker: {}'.format(walker))
         self.scanner.discover(walker, context, self.container_factory)
         self.messages += self.scanner.messages

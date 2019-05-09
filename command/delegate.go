@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -42,7 +43,7 @@ const LibcExec = "libc-exe"
 const SitePackagesName = "site-packages.zip"
 
 // Add a command to parent that will be delegated to python
-func AddDelegateCommand(parent *cobra.Command, command, description string) {
+func AddDelegateCommand(parent *cobra.Command, command, description string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   command,
 		Short: description,
@@ -53,6 +54,8 @@ func AddDelegateCommand(parent *cobra.Command, command, description string) {
 	cmd.DisableFlagParsing = true
 
 	parent.AddCommand(cmd)
+
+	return cmd
 }
 
 // Exits if the command is delegated
@@ -88,8 +91,12 @@ func DelegateCommandToPython(command *cobra.Command, args []string) {
 	// NOTE: The args passed into this function are not always complete,
 	// especially in the case of help invocation. Hence the direct use of
 	// os.Args instead.
-	prog = append(prog, PythonCliCommand...)
-	prog = append(prog, os.Args[1:]...)
+	if os.Args[1] == "python" {
+		prog = append(prog, os.Args[2:]...)
+	} else {
+		prog = append(prog, PythonCliCommand...)
+		prog = append(prog, os.Args[1:]...)
+	}
 
 	// Launch the python command with piped stdin/stdout
 	cmd := exec.Command(prog[0], prog[1:]...)
@@ -99,6 +106,14 @@ func DelegateCommandToPython(command *cobra.Command, args []string) {
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("PYTHONHOME=%s", pythonPathInfo.PythonBinDir),
 	)
+
+	// Remove LD_LIBRARY_PATH since that can hose up our python process
+	for i, envvar := range cmd.Env {
+		if strings.HasPrefix(envvar, "LD_LIBRARY_PATH=") {
+			cmd.Env = append(cmd.Env[:i], cmd.Env[i+1:]...)
+			break
+		}
+	}
 
 	err = cmd.Run()
 	if err != nil {

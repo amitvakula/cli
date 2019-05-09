@@ -37,6 +37,9 @@ func BuildCommand(version, buildHash, buildDate string) *cobra.Command {
 	AddDelegateCommand(cmd, "import", "Import data into Flywheel")
 	AddDelegateCommand(cmd, "export", "Export data from Flywheel")
 
+	pythonCmd := AddDelegateCommand(cmd, "python", "Execute python process")
+	pythonCmd.Hidden = true
+
 	cmd.AddCommand(o.legacyCommands())
 	cmd.AddCommand(o.version(version, buildHash, buildDate))
 	util.VersionString = "Flywheel CLI " + version + " build " + buildHash + " on " + buildDate

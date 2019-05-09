@@ -137,6 +137,11 @@ def confirmation_prompt(message):
             return responses[choice]
         print('Please respond with "yes" or "no".')
 
+def perror(*args, **kwargs):
+    """Print to stderr"""
+    kwargs['file'] = sys.stderr
+    print(*args, **kwargs)
+
 def contains_dicoms(walker):
     """Check if the given walker contains dicoms"""
     # If we encounter a single dicom, assume true
@@ -279,6 +284,18 @@ def sanitize_string_to_filename(value):
     keepcharacters = (' ', '.', '_', '-')
     return "".join([c for c in value if c.isalnum() or c in keepcharacters]).rstrip()
 
+def hrsize(size):
+    """Return human-readable size from size value"""
+    if size < 1000:
+        return '%d%s' % (size, 'B')
+    for suffix in 'KMGTPEZY':
+        size /= 1024.
+        if size < 10.:
+            return '%.1f%sB' % (size, suffix)
+        if size < 1000.:
+            return '%.0f%sB' % (size, suffix)
+    return '%.0f%sB' % (size, 'Y')
+
 def edit_file(path):
     """
     Open the given path in a file editor, wait for the editor to exit.
@@ -296,3 +313,17 @@ def edit_file(path):
     editor = os.environ.get('EDITOR', default_editor)
     subprocess.call([editor, path])
 
+def package_root():
+    """Get a path to the package root folder"""
+    pkg_dir = os.path.dirname(__file__)
+    return os.path.abspath(pkg_dir)
+
+def get_cli_version():
+    """Get the installed CLI version"""
+    version_path = os.path.join(package_root(), 'VERSION')
+    try:
+        with open(version_path, 'r') as f:
+            version = f.read().strip()
+    except:
+        version = 'undetermined'
+    return version

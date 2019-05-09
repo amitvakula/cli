@@ -1,4 +1,5 @@
 tzlocal~=1.5.1
+crayons>=0.2.0
 fs>=2.4.4
 flywheel-bids~=0.8.0
 flywheel_migration>=0.8.1

@@ -31,7 +31,7 @@ class FileInfo(object):
 class AbstractWalker(ABC):
     """Abstract interface for walking a filesystem"""
     def __init__(self, root, ignore_dot_files=True, follow_symlinks=False, filter=None, exclude=None,
-            filter_dirs=None, exclude_dirs=None, delim='/'):
+            filter_dirs=None, exclude_dirs=None):
         """Initialize the abstract walker
 
         Args:
@@ -42,7 +42,6 @@ class AbstractWalker(ABC):
             exclude (list): An optional list of filename patterns to EXCLUDE
             filter_dirs (list): An optional list of directories to INCLUDE
             exclude_dirs (list): An optional list of patterns of directories to EXCLUDE
-            delim (str): The path delimiter, if not '/'
         """
         self.root = root
 
@@ -54,10 +53,8 @@ class AbstractWalker(ABC):
 
         self._include_dirs = filter_dirs
         if self._include_dirs:
-            self._include_dirs = [spec.split(delim) for spec in self._include_dirs]
+            self._include_dirs = [spec.split('/') for spec in self._include_dirs]
         self._exclude_dirs = exclude_dirs
-
-        self._delim = delim
 
     def __repr__(self):
         include_files_str = ','.join(self._include_files) if self._include_files else '[]'
@@ -70,7 +67,6 @@ class AbstractWalker(ABC):
             'filter={}, exclude={}, filter_dirs={}, exclude_dirs={}').format(
             type(self).__name__, self.root, self._ignore_dot_files, self._follow_symlinks,
             include_files_str, exclude_files_str, include_dirs_str, exclude_dirs_str)
-
 
     @abstractmethod
     def get_fs_url(self):
@@ -100,24 +96,39 @@ class AbstractWalker(ABC):
             for item in self._listdir(root):
                 full_path = self.combine(root, item.name)
                 if item.is_dir:
-                    if self._should_include_dir(full_path, item):
+                    prefix_path = self.get_prefix_path(full_path)
+                    if self._should_include_dir(prefix_path, item):
                         subdirs.append(item)
 
                         if max_depth is None or depth < max_depth:
                             queue.append((depth+1, full_path))
-                elif self._should_include_file(full_path, item):
+                elif self._should_include_file(item):
                     files.append(item)
 
             yield (root, subdirs, files)
+
+    def get_prefix_path(self, root):
+        if self.root == '':
+            if '/' not in root:
+                prefix_path = '/'
+            else:
+                prefix_path = root
+        elif self.root == '/':
+            prefix_path = root.lstrip('/')
+        else:
+            prefix_path = root.split(self.root)[1]
+
+        return prefix_path
 
     def files(self, subdir=None, max_depth=None):
         """Return all files in the sub directory"""
         for root, _, files in self.walk(subdir=subdir, max_depth=max_depth):
             for file_info in files:
-                yield self.combine(root, file_info.name)
+                prefix_path = self.get_prefix_path(root)
+                yield self.combine(prefix_path, file_info.name)
 
     @abstractmethod
-    def open(path, mode='rb', **kwargs):
+    def open(self, path, mode='rb', **kwargs):
         """Open the given path for reading.
 
         Params:
@@ -144,16 +155,15 @@ class AbstractWalker(ABC):
         """Strip subdir from the beginning of path"""
         if path.startswith(subdir):
             path = path[len(subdir):]
-        return path.lstrip(self._delim)
-
+        return path.lstrip('/')
     def close(self):
         """Cleanup any resources on this walker"""
 
     def combine(self, part1, part2):
         """Combine two path parts with delim"""
-        part1 = part1.rstrip(self._delim)
-        part2 = part2.lstrip(self._delim)
-        return part1 + self._delim + part2
+        part1 = part1.rstrip('/')
+        part2 = part2.lstrip('/')
+        return part1 + '/' + part2
 
     def _match(self, patterns, name):
         """Return true if name matches any of the given patterns"""
@@ -171,7 +181,7 @@ class AbstractWalker(ABC):
             return False
 
         if self._include_dirs is not None:
-            parts = path.lstrip(self._delim).split(self._delim)
+            parts = path.lstrip('/').split('/')
             if not filter_match(self._include_dirs, parts):
                 return False
 
@@ -180,7 +190,7 @@ class AbstractWalker(ABC):
 
         return True
 
-    def _should_include_file(self, path, info):
+    def _should_include_file(self, info):
         """Check if the given file should be included"""
         if self._ignore_dot_files and info.name.startswith('.'):
             return False

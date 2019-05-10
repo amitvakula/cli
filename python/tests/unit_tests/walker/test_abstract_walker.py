@@ -56,3 +56,79 @@ def test_combine_paths():
     assert walker.combine('foo/', '/bar') == 'foo/bar'
     assert walker.combine('foo', 'bar') == 'foo/bar'
     assert walker.combine('/foo', 'bar/') == '/foo/bar/'
+
+
+def test_get_prefix_path_should_return_root_dir_if_walker_root_is_empty_and_dir_path_is_not_in_root():
+    walker = MockWalker('')
+
+    result = walker.get_prefix_path('')
+
+    assert result == '/'
+
+
+def test_get_prefix_path_should_return_root_if_walker_root_is_empty_and_dir_path_is_in_root():
+    walker = MockWalker('')
+
+    result = walker.get_prefix_path('/path1')
+
+    assert result == '/path1'
+
+
+def test_get_prefix_path_should_return_root_left_strip_dir_path_if_walker_root_is_a_root_directory():
+    walker = MockWalker('/')
+
+    result = walker.get_prefix_path('/path1')
+
+    assert result == 'path1'
+
+
+def test_get_prefix_path_should_return_root_minus_walker_root_if_walker_root_is_not_a_root_directory():
+    walker = MockWalker('/path1')
+
+    result = walker.get_prefix_path('/path1/path2')
+
+    assert result == '/path2'
+
+
+def test_files_should_return_root_dir_plus_file_name_if_walker_root_is_empty_and_dir_path_is_not_in_root():
+    walker = MockWalker('')
+    walker.results = [FileInfo('file1.txt', False)]
+
+    files = []
+    for file in walker.files():
+        files.append(file)
+
+    assert files[0] == '/file1.txt'
+
+
+def test_files_should_return_root_plus_file_name_if_walker_root_is_empty_and_dir_path_is_in_root():
+    walker = MockWalker('')
+    walker.results = [FileInfo('file1.txt', False)]
+
+    files = []
+    for file in walker.files('/path1'):
+        files.append(file)
+
+    assert files[0] == '/path1/file1.txt'
+
+
+def test_files_should_return_root_left_strip_dir_path_plus_file_name_if_walker_root_is_a_root_directory():
+    walker = MockWalker('/')
+    walker.results = [FileInfo('file1.txt', False)]
+
+    files = []
+    for file in walker.files(subdir='/path1'):
+        files.append(file)
+
+    assert files[0] == 'path1/file1.txt'
+
+
+def test_files_should_return_root_minus_walker_root_plus_file_name_if_walker_root_is_not_a_root_directory():
+    walker = MockWalker('/path1')
+    walker.results = [FileInfo('file1.txt', False)]
+
+    files = []
+    for file in walker.files(subdir='/path2'):
+        files.append(file)
+
+    assert files[0] == '/path2/file1.txt'

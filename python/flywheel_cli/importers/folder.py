@@ -52,7 +52,6 @@ class FolderImporter(AbstractImporter):
         self.root_node = None
         self._last_added_node = None
         self.merge_subject_and_session = merge_subject_and_session
-        self.walker = config.get_walker(max_depth=1)
 
     def add_template_node(self, next_node):
         """Append next_node to the last node that was added (or set the root node)
@@ -81,12 +80,12 @@ class FolderImporter(AbstractImporter):
         self.add_template_node(composite)
         self._last_added_node = nodes[-1]
 
-    def perform_discover(self, src_fs, context, queue=None, timeout=0):
+    def perform_discover(self, walker, context, queue=None, timeout=0):
         """Performs discovery of containers to create and files to upload in the given folder.
 
         Arguments:
-            src_fs (obj): The filesystem to query
-            follow_symlinks (bool): Whether or not to follow links (if supported by src_fs). Default is False.
+            walker (obj): The walker instance
+            follow_symlinks (bool): Whether or not to follow links (if supported by walker). Default is False.
             context (dict): The initial context
         """
         if queue is None:
@@ -102,16 +101,16 @@ class FolderImporter(AbstractImporter):
                 else:
                     target = queue.get(False)
 
-                self.visit_dir(src_fs, queue, target)
+                self.visit_dir(walker, queue, target)
                 queue.task_done()
             except Empty:
                 break  # Queue is empty, so stop
 
-    def visit_dir(self, src_fs, queue, target):
+    def visit_dir(self, walker, queue, target):
         """Performs recursive discovery of containers to create and files to upload in the given folder.
 
         Arguments:
-            src_fs (obj): The filesystem to query
+            walker (obj): The walker to query
             queue (Queue): The queue to add paths to
             target (VisitTarget): Queue entry being visited
         """
@@ -119,7 +118,7 @@ class FolderImporter(AbstractImporter):
         resolve = target.resolve
 
         # We only need to query for symlink if we're NOT following them
-        for path, dirs, files in self.walker.walk(src_fs, target.path):
+        for path, dirs, files in walker.walk(target.path, max_depth=1):
 
             for f in files:
                 # Check if it's in the exclusion list
@@ -130,12 +129,12 @@ class FolderImporter(AbstractImporter):
                 if packfile_desc is not None:
                     packfile_desc.count += 1
                 else:
-                    child_path = fs.path.combine(target.path, f.name)
+                    child_path = walker.combine(target.path, f.name)
                     context.setdefault('files', []).append(child_path)
 
             for d in dirs:
                 next_node = None
-                child_path = fs.path.combine(target.path, d.name)
+                child_path = walker.combine(target.path, d.name)
 
                 if 'packfile' in context:
                     child_context = context
@@ -147,7 +146,7 @@ class FolderImporter(AbstractImporter):
                         # Treat as packfile
                         child_context['packfile'] = d.name
                     else:
-                        next_node = target.template_node.extract_metadata(d.name, child_context, src_fs)
+                        next_node = target.template_node.extract_metadata(d.name, child_context, walker, path=child_path)
 
                 if not child_context.get('ignore', False):
                     # Set the packfile descriptor for file collection
@@ -158,7 +157,7 @@ class FolderImporter(AbstractImporter):
                             child_path, 0, name=packfile_name)
 
                     if next_node and next_node.node_type == 'scanner':
-                        messages = next_node.scan(src_fs, child_path, child_context, self.container_factory)
+                        messages = next_node.scan(walker, child_path, child_context, self.container_factory)
                         self.messages += messages
                         resolve = False
                     else:

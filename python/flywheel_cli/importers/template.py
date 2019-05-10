@@ -26,13 +26,14 @@ class ImportTemplateNode(ABC):
     ignore = False
     node_type = 'folder'
 
-    def extract_metadata(self, name, context, parent_fs=None):
+    def extract_metadata(self, name, context, walker=None, path=None):
         """Extract metadata from a folder-level node
 
         Args:
             name (str): The current folder name
             context (dict): The context object to update
-            parent_fs (fs): The parent fs object, if available
+            walker (fs): The parent walker object, if available
+            path (str): The full path to the folder
 
         Returns:
             ImportTemplateNode: The next node in the tree if match succeeded, otherwise None
@@ -57,7 +58,7 @@ class ImportTemplateNode(ABC):
 
 class TerminalNode(ImportTemplateNode):
     """Terminal node"""
-    def extract_metadata(self, name, context, parent_fs=None):
+    def extract_metadata(self, name, context, walker=None, path=None):
         return None
 
     def __repr__(self):
@@ -87,7 +88,7 @@ class StringMatchNode(ImportTemplateNode):
         """Set the next node"""
         self.next_node = next_node
 
-    def extract_metadata(self, name, context, parent_fs=None):
+    def extract_metadata(self, name, context, walker=None, path=None):
         groups = {}
 
         if isinstance(self.template, Pattern):
@@ -112,7 +113,7 @@ class StringMatchNode(ImportTemplateNode):
                 set_nested_attr(context, key, value)
 
         if callable(self.metadata_fn):
-            self.metadata_fn(name, context, parent_fs)
+            self.metadata_fn(name, context, walker, path=path)
 
         if self.packfile_type:
             context['packfile'] = self.packfile_type
@@ -145,9 +146,9 @@ class CompositeNode(ImportTemplateNode):
         """
         self.children.append(child)
 
-    def extract_metadata(self, name, context, parent_fs=None):
+    def extract_metadata(self, name, context, walker=None, path=None):
         for child in self.children:
-            next_node = child.extract_metadata(name, context, parent_fs)
+            next_node = child.extract_metadata(name, context, walker, path=path)
             if next_node:
                 return next_node
         return None

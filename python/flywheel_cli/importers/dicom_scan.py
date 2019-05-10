@@ -72,17 +72,15 @@ class DicomScanner(object):
         self.sessions = {}
         self.messages = []
 
-        self.walker = config.get_walker()
-
     def save_subject_map(self):
         if self.subject_map:
             self.subject_map.save()
 
-    def discover(self, src_fs, context, container_factory, path_prefix=None):
+    def discover(self, walker, context, container_factory, path_prefix=None):
         """Performs discovery of containers to create and files to upload in the given folder.
 
         Arguments:
-            src_fs (obj): The filesystem to query
+            walker (AbstractWalker): The filesystem to query
             context (dict): The initial context
         """
         tags = [ Tag(tag_for_keyword(keyword)) for keyword in DICOM_TAGS ]
@@ -97,12 +95,7 @@ class DicomScanner(object):
         sys.stdout.flush()
 
         # Discover files first
-        if path_prefix is not None:
-            sub_fs = src_fs.opendir(path_prefix)
-        else:
-            sub_fs = src_fs
-
-        files = list(self.walker.files(sub_fs))
+        files = list(walker.files(subdir=path_prefix))
         file_count = len(files)
         files_scanned = 0
 
@@ -112,7 +105,7 @@ class DicomScanner(object):
             files_scanned = files_scanned+1
 
             try:
-                with sub_fs.open(path, 'rb', buffering=self.config.buffer_size) as f:
+                with walker.open(path, 'rb', buffering=self.config.buffer_size) as f:
                     # Unzip gzipped files
                     _, ext = os.path.splitext(path)
                     if ext.lower() == '.gz':
@@ -129,12 +122,10 @@ class DicomScanner(object):
                         full_path = path_prefix + path if path_prefix else path
                         orig_path = acquisition.files[sop_uid]
 
-                        if not util.fs_files_equal(src_fs, full_path, orig_path):
+                        if not util.files_equal(walker, full_path, orig_path):
                             message = ('File "{}" and "{}" conflict!\n  Both files have the '
                                 'same IDs, but contents differ!').format(path, orig_path)
                             self.messages.append(('error', message))
-                    elif path_prefix:
-                        acquisition.files[sop_uid] = path_prefix + path
                     else:
                         acquisition.files[sop_uid] = path
 
@@ -290,12 +281,12 @@ class DicomScannerImporter(AbstractImporter):
 
         return context
 
-    def perform_discover(self, src_fs, context):
+    def perform_discover(self, walker, context):
         """Performs discovery of containers to create and files to upload in the given folder.
 
         Arguments:
-            src_fs (obj): The filesystem to query
+            walker (AbstractWalker): The filesystem to query
             context (dict): The initial context
         """
-        self.scanner.discover(src_fs, context, self.container_factory)
+        self.scanner.discover(walker, context, self.container_factory)
         self.messages += self.scanner.messages

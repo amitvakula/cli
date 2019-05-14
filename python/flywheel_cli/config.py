@@ -9,7 +9,7 @@ import time
 import zlib
 import zipfile
 
-from flywheel_migration import deidentify
+from flywheel_migration import deidentify, dcm
 
 from . import walker
 from .sdk_impl import create_flywheel_client, SdkUploadWrapper
@@ -82,6 +82,10 @@ class Config(object):
         dicom_tags_file = getattr(args, 'private_dicom_tags', None)
         if dicom_tags_file is not None:
             add_private_tags(dicom_tags_file)
+
+        # Handle unknown dicom tags
+        if getattr(args, 'ignore_unknown_tags', False):
+            dcm.global_ignore_unknown_tags()
 
         # An audit file to track which files are being uploaded to where
         self.audit_log = getattr(args, 'audit_log', False)
@@ -211,6 +215,7 @@ class Config(object):
         parser.add_argument('--skip-existing', action='store_true', help='Skip import of existing files')
         parser.add_argument('--audit-log', default=False, help='Log file of file disk path to flywheel resolver path')
         parser.add_argument('--private-dicom-tags', help='Path to a private dicoms csv file')
+        parser.add_argument('--ignore-unknown-tags', action='store_true', help='Ignore unknown dicom tags')
         return parser
 
     @staticmethod

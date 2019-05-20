@@ -6,6 +6,8 @@ from . import import_dicom
 from . import import_bids
 from . import import_parrec
 
+from . import manage_gears
+
 from . import export_bids
 
 from . import retry_job
@@ -95,6 +97,20 @@ def add_commands(parser):
 
     # Link help commands
     set_subparser_print_help(parser_export, export_subparsers)
+
+
+    # =====
+    # gears
+    # =====
+    parser_manage = subparsers.add_parser('manage-gears', help='Manage flywheel sites')
+    parsers['manage-gears'] = parser_manage
+
+    manage_subparsers = parser_manage.add_subparsers(title='Available management topics', metavar='')
+
+    manage_gears.add_commands(manage_subparsers, parsers)
+
+    # Link help commands
+    set_subparser_print_help(parser_manage, manage_subparsers)
 
 
     # =====

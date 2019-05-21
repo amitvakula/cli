@@ -191,8 +191,8 @@ class WorkQueue(object):
         with self._complete_cond:
             self._finish_called = True
 
-            if self.running and self.tasks_pending():
-                self._complete_cond.wait()
+            while self.running and self.tasks_pending():
+                self._complete_cond.wait(timeout=0.2)
 
     def shutdown(self):
         # Shutdown

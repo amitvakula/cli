@@ -140,6 +140,7 @@ def confirmation_prompt(message):
 def perror(*args, **kwargs):
     """Print to stderr"""
     kwargs['file'] = sys.stderr
+    kwargs['flush'] = True
     print(*args, **kwargs)
 
 def contains_dicoms(walker):

@@ -75,7 +75,7 @@ def ctrlc_excepthook(exctype, value, traceback):
     if exctype == KeyboardInterrupt:
         perror('\nUser cancelled execution (Ctrl+C)')
         logging.getLogger().setLevel(100) # Supress any further log output
-        sys.exit(1)
+        os._exit(1)
     else:
         sys.__excepthook__(exctype, value, traceback)
 

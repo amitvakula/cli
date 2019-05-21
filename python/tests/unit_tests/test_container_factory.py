@@ -34,7 +34,7 @@ def test_resolve_group_not_exist():
 
 def test_resolve_group_exists():
     resolver = MockContainerResolver({
-        'foo': ('foo', None)    
+        'foo': ('foo', None)
     })
 
     factory = ContainerFactory(resolver)
@@ -72,7 +72,7 @@ def test_resolve_acquisition():
     group_context = {
         'group': {'_id': 'scitran'},
     }
-    
+
     project_context = {
         'group': {'_id': 'scitran'},
         'project': {'label': 'Project1'},
@@ -100,19 +100,19 @@ def test_resolve_acquisition():
     result = factory.resolve(group_context)
     assert result is not None
     assert result.container_type == 'group'
-    assert result.id is 'scitran' 
+    assert result.id is 'scitran'
     assert result.exists
-    
+
     result = factory.resolve(project_context)
     assert result is not None
     assert result.container_type == 'project'
-    assert result.id is 'project1' 
+    assert result.id is 'project1'
     assert result.label == 'Project1'
     assert result.exists
 
     result = factory.resolve(acquisition_context)
     assert result == acquisition_node
-    
+
     acquisition_context2 = copy.deepcopy(acquisition_context)
     acquisition_context2['acquisition']['uid'] = '5678'
 
@@ -152,7 +152,7 @@ def test_creation():
 
     # Should be in hierarchical order for a single tree
     itr = iter(resolver.created_nodes)
-    
+
     parent, child = next(itr)
     assert parent.container_type == 'project'
     assert parent.id == 'project1'
@@ -181,3 +181,33 @@ def test_creation():
         pass
 
 
+def test_get_first_project():
+    resolver = MockContainerResolver()
+    factory = ContainerFactory(resolver)
+
+    assert factory.get_first_project() is None
+
+    context = {
+        'group': {'_id': 'scitran'},
+    }
+    factory.resolve(context)
+    assert factory.get_first_project() is None
+
+    context = {
+        'group': {'_id': 'scitran'},
+        'project': {'label': 'Project1'}
+    }
+    factory.resolve(context)
+    result = factory.get_first_project()
+    assert result is not None
+    assert result.label == 'Project1'
+
+
+    context = {
+        'group': {'_id': 'scitran'},
+        'project': {'label': 'Project2'}
+    }
+    factory.resolve(context)
+    result = factory.get_first_project()
+    assert result is not None
+    assert result.label == 'Project1'

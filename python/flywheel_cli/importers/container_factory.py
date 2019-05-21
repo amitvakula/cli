@@ -1,4 +1,4 @@
-import collections 
+import collections
 import copy
 
 from abc import ABC, abstractmethod
@@ -39,7 +39,7 @@ class ContainerResolver(ABC):
     @abstractmethod
     def resolve_path(self, container_type, path):
         """Resolve a container id by path
-        
+
         Arguments:
             container_type (str): The container type hint
             path (str): The resolver path
@@ -125,7 +125,7 @@ class ContainerFactory(object):
         Yields:
             ContainerNode, ContainerNode: parent, child container nodes
         """
-        queue = collections.deque() 
+        queue = collections.deque()
         for child in self.root.children:
             queue.append((None, child))
 
@@ -145,9 +145,23 @@ class ContainerFactory(object):
         """
         return self.root.children
 
+    def get_first_project(self):
+        """Get the first project in the hierarchy.
+
+        Returns:
+            ContainerNode: The first project node, or None
+        """
+        groups = self.root.children
+        if not groups:
+            return None
+        projects = groups[0].children
+        if not projects:
+            return None
+        return projects[0]
+
     def _resolve_child(self, parent, container_type, context, path):
         """Resolve a child by searching the parent, or creating a new node
-        
+
         Arguments:
             parent (ContainerNode): The parent node
             container_type (str): The container type

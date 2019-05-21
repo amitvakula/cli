@@ -1,6 +1,9 @@
 """Provides audit logging class"""
 import csv
+import logging
 import os
+
+log = logging.getLogger(__name__)
 
 class AuditLog(object):
     def __init__(self, audit_log_path):
@@ -35,3 +38,28 @@ class AuditLog(object):
         if file_name is not None:
             path += ['files', file_name]
         return '/'.join(path)
+
+    def finalize(self, container_factory):
+        if not self.path:
+            return
+
+        # Upload the audit log to the target project
+        project = container_factory.get_first_project()
+        if not project:
+            log.info('No project found for import, skipping audit-log upload')
+            return
+
+        if not hasattr(container_factory.resolver, 'upload'):
+            log.warn('Cannot upload audit-log -- no upload function available')
+            return
+
+        try:
+            log_name = os.path.basename(self.path)
+            with open(self.path, 'rb') as f:
+                container_factory.resolver.upload(project, log_name, f)
+        except:
+            log.error('Error uploading audit-log', exc_info=True)
+        else:
+            print('%s uploaded to the "%s" project. Removing local file.' % (
+                log_name, project.label))
+            os.remove(self.path)

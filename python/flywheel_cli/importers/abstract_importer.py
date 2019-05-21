@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import collections
 import copy
+import datetime
 import fs
 import io
 import logging
@@ -317,6 +318,8 @@ class AbstractImporter(ABC):
         if self.deid_profile:
             self.deid_profile.finalize()
 
+        self.audit_log.finalize(self.container_factory)
+
         upload_queue.shutdown()
         walker.close()
 
@@ -324,7 +327,9 @@ class AbstractImporter(ABC):
         """Called before actual upload begins"""
         pass
 
-    def _init_audit_log(self, audit_log_path):
-        if audit_log_path is None:
-            audit_log_path = 'audit_log.csv'
+    def _init_audit_log(self, audit_log_enabled):
+        if audit_log_enabled:
+            audit_log_path = 'audit_log-{}.csv'.format(datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
+        else:
+            audit_log_path = None
         return AuditLog(audit_log_path)

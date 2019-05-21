@@ -76,6 +76,7 @@ class UploadFileWrapper(object):
     def reset(self):
         if self.fileobj:
             self.fileobj.seek(0)
+        self._sent = 0
 
     @property
     def len(self):
@@ -117,7 +118,7 @@ class UploadTask(Task):
         # Under 32 MB, just read the entire file
         if self.fileobj.len == 0:
             # Skip and log 0-byte files
-            log.info('Skipping 0-byte file upload: %s', self.fileobj.name)
+            log.info('Skipping 0-byte file upload: %s', self.filename)
             self.audit_log.add_log(self.fileobj.name, self.container, self.filename,
                     failed=True, message='Skipped 0-byte file')
             self.skipped = True

@@ -32,6 +32,9 @@ PYTHON_PACKAGES = [
 PYVER = '.'.join(PYTHON_VERSION.split('.')[:2]) # Short version
 PYXY = ''.join(PYTHON_VERSION.split('.')[:2])
 
+with open(os.path.join(SRC_DIR, '..', 'python-cli-version.txt'), 'r') as f:
+    PYTHON_CLI_VERSION = f.read().strip()
+
 def read_ignore_patterns():
     # Load ignores
     result = []
@@ -78,7 +81,7 @@ def build_site_packages():
     # Create resolver
     # Loosely based on: https://github.com/pantsbuild/pex/blob/982cb9a988949ffff3348b9bca98ae72a0bf8847/pex/bin/pex.py#L577
     resolver_option_builder = ResolverOptionsBuilder()
-    resolvables = [Resolvable.get(SRC_DIR, resolver_option_builder)]
+    resolvables = [Resolvable.get('flywheel-cli=={}'.format(PYTHON_CLI_VERSION), resolver_option_builder)]
     resolver = CachingResolver(PEX_BUILD_CACHE_DIR, None)
 
     # Effectively we resolve (possibly from cache) The source and all of the dependency packages

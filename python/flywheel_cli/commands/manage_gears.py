@@ -33,6 +33,7 @@ def add_commands(subparsers, parsers):
     gear_push_parser.add_argument('--filter-site', action='append', help='filter sites to push to')
     gear_push_parser.add_argument('--filter-gear', action='append', help='filter gears to push')
     gear_push_parser.add_argument('--inventory-file', '-f', default=os.path.expanduser(os.path.join(CONFIG_PATH, 'inventory.yml')), help='Path to the inventory file')
+    gear_push_parser.add_argument('--gear-manifest', '-g', help='Path to a gear manifest')
     gear_push_parser.set_defaults(func=gears_push)
 
 
@@ -54,26 +55,57 @@ def gears_push(args):
     """Push push-version to site"""
     inventory = _load_inventory(args.inventory_file)
     for site in inventory['sites']:
-        if not args.filter or site in args.filter_site:
+        if not args.filter_site or site['name'] in args.filter_site:
             client = flywheel.Client(site['api-key'])
             _push_local_gears(client, inventory.get(site['name']), args.filter_gear)
 
 
 def _push_local_gears(client, site_gears, gear_filters):
-    for gear in site_gears:
-        if gear.get('push-version') and gear['push-version'] not in gear['versions']:
+    for gear_name, gear in site_gears.items():
+        if gear.get('push-version') and gear['push-version'] not in gear.get('versions', []):
             push_gear(client, gear['manifest'])
 
 
 def push_gear(client, gear_manifest_uri):
+    user = client.get_current_user()
+
     # Create docker client
     docker_client = docker.from_env()
+
     # Load in the gear manifest
     manifest = load_manifest(gear_manifest_uri)
-    # Retrieve the gear ticket
-    gear_ticket = client.prepare_add_gear(manifest)
-    # Login to the flywheel registry
 
+    # Pull the manifest image
+    image_repo = manifest['custom']['gear-builder']['image']
+    if ':' in image_repo:
+        image_repo, image_tag = image_repo.split(':')
+    else:
+        image_tag = None
+    docker_client.images.pull(image_repo, tag=image_tag)
+
+    # Retrieve the gear ticket
+    gear_ticket_id = client.prepare_add_gear(manifest)
+
+    # Login to the flywheel registry
+    domain = '/'.join(fw.get_config().site.api_url.split('/')[2:-1])
+    apikey = client.api_client.configuration.api_key['Authorization']
+    password = domain + ':' + apikey
+    docker_client.login(username=user.email,
+                        password=password,
+                        registry=domain)
+    try:
+        log.debug('Pushing gear...')
+        digest = json.loads(docker_client.images.push(image_repo, tag=image_tag, decode=True).split('\r\n')[-2])['aux']['Digest']
+    except Exception as e:
+        log.error('Failed to push image', exc_info=True)
+        return
+
+    ticket = {
+        'ticket': gear_ticket_id,
+        'repo': domain + '/' + image_repo + ':' + image_tag,
+        'pointer': digest
+    }
+    client.save_gear(ticket)
 
 
 def load_manifest(gear_manifest_uri):

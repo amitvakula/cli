@@ -73,11 +73,11 @@ $ fw download scitran/Neuroscience/patient_1/8403_1_1_localizer/8403_1_1_localiz
 
 ## Choosing a Python CLI Version
 
-The python portion of the CLI is grabbed via PIP. You can update update which
+The python portion of the CLI is retrieved via PIP. You can update update which
 version to pull by updating `python-cli-version.txt`.
 
 ## Creating a release
 
-When creating a new CLI release, update `python-cli-version.txt` and `fw.go` with the 
+When creating a new CLI release, update `python-cli-version.txt` and `fw.go` with the
 correct version before tagging.
 

@@ -4,25 +4,22 @@ imports:
   repo: https://github.com/flywheel-io/sdk
   subpackages:
   - api
+- name: github.com/Azure/go-ansiterm
+  version: d6e3b3328b783f23731bc4d058875b0371ff8109
+  subpackages:
+  - winterm
 - name: github.com/cheggaaa/pb
-  version: f6ccf2184de4dd34495277e38dc19b6e7fbe0ea2
-- name: github.com/manifoldco/promptui
-  version: 3dd80c00b7cb0bc779d1c204da6f3ae0fa6a4eee
+  version: f907f6f5dd81f77c2bbc1cde92e4c5a04720cb11
 - name: github.com/chzyer/readline
   version: 2972be24d48e78746da79ba8e24e8b488c9880de
-- name: github.com/juju/ansiterm
-  version: 720a0952cc2ac777afc295d9861263e2a4cf96a1
-- name: github.com/lunixbochs/vtclean
-  version: 2d01aacdc34a083dca635ba869909f5fc0cd4f41
-- name: github.com/cosnicolaou/llog
-  version: afed407739a24b4fec02a5a214defc813ffc750c
 - name: github.com/dghubble/sling
-  version: bbfb8293bd33a6baad33d718aacf66ef73a29f30
+  version: 22538d0bac4e8b6337114fccfdfeb6d1ad0ef2d2
 - name: github.com/docker/distribution
-  version: 1e2f10eb65743fed02f573d31a4587de09afb20e
+  version: 3226863cbcba6dbc2f6c83a37b28126c934af3f8
   subpackages:
   - digestset
   - reference
+  - registry/api/errcode
 - name: github.com/docker/docker
   version: bc4c1c238b551ce58fc26690523354d1571bab1d
   subpackages:
@@ -38,37 +35,35 @@ imports:
   - api/types/registry
   - api/types/strslice
   - api/types/swarm
+  - api/types/swarm/runtime
   - api/types/time
   - api/types/versions
   - api/types/volume
   - client
-  - pkg/ioutils
-  - pkg/longpath
-  - pkg/mount
+  - errdefs
+  - pkg/jsonmessage
   - pkg/stdcopy
-  - pkg/system
-  - pkg/tlsconfig
+  - pkg/term
+  - pkg/term/windows
 - name: github.com/docker/go-connections
-  version: e15c02316c12de00874640cd76311849de2aeed5
+  version: b44139defdac517e3f71df1e60826f8a262a2482
   subpackages:
   - nat
   - sockets
   - tlsconfig
 - name: github.com/docker/go-units
-  version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
-- name: github.com/docker/libtrust
-  version: aabc10ec26b754e797f9028f4589c5b7bd90dc20
+  version: 519db1ee28dcc9fd2474ae59fca29a810482bfb1
 - name: github.com/dustin/go-humanize
-  version: 259d2a102b871d17f30e3cd9881a642961a1e486
+  version: 9f541cc9db5d55bce703bd99987c9d5cb8eea45e
 - name: github.com/fatih/color
-  version: 62e9147c64a1ed519147b62a56a14e83e2be02c1
+  version: 3f9d52f7176a6927daacff70a3e8d1dc2025c53e
 - name: github.com/flosch/pongo2
   version: 5e81b817a0c48c1c57cdf1a9056cf76bdee02ca9
 - name: github.com/globalsign/mgo
-  version: baa28fcb8e7d5dfab92026c0920cb6c9ae72faa2
+  version: eeefdecb41b842af6dc652aaea4026e8403e62df
   repo: https://github.com/globalsign/mgo
 - name: github.com/gobwas/glob
-  version: 51eb1ee00b6d931c66d229ceeb7c31b985563420
+  version: e7a84e9525fe90abcda167b604e483cc959ad4aa
   subpackages:
   - compiler
   - match
@@ -77,8 +72,20 @@ imports:
   - syntax/lexer
   - util/runes
   - util/strings
+- name: github.com/gogo/protobuf
+  version: aaa2bc4a721308c853b939c8b2e1407ca8a8cfd7
+  subpackages:
+  - proto
+- name: github.com/golang/protobuf
+  version: b285ee9cfc6c881bb20c0d8dc73370ea9b9ec90f
+  subpackages:
+  - proto
+  - ptypes
+  - ptypes/any
+  - ptypes/duration
+  - ptypes/timestamp
 - name: github.com/google/go-querystring
-  version: 53e6ce116135b80d037921a7fdd5138cf32d7a8a
+  version: c8c88dbee036db4e4808d1f2ec8c2e15e11c3f80
   subpackages:
   - query
 - name: github.com/grailbio/go-dicom
@@ -93,74 +100,78 @@ imports:
   version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/juju/ansiterm
+  version: 720a0952cc2ac777afc295d9861263e2a4cf96a1
+  subpackages:
+  - tabwriter
 - name: github.com/juju/ratelimit
   version: 59fac5042749a5afb9af70e813da1dd5474f0167
 - name: github.com/kennygrant/sanitize
-  version: 2e6820834a1f36c626bf19a253b7d3cc060e9b8b
-- name: github.com/klauspost/compress
-  version: f3dce52e0576655d55fd69e74b63da96ad1108f3
+  version: 06ec0d0dbcd497d01e5189b16f5263f712e61a8e
+- name: github.com/konsorten/go-windows-terminal-sequences
+  version: f55edac94c9bbba5d6182a4be46d86a2c9b5b50e
+- name: github.com/lunixbochs/vtclean
+  version: 88cfb0c2efe8ed7b0ccf0af83db39359829027bb
+- name: github.com/manifoldco/promptui
+  version: 35bab80e16a4de256e470efb31775342cec6f3cc
   subpackages:
-  - flate
-- name: github.com/klauspost/cpuid
-  version: ae7887de9fa5d2db4eaa8174a7eff2c1ac00f2da
-- name: github.com/klauspost/crc32
-  version: bab58d77464aa9cf4e84200c3276da0831fe0c03
-- name: github.com/klauspost/pgzip
-  version: 0bf5dcad4ada2814c3c00f996a982270bb81a506
+  - list
+  - screenbuf
 - name: github.com/mattn/go-colorable
-  version: 5411d3eea5978e6cdc258b30de592b60df6aba96
-  repo: https://github.com/mattn/go-colorable
+  version: 3a70a971f94a22f2fa562ffcc7a0eb45f5daf045
 - name: github.com/mattn/go-isatty
-  version: 57fdcb988a5c543893cc61bce354a6e24ab70022
-  repo: https://github.com/mattn/go-isatty
+  version: c1975dc15c1d481e8da23f6ed313bb071136b98f
 - name: github.com/mattn/go-runewidth
-  version: 97311d9f7767e3d6f422ea06661bc2c7a19e8a5d
+  version: 703b5e6b11ae25aeb2af9ebb5d5fdf8fa2575211
 - name: github.com/Microsoft/go-winio
-  version: f533f7a102197536779ea3a8cb881d639e21ec5a
+  version: 12afdbf8b879f9ce020255d4dea63525b16518f5
+  subpackages:
+  - pkg/guid
 - name: github.com/mitchellh/go-homedir
-  version: b8bc1bf767474819792c23f32d8286a45736f1c6
+  version: af06845cf3004701891bf4fdb884bfe4920b3727
 - name: github.com/mitchellh/mapstructure
   version: 3536a929edddb9a5b34bd6861dc4a9647cb459fe
+- name: github.com/morikuni/aec
+  version: 39771216ff4c63d11f5e604076f9c45e8be1067b
 - name: github.com/opencontainers/go-digest
-  version: eaa60544f31ccf3b0653b1a118b76d33418ff41b
+  version: ac19fd6e7483ff933754af248d80be865e543d22
 - name: github.com/opencontainers/image-spec
-  version: 4038d4391fe912af1031db5a1f511cf07c07cbc8
+  version: da296dcb1e473a9b4e2d148941d7faa9ac8fea3f
   subpackages:
   - specs-go
   - specs-go/v1
 - name: github.com/pkg/errors
-  version: c605e284fe17294bda444b34710735b29d1a9d90
+  version: 27936f6d90f9c8e1145f11ed52ffffbfdb9e0af7
 - name: github.com/segmentio/go-prompt
-  version: eb423f47b3338983141e73ddd1a30470287faec5
+  version: 4b85eaccea7bc3d4543bde48ace658ee94a0f7b1
   repo: https://github.com/kofalt/go-prompt
 - name: github.com/sirupsen/logrus
-  version: 5e5dc898656f695e2a086b8e12559febbfc01562
+  version: 2a22dbedbad1fd454910cd1f44f210ef90c28464
 - name: github.com/spf13/cobra
-  version: 2df9a531813370438a4d79bfc33e21f58063ed87
+  version: 67fc4837d267bc9bfd6e47f77783fcc3dffc68de
 - name: github.com/spf13/pflag
-  version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
+  version: 24fa6976df40757dce6aea913e7b81ade90530e1
 - name: github.com/udhos/equalfile
-  version: c92b0e41854b49e567ba269dcc572ada60e48e7b
+  version: 90a7461a2a226fa62eca6e350b5207ae9c78fff8
 - name: golang.org/x/crypto
-  version: f3241ce8505855877cc8a9717bd61a0f7c4ea83c
+  version: 22d7a77e9e5f409e934ed268692e56707cd169e5
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 3da985ce5951d99de868be4385f21ea6c2b22f24
+  version: 3ec19112720433827bbce8be9342797f5a6aaaf9
   subpackages:
   - context
-  - context/ctxhttp
   - html
   - html/atom
+  - internal/socks
   - proxy
 - name: golang.org/x/sys
-  version: e24f485414aeafb646f6fca458b0bf869c0880a1
-  repo: https://go.googlesource.com/sys
+  version: 61b9204099cb1bebc803c9ffb9b2d3acd9d457d9
   subpackages:
   - unix
   - windows
 - name: golang.org/x/text
-  version: 825fc78a2fd6fa0a5447e300189e3219e05e1f25
+  version: 342b2e1fbaa52c93f31447ad2c6abc048c63e475
   subpackages:
   - encoding
   - encoding/charmap
@@ -172,14 +183,26 @@ imports:
   - encoding/simplifiedchinese
   - encoding/traditionalchinese
   - encoding/unicode
+  - internal/language
+  - internal/language/compact
   - internal/tag
   - internal/utf8internal
   - language
   - runes
   - transform
+- name: google.golang.org/genproto
+  version: bb713bdc0e5239f2b68e560efbe1c701a6fe78f9
+  subpackages:
+  - googleapis/rpc/status
+- name: google.golang.org/grpc
+  version: 8655d473adfe8fa6619fd42cd2a001b412695b21
+  subpackages:
+  - codes
+  - status
 - name: v.io/x/lib
-  version: a4b4937710e360572a474dfdd48cb10848b35f1b
+  version: 90ad71fa559e042a85da617bffb01907a30e4108
   repo: https://github.com/vanadium/go.lib
   subpackages:
+  - llog
   - vlog
 testImports: []

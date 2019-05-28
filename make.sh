@@ -6,7 +6,7 @@ unset CDPATH; cd "$( dirname "${BASH_SOURCE[0]}" )"; cd "$(pwd -P)"
 pkg="flywheel.io/fw"
 testPkg="flywheel.io/fw"
 coverPkg="flywheel.io/fw"
-goV=${GO_VERSION:-"1.10.3"}
+goV=${GO_VERSION:-"1.12.5"}
 minGlideV="0.13.1"
 targets=( "linux/amd64" "darwin/amd64" "windows/amd64" )
 venv_dir="python/.venv"
@@ -84,7 +84,7 @@ preparePkgData() {
 	do
 		srcdir="python/dist/${platform}-x86_64/"
 		dstfile="python/pkgdata/pkgdata_${platform}.go"
-		if [ ! -d ${srcdir} ]; then 
+		if [ ! -d ${srcdir} ]; then
 			echo "Python package-data folder ${srcdir} does not exist! Run 'make.sh buildPython' first!"
 			exit 1
 		fi

@@ -5,10 +5,27 @@
 
 ## Building
 
-```bash
+### Cloning
+
+This project expects to be in your GOPATH. E.g. using workspace:
+```
 git clone git@github.com:flywheel-io/cli workspace/src/flywheel.io/fw
 ln -s workspace/src/flywheel.io/fw cli
+```
 
+### Building Python
+
+The CLI executable wraps a python virtual environment and standalone interpreter.
+In order to build the executable, you'll need to build the python portion of it first.
+This requires Python 3.6 (e.g. with a virtual environment activated)
+
+```bash
+./cli/make.sh buildPython
+```
+
+### Building Executable
+
+```bash
 ./cli/make.sh
 ```
 
@@ -54,4 +71,13 @@ $ fw ls scitran/Neuroscience/patient_1/8403_1_1_localizer
 $ fw download scitran/Neuroscience/patient_1/8403_1_1_localizer/8403_1_1_localizer.dicom.zip
 ```
 
+## Choosing a Python CLI Version
+
+The python portion of the CLI is retrieved via PIP. You can update update which
+version to pull by updating `python-cli-version.txt`.
+
+## Creating a release
+
+When creating a new CLI release, update `python-cli-version.txt` and `fw.go` with the
+correct version before tagging.
 

@@ -5,7 +5,7 @@ stages:
 
 before_script:
   - mkdir -p workspace/src/flywheel.io/fw
-  - ln -svf $CI_PROJECT_DIR workspace/src/flywheel.io/fw
+  - ln -svf $CI_PROJECT_DIR/project-0 workspace/src/flywheel.io/fw
   - cd workspace/src/flywheel.io/fw
 
 

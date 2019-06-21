@@ -19,7 +19,7 @@ format:
 cut:
   stage: cut
   script:
-    -
+    - echo Hello
 
 
 build:

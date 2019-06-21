@@ -4,10 +4,10 @@ stages:
   - deploy
 
 before_script:
-  - mkdir -p workspace/src/flywheel.io/fw
-  - ln -svf $CI_PROJECT_DIR workspace/src/flywheel.io/fw
-  - cd workspace/src/flywheel.io/fw
-  - ls
+  - mkdir -p $GOPATH/src/$(dirname $REPO_NAME)
+  - ln -svf $CI_PROJECT_DIR $GOPATH/src/$(dirname $REPO_NAME)/fw
+  - cd $GOPATH/src/$(dirname $REPO_NAME)/fw
+
 
 
 format:

@@ -4,9 +4,9 @@ stages:
   - deploy
 
 before_script:
-  - mkdir -p $GOPATH/src/$(dirname $REPO_NAME)
-  - ln -svf $CI_PROJECT_DIR $GOPATH/src/$REPO_NAME
-  - cd $GOPATH/src/$REPO_NAME
+  - mkdir -p workspace/src/flywheel.io/fw
+  - ln -svf $CI_PROJECT_DIR workspace/src/flywheel.io/fw
+  - cd workspace/src/flywheel.io/fw
 
 
 format:
@@ -25,6 +25,8 @@ build:
   stage: build
   script:
     - apt -y update && apt -y install python3 python3-pip python3-venv unzip upx
+    - pwd
+    - ls
     - ./make.sh buildPython
     - ./make.sh glide install
     - ./make.sh prepareCrossBuild

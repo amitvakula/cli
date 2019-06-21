@@ -13,7 +13,7 @@ before_script:
 format:
   stage: cut
   script:
-    - ./make.sh formatCheck
+    - echo formatCheck
 
 
 cut:

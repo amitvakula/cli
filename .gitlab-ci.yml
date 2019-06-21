@@ -1,0 +1,34 @@
+stages:
+  - cut
+  - build
+  - deploy
+
+format:
+  stage: cut
+  script:
+    - ./make.sh formatCheck
+
+
+cut:
+  stage: cut
+  script:
+    -
+
+
+build:
+  stage: build
+  script:
+    - apt -y update && apt -y install python3 python3-pip python3-venv unzip upx
+    - ./make.sh buildPython
+    - ./make.sh glide install
+    - ./make.sh prepareCrossBuild
+    - ./make.sh cross
+    - apt -y install musl-tools && which musl-gcc
+    - CC=`which musl-gcc` ./make.sh go build -v --ldflags '-linkmode external -extldflags "-static"' fw.go
+    - mv ./fw /workspace/bin/linux_amd64/fw
+    - ./make.sh compressExecutable /workspace/bin/linux_amd64/fw
+    - rm -rf /workspace/bin/glide /workspace/bin/go-junit-report /workspace/bin/fw /workspace/bin/go-bindata
+
+deploy:
+  stage: deploy
+
